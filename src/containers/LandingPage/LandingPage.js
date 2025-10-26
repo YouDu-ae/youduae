@@ -71,7 +71,7 @@ const LandingPage = () => {
         </p>
 
         {/* --- КНОПКА: СТРОИТЕЛЬСТВО И РЕМОНТ --- */}
-        <a href="/privacy-policy" className={css.btnConstruction1}>
+        <a href="/category/construction" className={css.btnConstruction1}>
           <div className={css.textIcon1}>
             <span className={css.iconDrill}></span>
             <span className={css.btnText1}>Строительство и ремонт</span>
@@ -79,7 +79,7 @@ const LandingPage = () => {
         </a>
 
         {/* --- КНОПКА: КРАСОТА И ЗДОРОВЬЕ --- */}
-        <a href="/privacy-policy" className={css.btnConstruction2}>
+        <a href="/category/beauty" className={css.btnConstruction2}>
           <div className={css.textIcon2}>
             <span className={css.iconScissors}></span>
             <span className={css.btnText2}>Красота и здоровье</span>
@@ -87,7 +87,7 @@ const LandingPage = () => {
         </a>
 
         {/* --- КНОПКА: РЕПЕТИТОРЫ И ОБУЧЕНИЕ --- */}
-        <a href="/privacy-policy" className={css.btnConstruction3}>
+        <a href="/category/tutoring" className={css.btnConstruction3}>
           <div className={css.textIcon3}>
             <span className={css.iconSchool}></span>
             <span className={css.btnText3}>Репетиторы и обучение</span>
@@ -95,7 +95,7 @@ const LandingPage = () => {
         </a>
 
         {/* --- КНОПКА: УБОРКА И ПОМОЩЬ В ДОМЕ --- */}
-        <a href="/privacy-policy" className={css.btnConstruction4}>
+        <a href="/category/cleaning" className={css.btnConstruction4}>
           <div className={css.textIcon4}>
             <span className={css.iconHousekeeper}></span>
             <span className={css.btnText4}>Уборка и помощь в доме</span>
@@ -103,7 +103,7 @@ const LandingPage = () => {
         </a>
 
         {/* --- КНОПКА: ЮРИДИЧЕСКАЯ И БУХГАЛТЕРСКАЯ ПОМОЩЬ --- */}
-        <a href="/privacy-policy" className={css.btnConstruction5}>
+        <a href="/category/legal" className={css.btnConstruction5}>
           <div className={css.textIcon5}>
             <span className={css.iconWeight}></span>
             <span className={css.btnText5}>Юридическая и бухгалтерская<br />помощь</span>
@@ -111,7 +111,7 @@ const LandingPage = () => {
         </a>
 
         {/* --- КНОПКА: УСТАНОВКА БЫТОВОЙ ТЕХНИКИ --- */}
-        <a href="/privacy-policy" className={css.btnConstruction6}>
+        <a href="/category/appliances" className={css.btnConstruction6}>
           <div className={css.textIcon6}>
             <span className={css.iconKitchen}></span>
             <span className={css.btnText6}>Установка бытовой техники</span>
@@ -119,7 +119,7 @@ const LandingPage = () => {
         </a>
 
         {/* --- КНОПКА: ФОТО, ВИДЕО, АУДИО --- */}
-        <a href="/privacy-policy" className={css.btnConstruction7}>
+        <a href="/category/media" className={css.btnConstruction7}>
           <div className={css.textIcon7}>
             <span className={css.iconCamera}></span>
             <span className={css.btnText7}>Фото, видео, аудио</span>
@@ -127,7 +127,7 @@ const LandingPage = () => {
         </a>
 
         {/* --- КНОПКА: КУРЬЕРСКИЕ УСЛУГИ --- */}
-        <a href="/privacy-policy" className={css.btnConstruction8}>
+        <a href="/category/courier" className={css.btnConstruction8}>
           <div className={css.textIcon8}>
             <span className={css.iconCourier}></span>
             <span className={css.btnText8}>Курьерские услуги</span>
@@ -135,7 +135,7 @@ const LandingPage = () => {
         </a>
 
         {/* --- КНОПКА: ГРУЗОПЕРЕВОЗКИ --- */}
-        <a href="/privacy-policy" className={css.btnConstruction9}>
+        <a href="/category/moving" className={css.btnConstruction9}>
           <div className={css.textIcon9}>
             <span className={css.iconTruck}></span>
             <span className={css.btnText9}>Грузоперевозки</span>
@@ -143,7 +143,7 @@ const LandingPage = () => {
         </a>
 
          {/* --- КНОПКА: РЕМОНТ ЦИФРОВОЙ ТЕХНИКИ --- */}
-        <a href="/privacy-policy" className={css.btnConstruction10}>
+        <a href="/category/tech-repair" className={css.btnConstruction10}>
           <div className={css.textIcon10}>
             <span className={css.iconSearch}></span>
             <span className={css.btnText10}>Ремонт цифровой техники</span>
@@ -151,7 +151,7 @@ const LandingPage = () => {
         </a>
 
         {/* --- КНОПКА: АВТОМОБИЛЬНЫЕ УСЛУГИ --- */}
-        <a href="/privacy-policy" className={css.btnConstruction11}>
+        <a href="/category/auto" className={css.btnConstruction11}>
           <div className={css.textIcon11}>
             <span className={css.iconCar}></span>
             <span className={css.btnText11}>Автомобильные услуги</span>
