@@ -133,27 +133,25 @@ const CategoryExecutorsPage = () => {
             </div>
           )}
 
-          {/* Ошибка */}
-          {error && !loading && (
-            <div className={css.error}>
-              <p>❌ Ошибка: {error}</p>
-              <button onClick={() => window.location.reload()} className={css.retryButton}>
-                Попробовать снова
-              </button>
+          {/* Ошибка или нет исполнителей */}
+          {(error || (!loading && executors.length === 0)) && (
+            <div className={css.empty}>
+              <p className={css.emptyIcon}>😔</p>
+              <h2>
+                <FormattedMessage id="CategoryExecutorsPage.noExecutorsTitle" />
+              </h2>
+              <p className={css.noExecutorsMessage}>
+                <FormattedMessage id="CategoryExecutorsPage.noExecutorsMessage" />
+              </p>
+              <p className={css.hint}>
+                <NamedLink name="LandingPage" className={css.backToHomeLink}>
+                  ← Вернуться на главную
+                </NamedLink>
+              </p>
             </div>
           )}
 
           {/* Список исполнителей */}
-          {!loading && !error && executors.length === 0 && (
-            <div className={css.empty}>
-              <p className={css.emptyIcon}>🔍</p>
-              <h2>Исполнители не найдены</h2>
-              <p>В этой категории пока нет зарегистрированных исполнителей.</p>
-              <p className={css.hint}>
-                Станьте первым! <NamedLink name="SignupPage">Зарегистрируйтесь</NamedLink> как исполнитель.
-              </p>
-            </div>
-          )}
 
           {!loading && !error && executors.length > 0 && (
             <div className={css.tableContainer}>
