@@ -185,35 +185,21 @@ export const userFields = [
 ];
 
 /////////////////////////////////////
-// Example user type configuration //
+// User type configuration for YouDo //
 /////////////////////////////////////
 /**
- * User types are not supported in hosted configuration yet.
- *
- * To take user types into use in your
- * custom code, you can do the following things:
- * - Add a new user field with key 'userType', scope 'publicData', and schemaType enum
- *  - Consider whether or not you want to allow your users to change their user type after first creating it
- * - Set your user types as the available options for the userType field
- * - Add your user types in the array below
- * - Update configHelpers.js mergeUserConfig to pass user types to the validUserFields function
+ * Два типа пользователей в нашем маркетплейсе:
+ * - customer: Исполнитель (предоставляет услуги)
+ * - provider: Заказчик (создает задания)
  */
 
 export const userTypes = [
   {
-    userType: 'a',
-    label: 'Seller',
+    userType: 'customer',
+    label: 'Стать исполнителем',
   },
   {
-    userType: 'b',
-    label: 'Buyer',
-  },
-  {
-    userType: 'c',
-    label: 'Guest',
-  },
-  {
-    userType: 'd',
-    label: 'Host',
+    userType: 'provider',
+    label: 'Стать заказчиком',
   },
 ];
