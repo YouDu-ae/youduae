@@ -15,12 +15,12 @@ const LandingPage = () => {
     // Redirect to GuestListingWizard with title as query parameter
     if (taskTitle && taskTitle.trim()) {
       history.push({
-        pathname: '/new',
+        pathname: '/l/new',
         search: `?title=${encodeURIComponent(taskTitle.trim())}`,
       });
     } else {
       // If no title, just redirect to wizard
-      history.push('/new');
+      history.push('/l/new');
     }
   };
 
