@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useHistory } from 'react-router-dom';
 import css from './LandingPage.module.css';
-import TopbarCustom from '../../containers/TopbarCustom/TopbarCustom'; // 👈 импортируем топбар
+import TopbarContainer from '../../containers/TopbarContainer/TopbarContainer'; // 👈 импортируем топбар с Redux
 import FooterCustom from '../FooterCustom/FooterCustom';
 
 const LandingPage = () => {
@@ -27,7 +27,7 @@ const LandingPage = () => {
   return (
     <div className={css.shell}>
       {/* --- TOP BAR --- */}
-      <TopbarCustom />
+      <TopbarContainer />
 
       <div className={css.page}>       {/* ← вся твоя текущая страница */}
          {/* main-bg */}
