@@ -329,9 +329,11 @@ export const InboxPageComponent = props => {
   const hasTransactions =
     !fetchInProgress && hasOrderOrSaleTransactions(transactions, isOrders, currentUser);
 
-  // Таб "Мои отклики" показывается ТОЛЬКО для Customer (исполнителей)
-  // Provider (заказчики) не откликаются на задания, поэтому им этот таб не нужен
-  const isOnlyCustomer = isCustomerUserType && !isProviderUserType;
+  // Таб "Мои отклики" показывается ТОЛЬКО для Исполнителей (provider)
+  // ⚠️ NEW ROLE MAPPING:
+  // - provider (Исполнитель): {customer: false, provider: true} → МОЖЕТ откликаться на задания
+  // - customer (Заказчик): {customer: true, provider: false} → НЕ может откликаться
+  const isOnlyCustomer = !isCustomerUserType && isProviderUserType; // Исполнитель
   const ordersTabMaybe = isOnlyCustomer
     ? [
         {

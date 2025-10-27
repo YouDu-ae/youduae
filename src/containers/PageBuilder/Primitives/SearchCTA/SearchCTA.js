@@ -67,15 +67,15 @@ export const SearchCTA = React.forwardRef((props, ref) => {
   const categoryConfig = config.categoryConfiguration;
   
   // Check if current user is a customer (executor)
-  // Customers should search for tasks, not create them
+  // Исполнители (provider) должны искать задания, а не создавать их
   // NOTE: Using ROLES instead of userType string for proper role detection
   const userType = currentUser?.attributes?.profile?.publicData?.userType;
   const userRoles = getCurrentUserTypeRoles(config, currentUser);
   
-  // Customer role means: user who responds to tasks (executor/исполнитель)
-  // Provider role means: user who creates tasks (заказчик)
-  // If user has ONLY customer role (not provider), they can only search
-  const isOnlyCustomer = userRoles.customer && !userRoles.provider;
+  // ⚠️ NEW ROLE MAPPING:
+  // - provider (Исполнитель): {customer: false, provider: true} → МОЖЕТ искать задания
+  // - customer (Заказчик): {customer: true, provider: false} → НЕ может искать задания
+  const isOnlyCustomer = !userRoles.customer && userRoles.provider; // Исполнитель
   
   // Debug logging
   console.log('🔍 SearchCTA - User check:', {

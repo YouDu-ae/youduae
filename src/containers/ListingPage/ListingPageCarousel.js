@@ -269,9 +269,12 @@ const isHired = publicData.hired === true;
 const canShowOfferForm =
   !isOwner && hasListing && isPublished && isAssignmentProcess;
 
-// Проверяем роли пользователя для блокировки Provider от откликов
+// Проверяем роли пользователя для блокировки Заказчиков от откликов
+// ⚠️ NEW ROLE MAPPING:
+// - provider (Исполнитель): {customer: false, provider: true} → МОЖЕТ откликаться
+// - customer (Заказчик): {customer: true, provider: false} → НЕ МОЖЕТ откликаться
 const userRoles = getCurrentUserTypeRoles(config, currentUser);
-const isOnlyCustomer = userRoles.customer && !userRoles.provider;
+const isOnlyCustomer = !userRoles.customer && userRoles.provider; // Исполнитель
 
   const isBooking = isBookingProcess(processName);
   const isPurchase = isPurchaseProcess(processName);

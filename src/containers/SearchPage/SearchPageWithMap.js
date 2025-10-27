@@ -739,9 +739,11 @@ const EnhancedSearchPage = props => {
   // ✅ ПРОВЕРКА: Provider не должен видеть поиск заданий
   // Используем обратную логику от showCreateListingLinkForUser:
   // - Если пользователь МОЖЕТ создавать листинги → Provider (заказчик) → блокируем поиск
-  // - Если пользователь НЕ МОЖЕТ создавать листинги → Customer (исполнитель) → разрешаем поиск
+  // ⚠️ NEW ROLE MAPPING:
+  // - provider (Исполнитель): {customer: false, provider: true} → МОЖЕТ искать задания
+  // - customer (Заказчик): {customer: true, provider: false} → НЕ МОЖЕТ искать задания
   const userRoles = getCurrentUserTypeRoles(config, currentUser);
-  const isOnlyCustomer = userRoles.customer && !userRoles.provider;
+  const isOnlyCustomer = !userRoles.customer && userRoles.provider; // Исполнитель
   const canCreateListings = showCreateListingLinkForUser(config, currentUser);
   
   console.log('🔍 SearchPageWithMap access check:', {
@@ -751,9 +753,9 @@ const EnhancedSearchPage = props => {
     currentUser: currentUser?.id?.uuid,
   });
 
-  // Если пользователь может создавать листинги (Provider), запрещаем доступ к поиску
+  // Если пользователь может создавать листинги (Заказчик), запрещаем доступ к поиску
   if (canCreateListings && !isOnlyCustomer) {
-    console.log('🚫 Provider (can create listings) cannot access SearchPage, redirecting to ManageListingsPage');
+    console.log('🚫 Customer (can create listings) cannot access SearchPage, redirecting to ManageListingsPage');
     return <NamedRedirect name="ManageListingsPage" />;
   }
 

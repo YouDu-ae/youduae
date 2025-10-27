@@ -200,10 +200,10 @@ const TopbarDesktop = props => {
   const userType = currentUser?.attributes?.profile?.publicData?.userType;
   const userRoles = getCurrentUserTypeRoles(config, currentUser);
   
-  // Customer role means: user who responds to tasks (executor/исполнитель)
-  // Provider role means: user who creates tasks (заказчик)
-  // If user has ONLY customer role (not provider), they can only search
-  const isOnlyCustomer = userRoles.customer && !userRoles.provider;
+  // ⚠️ NEW ROLE MAPPING:
+  // - provider (Исполнитель): {customer: false, provider: true} → МОЖЕТ искать задания
+  // - customer (Заказчик): {customer: true, provider: false} → НЕ может искать задания
+  const isOnlyCustomer = !userRoles.customer && userRoles.provider; // Исполнитель
   
   // Debug logging
   console.log('🔍 TopbarDesktop - User check:', {
@@ -217,8 +217,8 @@ const TopbarDesktop = props => {
     mounted,
   });
   
-  // Для Customer (исполнителей): ВСЕГДА показываем "Найти задания"
-  // Customer должен искать задания, а не создавать их
+  // Для Исполнителей (provider): ВСЕГДА показываем "Найти задания"
+  // Исполнители должны искать задания, а не создавать их
   const searchLinkForCustomer = authenticatedOnClientSide && isOnlyCustomer ? <SearchLink /> : null;
   
   // Для неавторизованных: показываем "Найти задания"

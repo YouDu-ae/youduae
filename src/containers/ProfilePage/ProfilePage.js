@@ -140,8 +140,11 @@ export const DesktopReviews = props => {
   const isReviewTypeProviderSelected = showReviewsType === REVIEW_TYPE_OF_PROVIDER;
   const isReviewTypeCustomerSelected = showReviewsType === REVIEW_TYPE_OF_CUSTOMER;
 
-  // Для Customer показываем отзывы сразу без табов
-  const isOnlyCustomer = isCustomerUserType && !isProviderUserType;
+  // Для Исполнителей (provider) показываем отзывы сразу без табов
+  // ⚠️ NEW ROLE MAPPING:
+  // - provider (Исполнитель): {customer: false, provider: true}
+  // - customer (Заказчик): {customer: true, provider: false}
+  const isOnlyCustomer = !isCustomerUserType && isProviderUserType; // Исполнитель
 
   if (isOnlyCustomer) {
     return (
@@ -219,9 +222,12 @@ export const CustomerStats = props => {
   const intl = useIntl();
   
   const { customer: isCustomerUserType, provider: isProviderUserType } = userTypeRoles;
-  const isOnlyCustomer = isCustomerUserType && !isProviderUserType;
+  // ⚠️ NEW ROLE MAPPING:
+  // - provider (Исполнитель): {customer: false, provider: true}
+  // - customer (Заказчик): {customer: true, provider: false}
+  const isOnlyCustomer = !isCustomerUserType && isProviderUserType; // Исполнитель
 
-  // Показываем статистику только для Customer (не Provider)
+  // Показываем статистику только для Исполнителей (provider)
   if (!isOnlyCustomer) {
     return null;
   }

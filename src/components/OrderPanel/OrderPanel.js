@@ -319,14 +319,15 @@ const OrderPanel = props => {
   const timeZone = listing?.attributes?.availabilityPlan?.timezone;
   const isClosed = listing?.attributes?.state === LISTING_STATE_CLOSED;
 
-  // ✅ ПРОВЕРКА: Provider не может откликаться на задания
+  // ✅ ПРОВЕРКА: Заказчик не может откликаться на задания
+  // ⚠️ NEW ROLE MAPPING:
+  // - provider (Исполнитель): {customer: false, provider: true} → МОЖЕТ откликаться
+  // - customer (Заказчик): {customer: true, provider: false} → НЕ МОЖЕТ откликаться
   const userRoles = getCurrentUserTypeRoles(config, currentUser);
-  const isOnlyCustomer = userRoles.customer && !userRoles.provider;
+  const isOnlyCustomer = !userRoles.customer && userRoles.provider; // Исполнитель
   
-  // Provider (заказчик) не может откликаться на задания
-  // Только Customer (исполнитель) может откликаться
-  // Если пользователь ТОЛЬКО Customer → может откликаться
-  // Если у пользователя есть роль Provider → НЕ может откликаться (даже если может и откликаться)
+  // Если пользователь Исполнитель (provider) → может откликаться
+  // Если пользователь Заказчик (customer) → НЕ может откликаться
   const isProviderViewingOthersListing = !isOnlyCustomer && !isOwnListing;
   
   console.log('🔍 OrderPanel access check:', {

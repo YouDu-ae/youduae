@@ -167,11 +167,13 @@ export const EditListingPageComponent = props => {
   // Customers should NEVER create or edit listings
   const userRoles = getCurrentUserTypeRoles(config, currentUser);
   
-  // User with ONLY customer role (not provider) cannot create listings
-  const isOnlyCustomer = userRoles.customer && !userRoles.provider;
+  // ⚠️ NEW ROLE MAPPING:
+  // - provider (Исполнитель): {customer: false, provider: true} → НЕ может создавать листинги
+  // - customer (Заказчик): {customer: true, provider: false} → МОЖЕТ создавать листинги
+  const isExecutor = !userRoles.customer && userRoles.provider; // Исполнитель
   
-  if (isOnlyCustomer) {
-    console.log('🚫 Customer-only user tried to access listing creation/editing - redirecting to search');
+  if (isExecutor) {
+    console.log('🚫 Executor (provider) tried to access listing creation/editing - redirecting to search');
     return <NamedRedirect name="SearchPage" />;
   }
 

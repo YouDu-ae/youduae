@@ -222,17 +222,16 @@ export const showCreateListingLinkForUser = (config, currentUser) => {
   const { topbar } = config;
   const currentUserTypeConfig = getCurrentUserTypeConfig(config, currentUser);
 
-  // CRITICAL BUSINESS LOGIC: Customers (executors) should NEVER create listings
-  // Only Providers (customers who post tasks) can create listings
-  // This is essential for monetization - subscription is charged to customers who respond to tasks
+  // CRITICAL BUSINESS LOGIC:
+  // ⚠️ NEW ROLE MAPPING (after fixing userType IDs):
+  // - userType 'provider' (Исполнитель) → roles: {customer: false, provider: true} → CANNOT create listings
+  // - userType 'customer' (Заказчик) → roles: {customer: true, provider: false} → CAN create listings
   const userRoles = getCurrentUserTypeRoles(config, currentUser);
   
-  // User with ONLY customer role (not provider) cannot create listings
-  const isOnlyCustomer = userRoles.customer && !userRoles.provider;
-  
-  if (isOnlyCustomer) {
-    console.log('🚫 Customer-only role detected - hiding create listing link');
-    return false; // Customers can ONLY search and respond to tasks
+  // User without 'customer' role CANNOT create listings
+  if (!userRoles.customer) {
+    console.log('🚫 User does not have customer role - hiding create listing link');
+    return false; // Only users with customer role can create listings
   }
 
   const { accountLinksVisibility } = currentUserTypeConfig || {};
