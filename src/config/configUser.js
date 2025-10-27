@@ -76,9 +76,17 @@ export const userTypes = [
   {
     userType: 'provider',  // ← Исполнитель (НЕТ прав создавать задания)
     label: 'Стать исполнителем',
+    roles: {
+      customer: false,  // ⚠️ НЕ может создавать листинги
+      provider: true,   // ✅ Предоставляет услуги
+    },
   },
   {
     userType: 'customer',  // ← Заказчик (ЕСТЬ права создавать задания)
     label: 'Стать заказчиком',
+    roles: {
+      customer: true,   // ✅ Может создавать листинги
+      provider: false,  // ⚠️ НЕ предоставляет услуги
+    },
   },
 ];
