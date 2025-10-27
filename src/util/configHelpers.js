@@ -1153,14 +1153,13 @@ const mergeUserConfig = (hostedConfig, defaultConfigs) => {
   // ✅ ВКЛЮЧАЕМ локальные настройки для поддержки serviceCategories
   const shouldMerge = mergeDefaultTypesAndFieldsForDebugging(true);
 
-  // userTypes: мерджим с hosted config
+  // ⚠️ ИСПОЛЬЗУЕМ ТОЛЬКО ЛОКАЛЬНЫЕ userTypes и userFields (иначе дубликаты из Console!)
   const userTypes = shouldMerge
-    ? union(hostedUserTypes, defaultUserTypes, 'userType')
+    ? defaultUserTypes // ТОЛЬКО локальные!
     : hostedUserTypes;
 
-  // userFields: используем ТОЛЬКО локальные (иначе будут дубликаты из Console)
   const userFields = shouldMerge
-    ? defaultUserFields // ⚠️ ТОЛЬКО локальные, не мерджим с hosted!
+    ? defaultUserFields // ТОЛЬКО локальные!
     : hostedUserFields;
 
   // Валидация (и учёт типов пользователей для полей)
