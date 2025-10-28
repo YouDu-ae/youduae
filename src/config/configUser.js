@@ -38,7 +38,7 @@ import { getCategoryEnumOptions } from './serviceCategories';
  *   (optional)                       data is relevant and should be added.
  */
 export const userFields = [
-  // ========== КАТЕГОРИИ УСЛУГ (только для Provider - исполнителей) ==========
+  // ========== КАТЕГОРИИ УСЛУГ (только для Customer - исполнителей) ==========
   {
     key: 'serviceCategories',
     scope: 'public',
@@ -57,7 +57,7 @@ export const userFields = [
     },
     userTypeConfig: {
       limitToUserTypeIds: true,
-      userTypeIds: ['provider'], // ⚠️ Исполнитель = provider (НЕТ прав создавать листинги)
+      userTypeIds: ['customer'], // ⚠️ Исполнитель = customer (НЕТ прав создавать листинги в Console)
     },
   },
 ];
@@ -67,14 +67,16 @@ export const userFields = [
 /////////////////////////////////////
 /**
  * Два типа пользователей в нашем маркетплейсе:
- * ⚠️ ВАЖНО: В Sharetribe 'customer' = тот, кто создает листинги (имеет post-listings право)
- * - customer: Заказчик (создает задания, имеет права post-listings)
- * - provider: Исполнитель (откликается на задания, НЕТ прав post-listings)
+ * ⚠️ ВАЖНО: В ВАШЕМ Console настроено НЕСТАНДАРТНО:
+ * - userType 'provider' = ИМЕЕТ права post-listings (Заказчик, создаёт задания)
+ * - userType 'customer' = НЕ ИМЕЕТ права post-listings (Исполнитель, откликается)
+ * 
+ * Это ОБРАТНАЯ логика от стандартной Sharetribe!
  */
 
 export const userTypes = [
   {
-    userType: 'provider',  // ← Исполнитель (НЕТ прав создавать задания)
+    userType: 'customer',  // ← Исполнитель (НЕТ прав создавать задания в Console)
     label: 'Стать исполнителем',
     roles: {
       customer: false,  // ⚠️ НЕ может создавать листинги
@@ -82,7 +84,7 @@ export const userTypes = [
     },
   },
   {
-    userType: 'customer',  // ← Заказчик (ЕСТЬ права создавать задания)
+    userType: 'provider',  // ← Заказчик (ЕСТЬ права создавать задания в Console)
     label: 'Стать заказчиком',
     roles: {
       customer: true,   // ✅ Может создавать листинги
