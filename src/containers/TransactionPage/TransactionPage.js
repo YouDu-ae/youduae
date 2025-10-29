@@ -22,6 +22,8 @@ import {
   isBookingProcess,
 } from '../../transactions/transaction';
 
+import { transitionPrivileged } from '../../util/api';
+
 import { getMarketplaceEntities } from '../../ducks/marketplaceData.duck';
 import { isScrollingDisabled, manageDisableScrolling } from '../../ducks/ui.duck';
 import { initializeCardPaymentData } from '../../ducks/stripe.duck.js';
@@ -505,27 +507,16 @@ const onComplete = async () => {
   setCompleteErr(null);
   try {
     // Используем privileged API для transition/complete
-    const response = await fetch('/api/transition-privileged', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
+    const result = await transitionPrivileged({
+      isSpeculative: false,
+      bodyParams: {
+        id: transaction.id,
+        transition: 'transition/complete',
+        params: {},
       },
-      body: JSON.stringify({
-        isSpeculative: false,
-        bodyParams: {
-          id: transaction.id,
-          transition: 'transition/complete',
-          params: {},
-        },
-        queryParams: { expand: true },
-      }),
+      queryParams: { expand: true },
     });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const result = await response.json();
+    
     // eslint-disable-next-line no-console
     console.log('✅ onComplete: transition successful', result);
     
