@@ -641,10 +641,10 @@ export const AuthenticationPageComponent = props => {
     const userTypeFromProfile = currentUser?.attributes?.profile?.publicData?.userType;
     const isExecutor = userTypeFromProfile === 'customer';
     
-    // If executor (customer) is being redirected to /listings, override and go to profile settings
+    // If executor (customer) is being redirected to /listings, override and go to profile page
     if (isExecutor && from === '/listings') {
-      console.log('✅ Executor registered, overriding /listings redirect - going to profile settings');
-      return <NamedRedirect name="ProfileSettingsPage" />;
+      console.log('✅ Executor registered, overriding /listings redirect - going to profile page');
+      return <NamedRedirect name="ProfilePage" params={{ id: currentUser?.id?.uuid }} />;
     }
     
     // Already authenticated, redirect back to the page the user tried to access
@@ -663,12 +663,12 @@ export const AuthenticationPageComponent = props => {
     });
     
     // ✅ РОЛИ:
-    // - userType 'customer' (Исполнитель) → профиль-настройки
+    // - userType 'customer' (Исполнитель) → страница профиля
     // - userType 'provider' (Заказчик) → главная страница
     if (userTypeFromProfile === 'customer') {
-      // Исполнитель → редирект на настройки профиля
-      console.log('✅ Executor registered - redirecting to profile settings');
-      return <NamedRedirect name="ProfileSettingsPage" />;
+      // Исполнитель → редирект на страницу профиля
+      console.log('✅ Executor registered - redirecting to profile page');
+      return <NamedRedirect name="ProfilePage" params={{ id: currentUser?.id?.uuid }} />;
     } else {
       // Заказчик или неизвестный тип → редирект на главную
       console.log('✅ Client/Unknown registered - redirecting to landing page, userType:', userTypeFromProfile);
