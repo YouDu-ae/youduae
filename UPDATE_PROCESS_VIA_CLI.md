@@ -58,13 +58,15 @@ cd /Users/admin/web-template
 ### 3.2. Загрузите процесс:
 
 ```bash
-flex-cli process push --process assignment-flow-v3 --path ext/transaction-processes/assignment-flow-v3/process.edn --marketplace youdoae-dev
+flex-cli process push --process assignment-flow-v3 --path ext/transaction-processes/assignment-flow-v3 --marketplace youdoae-dev
 ```
+
+**⚠️ ВАЖНО:** Используйте путь к **директории**, а не к файлу `process.edn`!
 
 **Пояснение параметров:**
 
 - `--process assignment-flow-v3` - имя процесса в Console
-- `--path ext/...` - путь к локальному файлу
+- `--path ext/transaction-processes/assignment-flow-v3` - путь к **директории** с процессом
 - `--marketplace youdoae-dev` - ID вашего marketplace
 
 ### 3.3. Подтвердите загрузку:
@@ -82,9 +84,10 @@ CLI спросит подтверждение:
 ## ✅ Ожидаемый результат:
 
 ```
-✓ Process 'assignment-flow-v3' updated successfully
-✓ Version: 2 (или выше)
+Version 4 successfully saved for process assignment-flow-v3
 ```
+
+Или похожее сообщение с номером версии (может быть выше).
 
 **Что изменилось:**
 
@@ -99,7 +102,7 @@ CLI спросит подтверждение:
 1. Откройте https://flex-console.sharetribe.com/
 2. Перейдите **Build** → **Transaction processes**
 3. Найдите **`assignment-flow-v3`**
-4. Проверьте, что версия увеличилась (было Version 1, стало Version 2)
+4. Проверьте, что версия теперь **Version 4** (или выше)
 
 ---
 
@@ -224,10 +227,10 @@ flex-cli help
 1. Отредактируйте `ext/transaction-processes/assignment-flow-v3/process.edn`
 2. Выполните:
    ```bash
-   flex-cli process push --process assignment-flow-v3 --path ext/transaction-processes/assignment-flow-v3/process.edn --marketplace youdoae-dev
+   flex-cli process push --process assignment-flow-v3 --path ext/transaction-processes/assignment-flow-v3 --marketplace youdoae-dev
    ```
 3. Подтвердите `Y`
-4. Перезапустите сервер
+4. Перезапустите сервер (`Ctrl+C` → `yarn dev`)
 
 ---
 
