@@ -20,7 +20,8 @@
    :actor :actor.role/provider,
    :actions [],
    :from :state/accepted,
-   :to :state/completed}
+   :to :state/completed,
+   :privileged? true}
   {:name :transition/review-1-by-provider,
    :actor :actor.role/provider,
    :actions [{:name :action/post-review-by-provider}],

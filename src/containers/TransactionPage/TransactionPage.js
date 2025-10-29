@@ -504,10 +504,33 @@ const onComplete = async () => {
   setCompleteBusy(true);
   setCompleteErr(null);
   try {
-    // Вызов перехода через уже подключённый duck (onTransition из props)
-    const result = await onTransition(transaction.id, 'transition/complete', {});
+    // Используем privileged API для transition/complete
+    const response = await fetch('/api/transition-privileged', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        isSpeculative: false,
+        bodyParams: {
+          id: transaction.id,
+          transition: 'transition/complete',
+          params: {},
+        },
+        queryParams: { expand: true },
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const result = await response.json();
     // eslint-disable-next-line no-console
     console.log('✅ onComplete: transition successful', result);
+    
+    // Перезагрузить транзакцию чтобы обновить состояние
+    window.location.reload();
   } catch (e) {
     // eslint-disable-next-line no-console
     console.error('❌ onComplete: transition failed', e);
