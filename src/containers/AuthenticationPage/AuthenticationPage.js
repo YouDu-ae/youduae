@@ -640,8 +640,22 @@ export const AuthenticationPageComponent = props => {
     // Already authenticated, redirect back to the page the user tried to access
     return <Redirect to={from} />;
   } else if (shouldRedirectToLandingPage) {
-    // Already authenticated, redirect to the landing page (this was direct access to /login or /signup)
-    return <NamedRedirect name="LandingPage" />;
+    // Already authenticated, redirect based on user type
+    // Get user type from currentUser
+    const userTypeFromProfile = currentUser?.attributes?.profile?.publicData?.userType;
+    
+    // ✅ РОЛИ:
+    // - userType 'customer' (Исполнитель) → профиль-настройки
+    // - userType 'provider' (Заказчик) → главная страница
+    if (userTypeFromProfile === 'customer') {
+      // Исполнитель → редирект на настройки профиля
+      console.log('✅ Executor registered - redirecting to profile settings');
+      return <NamedRedirect name="ContactDetailsPage" />;
+    } else {
+      // Заказчик или неизвестный тип → редирект на главную
+      console.log('✅ Client registered - redirecting to landing page');
+      return <NamedRedirect name="LandingPage" />;
+    }
   } else if (show404) {
     // User type not found, show 404
     return <NotFoundPage staticContext={props.staticContext} />;
