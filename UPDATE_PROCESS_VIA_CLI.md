@@ -97,18 +97,37 @@ Version 4 successfully saved for process assignment-flow-v3
 
 ---
 
-## Шаг 4: Проверка в Console
+## Шаг 4: Обновление Alias
 
-1. Откройте https://flex-console.sharetribe.com/
-2. Перейдите **Build** → **Transaction processes**
-3. Найдите **`assignment-flow-v3`**
-4. Проверьте, что версия теперь **Version 4** (или выше)
+После загрузки новой версии нужно обновить alias, чтобы он указывал на новую версию:
+
+```bash
+flex-cli process update-alias --process assignment-flow-v3 --version 4 --alias release-1 --marketplace youdoae-dev
+```
+
+**Ожидаемый результат:**
+```
+Alias assignment-flow-v3/release-1 successfully updated to point to version 4.
+```
+
+**Что это значит:**
+- Alias `release-1` теперь указывает на Version 4
+- Все существующие и новые транзакции будут использовать новую версию процесса
+- Изменения вступают в силу немедленно
 
 ---
 
-## Шаг 5: Тестирование
+## Шаг 5: Проверка в Console
 
-### 5.1. Перезапустите локальный сервер:
+1. Откройте https://flex-console.sharetribe.com/
+2. Перейдите **Build** → **Advanced** → **Transaction process visualizer**
+3. Проверьте, что **`assignment-flow-v3/release-1`** теперь указывает на **Version 4**
+
+---
+
+## Шаг 6: Тестирование
+
+### 6.1. Перезапустите локальный сервер:
 
 В терминале, где запущен `yarn dev`, нажмите **Ctrl+C** для остановки, затем:
 
@@ -116,11 +135,11 @@ Version 4 successfully saved for process assignment-flow-v3
 yarn dev
 ```
 
-### 5.2. Обновите браузер:
+### 6.2. Обновите браузер:
 
 Нажмите **Cmd+Shift+R** (или Ctrl+Shift+R) для полной перезагрузки страницы.
 
-### 5.3. Попробуйте закрыть задание:
+### 6.3. Попробуйте закрыть задание:
 
 1. Авторизуйтесь как **Provider (Заказчик)**
 2. Откройте чат с принятым Customer (Исполнителем)
@@ -225,11 +244,16 @@ flex-cli help
 В будущем, когда нужно обновить процесс:
 
 1. Отредактируйте `ext/transaction-processes/assignment-flow-v3/process.edn`
-2. Выполните:
+2. Загрузите новую версию:
    ```bash
    flex-cli process push --process assignment-flow-v3 --path ext/transaction-processes/assignment-flow-v3 --marketplace youdoae-dev
    ```
-3. Подтвердите `Y`
+   (CLI покажет новый номер версии, например Version 5)
+3. Обновите alias на новую версию:
+   ```bash
+   flex-cli process update-alias --process assignment-flow-v3 --version 5 --alias release-1 --marketplace youdoae-dev
+   ```
+   (замените `5` на актуальный номер версии)
 4. Перезапустите сервер (`Ctrl+C` → `yarn dev`)
 
 ---
