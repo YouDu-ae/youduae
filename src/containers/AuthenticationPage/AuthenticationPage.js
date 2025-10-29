@@ -644,7 +644,7 @@ export const AuthenticationPageComponent = props => {
     // If executor (customer) is being redirected to /listings, override and go to profile settings
     if (isExecutor && from === '/listings') {
       console.log('✅ Executor registered, overriding /listings redirect - going to profile settings');
-      return <NamedRedirect name="ContactDetailsPage" />;
+      return <NamedRedirect name="ProfileSettingsPage" />;
     }
     
     // Already authenticated, redirect back to the page the user tried to access
@@ -668,7 +668,7 @@ export const AuthenticationPageComponent = props => {
     if (userTypeFromProfile === 'customer') {
       // Исполнитель → редирект на настройки профиля
       console.log('✅ Executor registered - redirecting to profile settings');
-      return <NamedRedirect name="ContactDetailsPage" />;
+      return <NamedRedirect name="ProfileSettingsPage" />;
     } else {
       // Заказчик или неизвестный тип → редирект на главную
       console.log('✅ Client/Unknown registered - redirecting to landing page, userType:', userTypeFromProfile);
