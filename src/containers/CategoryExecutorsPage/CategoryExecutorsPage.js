@@ -169,10 +169,8 @@ const CategoryExecutorsPage = () => {
                 </thead>
                 <tbody>
                   {executors.map(executor => {
-                    const isVerified = 
-                      executor.publicData?.isVerified === true || 
-                      (typeof executor.publicData?.isVerified === 'object' && 
-                       executor.publicData?.isVerified?.isVerified === true);
+                    // Проверяем верификацию (приходит с бэкенда)
+                    const isVerified = executor.isVerified === true;
 
                     return (
                       <tr key={executor.id} className={css.executorRow}>
@@ -181,7 +179,11 @@ const CategoryExecutorsPage = () => {
                           <NamedLink name="ProfilePage" params={{ id: executor.id }}>
                             {executor.profileImage ? (
                               <img
-                                src={executor.profileImage.attributes?.variants?.['square-small']?.url}
+                                src={
+                                  executor.profileImage.attributes?.variants?.['square-small']?.url ||
+                                  executor.profileImage.attributes?.variants?.default?.url ||
+                                  executor.profileImage.attributes?.variants?.['square-small2x']?.url
+                                }
                                 alt={executor.displayName}
                                 className={css.avatar}
                               />

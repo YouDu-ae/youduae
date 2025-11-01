@@ -1,17 +1,18 @@
 import React, { useState } from 'react';
 import { useHistory } from 'react-router-dom';
+import { FormattedMessage, useIntl } from '../../util/reactIntl';
+import { NamedLink } from '../../components';
 import css from './LandingPage.module.css';
-import TopbarContainer from '../../containers/TopbarContainer/TopbarContainer'; // 👈 импортируем топбар с Redux
+import TopbarContainer from '../../containers/TopbarContainer/TopbarContainer';
 import FooterCustom from '../FooterCustom/FooterCustom';
 
 const LandingPage = () => {
   const history = useHistory();
+  const intl = useIntl();
   const [taskTitle, setTaskTitle] = useState('');
 
   const handleSearchClick = (e) => {
     e.preventDefault();
-    console.log('🎯 Landing Page - "Найти" clicked with title:', taskTitle);
-    
     // Redirect to GuestListingWizard with title as query parameter
     if (taskTitle && taskTitle.trim()) {
       history.push({
@@ -19,475 +20,414 @@ const LandingPage = () => {
         search: `?title=${encodeURIComponent(taskTitle.trim())}`,
       });
     } else {
-      // If no title, just redirect to wizard
-      history.push('/l/new');
+      // If no title, just redirect to search page
+      history.push('/s');
     }
   };
 
   return (
     <div className={css.shell}>
-      {/* --- TOP BAR --- */}
       <TopbarContainer />
 
-      <div className={css.page}>       {/* ← вся твоя текущая страница */}
-         {/* main-bg */}
-      <div className={css.mainBg} aria-hidden="true" />
+      <main className={css.page}>
+        {/* фоны */}
+        <div className={css.mainBg} aria-hidden="true" />
+        <div className={css.mainBgMobile} aria-hidden="true" />
+        <div className={css.illustrationBack} aria-hidden="true" />
 
-      {/* illustration-back */}
-      <div className={css.illustrationBack} aria-hidden="true" />
+        <div className={css.container}>
 
-      {/* container 1200 */}
-      <div className={css.container}>
+          {/* ===== HERO ===== */}
+          <section className={css.hero}>
+            <div className={css.heroText}>
+              <div className={css.title}>
+                <h1 className={css.titleH1}>
+                  <FormattedMessage 
+                    id="LandingPage.heroTitle" 
+                    values={{ br: <br /> }} 
+                  />
+                </h1>
+                <p className={css.titleSub}>
+                  <FormattedMessage id="LandingPage.heroSubtitle" />
+                </p>
+              </div>
 
-        {/* --- TITLE --- */}
-        <div className={css.title}>
-          <h1 className={css.titleH1}>Освободим вас<br />от бытовых забот в ОАЭ</h1>
-          <p className={css.titleSub}>Найдите надежного исполнителя для любой задачи</p>
-        </div>
-
-        {/* --- SEARCH LINE --- */}
-        <div className={css.searchLine}>
-          <div className={css.search}>
-            <input
-              type="text"
-              className={css.searchInput}
-              value={taskTitle}
-              onChange={(e) => setTaskTitle(e.target.value)}
-              placeholder="Услуга или специалист"
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  handleSearchClick(e);
-                }
-              }}
-            />
-          </div>
-          <button onClick={handleSearchClick} className={css.btnFind}>Найти</button>
-        </div>
-
-        {/* --- КАТЕГОРИИ УСЛУГ / ЗАГОЛОВОК И ПОДЗАГОЛОВОК --- */}
-        <h2 className={css.catTitle}>Категории услуг</h2>
-        <p className={css.catSubtitle}>
-          Мы экономим ваше время и деньги благодаря<br />большой базе мастеров с отзывами
-        </p>
-
-        {/* --- КНОПКА: СТРОИТЕЛЬСТВО И РЕМОНТ --- */}
-        <a href="/category/construction" className={css.btnConstruction1}>
-          <div className={css.textIcon1}>
-            <span className={css.iconDrill}></span>
-            <span className={css.btnText1}>Строительство и ремонт</span>
-          </div>
-        </a>
-
-        {/* --- КНОПКА: КРАСОТА И ЗДОРОВЬЕ --- */}
-        <a href="/category/beauty" className={css.btnConstruction2}>
-          <div className={css.textIcon2}>
-            <span className={css.iconScissors}></span>
-            <span className={css.btnText2}>Красота и здоровье</span>
-          </div>
-        </a>
-
-        {/* --- КНОПКА: РЕПЕТИТОРЫ И ОБУЧЕНИЕ --- */}
-        <a href="/category/tutoring" className={css.btnConstruction3}>
-          <div className={css.textIcon3}>
-            <span className={css.iconSchool}></span>
-            <span className={css.btnText3}>Репетиторы и обучение</span>
-          </div>
-        </a>
-
-        {/* --- КНОПКА: УБОРКА И ПОМОЩЬ В ДОМЕ --- */}
-        <a href="/category/cleaning" className={css.btnConstruction4}>
-          <div className={css.textIcon4}>
-            <span className={css.iconHousekeeper}></span>
-            <span className={css.btnText4}>Уборка и помощь в доме</span>
-          </div>
-        </a>
-
-        {/* --- КНОПКА: ЮРИДИЧЕСКАЯ И БУХГАЛТЕРСКАЯ ПОМОЩЬ --- */}
-        <a href="/category/legal" className={css.btnConstruction5}>
-          <div className={css.textIcon5}>
-            <span className={css.iconWeight}></span>
-            <span className={css.btnText5}>Юридическая и бухгалтерская<br />помощь</span>
-          </div>
-        </a>
-
-        {/* --- КНОПКА: УСТАНОВКА БЫТОВОЙ ТЕХНИКИ --- */}
-        <a href="/category/appliances" className={css.btnConstruction6}>
-          <div className={css.textIcon6}>
-            <span className={css.iconKitchen}></span>
-            <span className={css.btnText6}>Установка бытовой техники</span>
-          </div>
-        </a>
-
-        {/* --- КНОПКА: ФОТО, ВИДЕО, АУДИО --- */}
-        <a href="/category/media" className={css.btnConstruction7}>
-          <div className={css.textIcon7}>
-            <span className={css.iconCamera}></span>
-            <span className={css.btnText7}>Фото, видео, аудио</span>
-          </div>
-        </a>
-
-        {/* --- КНОПКА: КУРЬЕРСКИЕ УСЛУГИ --- */}
-        <a href="/category/courier" className={css.btnConstruction8}>
-          <div className={css.textIcon8}>
-            <span className={css.iconCourier}></span>
-            <span className={css.btnText8}>Курьерские услуги</span>
-          </div>
-        </a>
-
-        {/* --- КНОПКА: ГРУЗОПЕРЕВОЗКИ --- */}
-        <a href="/category/moving" className={css.btnConstruction9}>
-          <div className={css.textIcon9}>
-            <span className={css.iconTruck}></span>
-            <span className={css.btnText9}>Грузоперевозки</span>
-          </div>
-        </a>
-
-         {/* --- КНОПКА: РЕМОНТ ЦИФРОВОЙ ТЕХНИКИ --- */}
-        <a href="/category/tech-repair" className={css.btnConstruction10}>
-          <div className={css.textIcon10}>
-            <span className={css.iconSearch}></span>
-            <span className={css.btnText10}>Ремонт цифровой техники</span>
-          </div>
-        </a>
-
-        {/* --- КНОПКА: АВТОМОБИЛЬНЫЕ УСЛУГИ --- */}
-        <a href="/category/auto" className={css.btnConstruction11}>
-          <div className={css.textIcon11}>
-            <span className={css.iconCar}></span>
-            <span className={css.btnText11}>Автомобильные услуги</span>
-          </div>
-        </a>
-
-        {/* --- ADVANTAGES LINE --- */}
-        <div className={css.advantagesLine}>
-          {/* advantage 1 */}
-          <div className={css.advantage}>
-            <div className={css.advRow}>
-              <span className={`${css.icon} ${css.iconTexting}`} />
-              <span className={css.advTitle}>Специалисты<br />напишут сами</span>
+              <div className={css.searchLine}>
+                <div className={css.search}>
+                  <input
+                    type="text"
+                    className={css.searchInput}
+                    value={taskTitle}
+                    onChange={(e) => setTaskTitle(e.target.value)}
+                    placeholder={intl.formatMessage({ id: 'LandingPage.searchPlaceholder' })}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        handleSearchClick(e);
+                      }
+                    }}
+                  />
+                </div>
+                <button onClick={handleSearchClick} className={css.btnFind}>
+                  <FormattedMessage id="LandingPage.findButton" />
+                </button>
+              </div>
             </div>
-            <div className={css.advText}>
-              Создайте задание, исполнители увидят это и сами напишут вам, предложив цену
+
+            <div className={css.heroIllustration} aria-hidden="true" />
+          </section>
+
+ 
+         {/* ===== ПРЕИМУЩЕСТВА ===== */}
+          <section className={css.advantages}>
+            <div className={css.advantagesLine}>
+              <div className={css.advantage}>
+                <div className={css.advRow}>
+                  <span className={`${css.icon} ${css.iconTexting}`} />
+                  <span className={css.advTitle}>
+                    <FormattedMessage id="LandingPage.advantagesTitle1" values={{ br: <br /> }} />
+                  </span>
+                </div>
+                <div className={css.advText}>
+                  <FormattedMessage id="LandingPage.advantagesText1" values={{ br: <br /> }} />
+                </div>
+              </div>
+
+              <div className={css.advantage}>
+                <div className={css.advRow}>
+                  <span className={`${css.icon} ${css.iconFire}`} />
+                  <span className={css.advTitle}>
+                    <FormattedMessage id="LandingPage.advantagesTitle2" values={{ br: <br /> }} />
+                  </span>
+                </div>
+                <div className={css.advText}>
+                  <FormattedMessage id="LandingPage.advantagesText2" values={{ br: <br /> }} />
+                </div>
+              </div>
+
+              <div className={css.advantage}>
+                <div className={css.advRow}>
+                  <span className={`${css.icon} ${css.iconPopular}`} />
+                  <span className={css.advTitle}>
+                    <FormattedMessage id="LandingPage.advantagesTitle3" values={{ br: <br /> }} />
+                  </span>
+                </div>
+                <div className={css.advText}>
+                  <FormattedMessage id="LandingPage.advantagesText3" values={{ br: <br /> }} />
+                </div>
+              </div>
             </div>
-          </div>
+          </section>
+  
 
-          {/* advantage 2 */}
-          <div className={css.advantage}>
-            <div className={css.advRow}>
-              <span className={`${css.icon} ${css.iconFire}`} />
-              <span className={css.advTitle}>Лучшие мастера<br />и цены</span>
+          {/* ===== КАТЕГОРИИ ===== */}
+          <section className={css.categories}>
+            <h2 className={css.catTitle}><FormattedMessage id="LandingPage.categoriesTitle" /></h2>
+            <p className={css.catSubtitle}>
+              <FormattedMessage id="LandingPage.categoriesSubtitle" values={{ br: <br /> }} />
+            </p>
+
+            <div className={css.categoriesGrid}>
+              <NamedLink name="CategoryExecutorsPage" params={{ categoryId: 'construction' }} className={css.cardBtn}>
+                <div className={css.textIcon}>
+                  <span className={css.iconDrill}></span>
+                  <span><FormattedMessage id="LandingPage.category.construction" /></span>
+                </div>
+              </NamedLink>
+
+              <NamedLink name="CategoryExecutorsPage" params={{ categoryId: 'beauty' }} className={css.cardBtn}>
+                <div className={css.textIcon}>
+                  <span className={css.iconScissors}></span>
+                  <span><FormattedMessage id="LandingPage.category.beauty" /></span>
+                </div>
+              </NamedLink>
+
+              <NamedLink name="CategoryExecutorsPage" params={{ categoryId: 'tutors' }} className={css.cardBtn}>
+                <div className={css.textIcon}>
+                  <span className={css.iconSchool}></span>
+                  <span><FormattedMessage id="LandingPage.category.tutors" /></span>
+                </div>
+              </NamedLink>
+
+              <NamedLink name="CategoryExecutorsPage" params={{ categoryId: 'cleaning' }} className={css.cardBtn}>
+                <div className={css.textIcon}>
+                  <span className={css.iconHousekeeper}></span>
+                  <span><FormattedMessage id="LandingPage.category.cleaning" /></span>
+                </div>
+              </NamedLink>
+
+              <NamedLink name="CategoryExecutorsPage" params={{ categoryId: 'legal' }} className={css.cardBtn}>
+                <div className={css.textIcon}>
+                  <span className={css.iconWeight}></span>
+                  <span><FormattedMessage id="LandingPage.category.legal" values={{ br: <br /> }} /></span>
+                </div>
+              </NamedLink>
+
+              <NamedLink name="CategoryExecutorsPage" params={{ categoryId: 'appliances' }} className={css.cardBtn}>
+                <div className={css.textIcon}>
+                  <span className={css.iconKitchen}></span>
+                  <span><FormattedMessage id="LandingPage.category.appliances" /></span>
+                </div>
+              </NamedLink>
+
+              <NamedLink name="CategoryExecutorsPage" params={{ categoryId: 'photo' }} className={css.cardBtn}>
+                <div className={css.textIcon}>
+                  <span className={css.iconCamera}></span>
+                  <span><FormattedMessage id="LandingPage.category.photo" /></span>
+                </div>
+              </NamedLink>
+
+              <NamedLink name="CategoryExecutorsPage" params={{ categoryId: 'courier' }} className={css.cardBtn}>
+                <div className={css.textIcon}>
+                  <span className={css.iconCourier}></span>
+                  <span><FormattedMessage id="LandingPage.category.courier" /></span>
+                </div>
+              </NamedLink>
+
+              <NamedLink name="CategoryExecutorsPage" params={{ categoryId: 'transport' }} className={css.cardBtn}>
+                <div className={css.textIcon}>
+                  <span className={css.iconTruck}></span>
+                  <span><FormattedMessage id="LandingPage.category.transport" /></span>
+                </div>
+              </NamedLink>
+
+              <NamedLink name="CategoryExecutorsPage" params={{ categoryId: 'electronics' }} className={css.cardBtn}>
+                <div className={css.textIcon}>
+                  <span className={css.iconSearch}></span>
+                  <span><FormattedMessage id="LandingPage.category.electronics" /></span>
+                </div>
+              </NamedLink>
+
+              <NamedLink name="CategoryExecutorsPage" params={{ categoryId: 'auto' }} className={css.cardBtn}>
+                <div className={css.textIcon}>
+                  <span className={css.iconCar}></span>
+                  <span><FormattedMessage id="LandingPage.category.auto" /></span>
+                </div>
+              </NamedLink>
             </div>
-            <div className={css.advText}>
-              Вы сами выбираете из предложенных вариантов,<br />кому доверить вашу задачу
+          </section>
+ 
+
+          {/* ===== КАК ЭТО РАБОТАЕТ ===== */}
+          <section className={css.howItWorks}>
+            <h2 className={css.h2}><FormattedMessage id="LandingPage.howItWorksTitle" /></h2>
+
+            <div className={css.hiwGrid}>
+              <div className={`${css.hiwCard} ${css.hiwCard1}`}>
+                <div className={css.hiwBack}>
+                  <div className={css.hiwTitle}><FormattedMessage id="LandingPage.howItWorksCard1Title" /></div>
+                  <div className={css.hiwText}><FormattedMessage id="LandingPage.howItWorksCard1Text" /></div>
+                </div>
+              </div>
+
+              <div className={`${css.hiwCard} ${css.hiwCard2}`}>
+                <div className={css.hiwBack}>
+                  <div className={css.hiwTitle}><FormattedMessage id="LandingPage.howItWorksCard2Title" /></div>
+                  <div className={css.hiwText}><FormattedMessage id="LandingPage.howItWorksCard2Text" /></div>
+                </div>
+              </div>
+
+              <div className={`${css.hiwCard} ${css.hiwCard3}`}>
+                <div className={css.hiwBack}>
+                  <div className={css.hiwTitle}><FormattedMessage id="LandingPage.howItWorksCard3Title" /></div>
+                  <div className={css.hiwText}><FormattedMessage id="LandingPage.howItWorksCard3Text" values={{ br: <br /> }} /></div>
+                </div>
+              </div>
             </div>
-          </div>
+          </section>
+  
 
-          {/* advantage 3 */}
-          <div className={css.advantage}>
-            <div className={css.advRow}>
-              <span className={`${css.icon} ${css.iconPopular}`} />
-              <span className={css.advTitle}>Настоящие<br />отзывы</span>
+          {/* ===== ОТЗЫВЫ ===== */}
+          <section className={css.reviews}>
+            <h2 className={css.h2}><FormattedMessage id="LandingPage.reviewsTitle" /></h2>
+
+            <div className={css.reviewsStage}>
+              <div className={css.reviewsCanvas}>
+                {/* card 1 */}
+                <article className={`${css.reviewCard} ${css.pos1} ${css.card1}`}>
+                  <header className={css.reviewHeader}>
+                    <div className={`${css.avatar} ${css.ava1}`} />
+                    <div>
+                      <div className={css.person}>Краснова Евгения</div>
+                      <div className={css.ratingRow}>
+                        <span className={css.starSmall} />
+                        <span className={css.ratingText}>4,7 Риэлтор</span>
+                      </div>
+                    </div>
+                  </header>
+                  <div className={css.reviewBody}>
+                    <div className={css.reviewFrom}>
+                      <FormattedMessage id="LandingPage.reviewFrom" values={{ name: 'Елена' }} />
+                    </div>
+                    <div className={css.reviewText}>Все отлично! Помогли подобрать <br />апартаменты под наш запрос. <br />Порекомендовали друзьям.</div>
+                  </div>
+                  <div className={css.stars}>
+                    <span className={css.star} /><span className={css.star} /><span className={css.star} /><span className={css.star} /><span className={css.star} />
+                  </div>
+                </article>
+
+                {/* card 3 */}
+                <article className={`${css.reviewCard} ${css.rotR} ${css.pos3} ${css.card3}`}>
+                  <header className={css.reviewHeader}>
+                    <div className={`${css.avatar} ${css.ava3}`} />
+                    <div>
+                      <div className={css.person}>Дебушева Вероника</div>
+                      <div className={css.ratingRow}>
+                        <span className={css.starSmall} />
+                        <span className={css.ratingText}>5 Английский язык</span>
+                      </div>
+                    </div>
+                  </header>
+                  <div className={css.reviewBody}>
+                    <div className={css.reviewFrom}>
+                      <FormattedMessage id="LandingPage.reviewFrom" values={{ name: 'Саша' }} />
+                    </div>
+                    <div className={css.reviewText}>Прошло несколько занятий и уже вижу <br />результат у ребенка. Рекомендую!</div>
+                  </div>
+                  <div className={css.stars}>
+                    <span className={css.star} /><span className={css.star} /><span className={css.star} /><span className={css.star} /><span className={css.star} />
+                  </div>
+                </article>
+
+                {/* card 2 */}
+                <article className={`${css.reviewCard} ${css.pos2} ${css.card2}`}>
+                  <header className={css.reviewHeader}>
+                    <div className={`${css.avatar} ${css.ava2}`} />
+                    <div>
+                      <div className={css.person}>Эльвира Муратовна</div>
+                      <div className={css.ratingRow}>
+                        <span className={css.starSmall} />
+                        <span className={css.ratingText}>4,6 Клининг</span>
+                      </div>
+                    </div>
+                  </header>
+                  <div className={css.reviewBody}>
+                    <div className={css.reviewFrom}>
+                      <FormattedMessage id="LandingPage.reviewFrom" values={{ name: 'Ольга' }} />
+                    </div>
+                    <div className={css.reviewText}>Периодически приглашаю Эльвиру <br />для поддержания чистоты в доме. <br />Вежливая, аккуратная, выполняет <br />работу качественно</div>
+                  </div>
+                  <div className={css.stars}>
+                    <span className={css.star} /><span className={css.star} /><span className={css.star} /><span className={css.star} /><span className={css.star} />
+                  </div>
+                </article>
+
+                {/* card 4 */}
+                <article className={`${css.reviewCard} ${css.pos4} ${css.card4}`}>
+                  <header className={css.reviewHeader}>
+                    <div className={`${css.avatar} ${css.ava4}`} />
+                    <div>
+                      <div className={css.person}>Попов Виталий</div>
+                      <div className={css.ratingRow}>
+                        <span className={css.starSmall} />
+                        <span className={css.ratingText}>4,9 Юрист</span>
+                      </div>
+                    </div>
+                  </header>
+                  <div className={css.reviewBody}>
+                    <div className={css.reviewFrom}>
+                      <FormattedMessage id="LandingPage.reviewFrom" values={{ name: 'Nick' }} />
+                    </div>
+                    <div className={css.reviewText}>Знает свое дело. Брал консультацию <br />по видеосвязи, всё толково объясняет.</div>
+                  </div>
+                  <div className={css.stars}>
+                    <span className={css.star} /><span className={css.star} /><span className={css.star} /><span className={css.star} /><span className={css.star} />
+                  </div>
+                </article>
+ 
+
+                {/* card 6 */}
+                <article className={`${css.reviewCard} ${css.pos6} ${css.card6}`}>
+                  <header className={css.reviewHeader}>
+                    <div className={`${css.avatar} ${css.ava6}`} />
+                    <div>
+                      <div className={css.person}>Максимов Анатолий</div>
+                      <div className={css.ratingRow}>
+                        <span className={css.starSmall} />
+                        <span className={css.ratingText}>4,9 Сантехник</span>
+                      </div>
+                    </div>
+                  </header>
+                  <div className={css.reviewBody}>
+                    <div className={css.reviewFrom}>
+                      <FormattedMessage id="LandingPage.reviewFrom" values={{ name: 'Vika' }} />
+                    </div>
+                    <div className={css.reviewText}>Быстро и без проблем поменял мне <br />сантехнику, приехал вовремя как <br />договаривались</div>
+                  </div>
+                  <div className={css.stars}>
+                    <span className={css.star} /><span className={css.star} /><span className={css.star} /><span className={css.star} /><span className={css.star} />
+                  </div>
+                </article>
+
+                {/* card 5 */}
+                <article className={`${css.reviewCard} ${css.rotL} ${css.pos5} ${css.card5}`}>
+                  <header className={css.reviewHeader}>
+                    <div className={`${css.avatar} ${css.ava5}`} />
+                    <div>
+                      <div className={css.person}>Глазко Александр</div>
+                      <div className={css.ratingRow}>
+                        <span className={css.starSmall} />
+                        <span className={css.ratingText}>5 Массажист</span>
+                      </div>
+                    </div>
+                  </header>
+                  <div className={css.reviewBody}>
+                    <div className={css.reviewFrom}>
+                      <FormattedMessage id="LandingPage.reviewFrom" values={{ name: 'Светлана' }} />
+                    </div>
+                    <div className={css.reviewText}>Специалист не новичок, знающий, <br />внимательный, золотые руки!</div>
+                  </div>
+                  <div className={css.stars}>
+                    <span className={css.star} /><span className={css.star} /><span className={css.star} /><span className={css.star} /><span className={css.star} />
+                  </div>
+                </article>
+              </div>
             </div>
-            <div className={css.advText}>
-              Отзыв можно оставить только после выполненных работ,<br />мы всё проверяем
+          </section>
+ 
+
+          {/* ===== БЛОГ ===== */}
+          <section className={css.blog}>
+            <h2 className={css.h2}><FormattedMessage id="LandingPage.blogTitle" /></h2>
+
+            <div className={css.blogGrid}>
+              <NamedLink name="PrivacyPolicyPage" className={css.blogCard}>
+                <div className={`${css.blogImage} ${css.blogImageVilla}`} />
+                <div className={css.blogTextBlock}>
+                  <div className={css.blogTag}><FormattedMessage id="LandingPage.blogTag1" /></div>
+                  <div className={css.blogName}><FormattedMessage id="LandingPage.blogName1" /></div>
+                </div>
+              </NamedLink>
+
+              <NamedLink name="PrivacyPolicyPage" className={css.blogCard}>
+                <div className={`${css.blogImage} ${css.blogImagePlane}`} />
+                <div className={css.blogTextBlock}>
+                  <div className={css.blogTag}><FormattedMessage id="LandingPage.blogTag2" /></div>
+                  <div className={css.blogName}><FormattedMessage id="LandingPage.blogName2" /></div>
+                </div>
+              </NamedLink>
+
+              <NamedLink name="PrivacyPolicyPage" className={css.blogCard}>
+                <div className={`${css.blogImage} ${css.blogImageTeacher}`} />
+                <div className={css.blogTextBlock}>
+                  <div className={css.blogTag}><FormattedMessage id="LandingPage.blogTag3" /></div>
+                  <div className={css.blogName}><FormattedMessage id="LandingPage.blogName3" /></div>
+                </div>
+              </NamedLink>
             </div>
-          </div>
+
+            <NamedLink name="PrivacyPolicyPage" className={css.btnBlog}>
+              <FormattedMessage id="LandingPage.blogButton" />
+            </NamedLink>
+          </section>
+ 
+
         </div>
+      </main>
 
-
-        {/* --- ЗАГОЛОВОК "КАК ЭТО РАБОТАЕТ" --- */}
-        <div className={css.howItWorksTitle}>
-          Как это работает
-        </div>
-
-        {/* --- КАК ЭТО РАБОТАЕТ : карточка 1 --- */}
-        <div className={css.howItWorks1}>
-        <div className={css.hwBackText1}>
-        <div className={css.hwText1}>
-        <div className={css.hwTitle1}>Опишите задачу и условия</div>
-        <div className={css.hwDesc1}>
-        Мы зададим несколько вопросов вам,<br />чтобы специалист смог
-        оценить<br />предстоящую работу
-      </div>
-    </div>
-  </div>
-</div>
-
-        
-        {/* --- КАК ЭТО РАБОТАЕТ : карточка 2 --- */}
-<div className={css.howItWorks2}>
-  <div className={css.hwBackText2}>
-    <div className={css.hwText2}>
-      <div className={css.hwTitle2}>Получите отклики</div>
-      <div className={css.hwDesc2}>
-        Вашу задачу увидят специалисты и напишут,<br />
-        если готовы помочь
-      </div>
-    </div>
-  </div>
-</div>
-
-        {/* --- КАК ЭТО РАБОТАЕТ : карточка 3 --- */}
-<div className={css.howItWorks3}>
-  <div className={css.hwBackText3}>
-    <div className={css.hwText3}>
-      <div className={css.hwTitle3}>Выберите исполнителя</div>
-      <div className={css.hwDesc3}>
-        Выберите подходящего специалиста<br />и обсудите
-        детали и сроки
-      </div>
-    </div>
-  </div>
-</div>
-
-       {/* --- ЗАГОЛОВОК "ОТЗЫВЫ ОБ ИСПОЛНИТЕЛЯХ" --- */}
-        <div className={css.reviewsTitle}>
-  Отзывы об исполнителях
-        </div>
-
-        {/* --- ОТЗЫВЫ ОБ ИСПОЛНИТЕЛЯХ: карточка 1 --- */}
-<div className={css.reviewCard1}>
-  <div className={css.frame1}>
-    <div className={css.namePic1}>
-      <div className={css.avatar1}></div>
-
-      <div className={css.nameGroup1}>
-        <div className={css.name1}>Краснова Евгения</div>
-        <div className={css.rating1}>
-          <div className={css.starSmall1}></div>
-          <div className={css.ratingText1}>4,7 Риэлтор</div>
-        </div>
-      </div>
-    </div>
-
-    <div className={css.text1}>
-      <div className={css.textFrom1}>Елена оставила отзыв:</div>
-      <div className={css.textBody1}>
-        Все отлично! Помогли подобрать апартаменты под наш запрос.
-        Порекомендовали друзьям.
-      </div>
-    </div>
-  </div>
-
-  <div className={css.stars1}>
-    <div className={css.star1}></div>
-    <div className={css.star1}></div>
-    <div className={css.star1}></div>
-    <div className={css.star1}></div>
-    <div className={css.star1}></div>
-  </div>
-</div>
-
-
-       {/* --- ОТЗЫВЫ ОБ ИСПОЛНИТЕЛЯХ: карточка 3 --- */}
-<div className={css.reviewCard3}>
-  <div className={css.frame3}>
-    <div className={css.namePic3}>
-      <div className={css.avatar3}></div>
-
-      <div className={css.nameGroup3}>
-        <div className={css.name3}>Дебушева Вероника</div>
-        <div className={css.rating3}>
-          <div className={css.starSmall3}></div>
-          <div className={css.ratingText3}>5 Английский язык</div>
-        </div>
-      </div>
-    </div>
-
-    <div className={css.text3}>
-      <div className={css.textFrom3}>Саша оставила отзыв:</div>
-      <div className={css.textBody3}>
-        Прошло несколько занятий и уже вижу результат у ребенка. Рекомендую!
-      </div>
-    </div>
-  </div>
-
-  <div className={css.stars3}>
-    <div className={css.star3}></div>
-    <div className={css.star3}></div>
-    <div className={css.star3}></div>
-    <div className={css.star3}></div>
-    <div className={css.star3}></div>
-  </div>
-</div>
-
-
-        {/* --- ОТЗЫВЫ ОБ ИСПОЛНИТЕЛЯХ: карточка 2 --- */}
-<div className={css.reviewCard2}>
-  <div className={css.frame2}>
-    <div className={css.namePic2}>
-      <div className={css.avatar2}></div>
-
-      <div className={css.nameGroup2}>
-        <div className={css.name2}>Эльвира Муратовна</div>
-        <div className={css.rating2}>
-          <div className={css.starSmall2}></div>
-          <div className={css.ratingText2}>4,6 Клининг</div>
-        </div>
-      </div>
-    </div>
-
-    <div className={css.text2}>
-      <div className={css.textFrom2}>Ольга оставила отзыв:</div>
-      <div className={css.textBody2}>
-        Периодически приглашаю Эльвиру для поддержания чистоты в доме. Вежливая, аккуратная, выполняет работу качественно
-      </div>
-    </div>
-  </div>
-
-  <div className={css.stars2}>
-    <div className={css.star2}></div>
-    <div className={css.star2}></div>
-    <div className={css.star2}></div>
-    <div className={css.star2}></div>
-    <div className={css.star2}></div>
-  </div>
-</div>
-
-
-       {/* --- ОТЗЫВЫ ОБ ИСПОЛНИТЕЛЯХ: карточка 4 --- */}
-<div className={css.reviewCard4}>
-  <div className={css.frame4}>
-    <div className={css.namePic4}>
-      <div className={css.avatar4}></div>
-
-      <div className={css.nameGroup4}>
-        <div className={css.name4}>Попов Виталий</div>
-        <div className={css.rating4}>
-          <div className={css.starSmall4}></div>
-          <div className={css.ratingText4}>4,9 Юрист</div>
-        </div>
-      </div>
-    </div>
-
-    <div className={css.text4}>
-      <div className={css.textFrom4}>Nick оставил отзыв:</div>
-      <div className={css.textBody4}>
-        Знает свое дело. Брал консультацию<br />по видеосвязи, все толково объясняет.
-      </div>
-    </div>
-  </div>
-
-  <div className={css.stars4}>
-    <div className={css.star4}></div>
-    <div className={css.star4}></div>
-    <div className={css.star4}></div>
-    <div className={css.star4}></div>
-    <div className={css.star4}></div>
-  </div>
-</div>
-
-
-       {/* --- ОТЗЫВЫ ОБ ИСПОЛНИТЕЛЯХ: карточка 6 --- */}
-<div className={css.reviewCard6}>
-  <div className={css.frame6}>
-    <div className={css.namePic6}>
-      <div className={css.avatar6}></div>
-
-      <div className={css.nameGroup6}>
-        <div className={css.name6}>Максимов Анатолий Павлович</div>
-        <div className={css.rating6}>
-          <div className={css.starSmall6}></div>
-          <div className={css.ratingText6}>4,9 Сантехник</div>
-        </div>
-      </div>
-    </div>
-
-    <div className={css.text6}>
-      <div className={css.textFrom6}>Vika оставила отзыв:</div>
-      <div className={css.textBody6}>
-        Быстро и без проблем поменял мне<br />сантехнику, приехал во время как<br />договаривались
-      </div>
-    </div>
-  </div>
-
-  <div className={css.stars6}>
-    <div className={css.star6}></div>
-    <div className={css.star6}></div>
-    <div className={css.star6}></div>
-    <div className={css.star6}></div>
-    <div className={css.star6}></div>
-  </div>
-</div>
-
-
-       {/* --- ОТЗЫВЫ ОБ ИСПОЛНИТЕЛЯХ: карточка 5 --- */}
-<div className={css.reviewCard5}>
-  <div className={css.frame5}>
-    <div className={css.namePic5}>
-      <div className={css.avatar5}></div>
-
-      <div className={css.nameGroup5}>
-        <div className={css.name5}>Глазко Александр</div>
-        <div className={css.rating5}>
-          <div className={css.starSmall5}></div>
-          <div className={css.ratingText5}>5 Массажист</div>
-        </div>
-      </div>
-    </div>
-
-    <div className={css.text5}>
-      <div className={css.textFrom5}>Светлана оставила отзыв:</div>
-      <div className={css.textBody5}>
-        Специалист не новичок, знающий,<br />внимательный, золотые руки!
-      </div>
-    </div>
-  </div>
-
-  <div className={css.stars5}>
-    <div className={css.star5}></div>
-    <div className={css.star5}></div>
-    <div className={css.star5}></div>
-    <div className={css.star5}></div>
-    <div className={css.star5}></div>
-  </div>
-</div>
-
-
-       {/* --- ЗАГОЛОВОК "ПОПУЛЯРНОЕ В БЛОГЕ" --- */}
-        <div className={css.blogTitle}>
-  Популярное в блоге
-        </div>
-
-
-       {/* --- БЛОГ: карточка 1 --- */}
-<a href="/privacy-policy" className={css.blogCard1}>
-  <div className={css.blogImage1}></div>
-  <div className={css.blogTextBlock1}>
-    <div className={css.blogTag1}>Реальный проект</div>
-    <div className={css.blogName1}>Ремонт виллы за 1 млн дирхам</div>
-  </div>
-</a>
-
-       {/* --- БЛОГ: карточка 2 --- */}
-<a href="/privacy-policy" className={css.blogCard2}>
-  <div className={css.blogImage2}></div>
-  <div className={css.blogTextBlock2}>
-    <div className={css.blogTag2}>Полезные советы</div>
-    <div className={css.blogName2}>Шпаргалка для туриста</div>
-  </div>
-</a>
-
-       {/* --- БЛОГ: карточка 3 --- */}
-<a href="/privacy-policy" className={css.blogCard3}>
-  <div className={css.blogImage3}></div>
-  <div className={css.blogTextBlock3}>
-    <div className={css.blogTag3}>Полезные советы</div>
-    <div className={css.blogName3}>Как выбрать репетитора</div>
-  </div>
-</a>
-
-       {/* --- КНОПКА "ПОСМОТРЕТЬ ВСЕ СТАТЬИ" --- */}
-<a href="/privacy-policy" className={css.btnBlog}>
-  Посмотреть все статьи
-</a>
-
-
-      </div>
-      </div>
       <FooterCustom />
     </div>
   );
 };
 
 export default LandingPage;
+

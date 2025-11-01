@@ -13,7 +13,7 @@
 // Note: The mainSearch comes from the listing-search asset nowadays by default.
 //       To use this built-in configuration, you need to remove the overwrite from configHelper.js (mergeSearchConfig func)
 export const mainSearch = {
-  searchType: 'location',
+  searchType: 'keywords',
 };
 
 /**
@@ -57,11 +57,12 @@ export const priceFilter = {
   max: 1000,
   step: 5,
 };
-// // This is not in use by default.
-// export const keywordsFilter = {
-//   key: 'keywords',
-//   schemaType: 'keywords',
-// }
+
+// Keywords filter для поиска по названию и описанию
+export const keywordsFilter = {
+  key: 'keywords',
+  schemaType: 'keywords',
+}
 
 export const sortConfig = {
   // Enable/disable the sorting control in the SearchPage

@@ -6,6 +6,8 @@ module.exports = async (req, res) => {
     description, 
     category, 
     subcategory,
+    deadline,
+    paymentMethod,
     location, 
     price, 
     images 
@@ -15,6 +17,8 @@ module.exports = async (req, res) => {
     title,
     category,
     subcategory,
+    deadline,
+    paymentMethod,
     price,
     hasLocation: !!location,
     imageCount: images?.length || 0,
@@ -39,6 +43,14 @@ module.exports = async (req, res) => {
       publicData.categoryLevel2 = subcategory;
     }
     
+    // Add deadline and paymentMethod if provided
+    if (deadline) {
+      publicData.deadline = deadline;
+    }
+    if (paymentMethod) {
+      publicData.paymentMethod = paymentMethod;
+    }
+    
     const listingData = {
       title: title.trim(),
       description: description || 'Описание задания',
@@ -46,12 +58,23 @@ module.exports = async (req, res) => {
     };
 
     // Add geolocation if available
-    if (location?.latlng?.lat && location?.latlng?.lng) {
+    // LocationAutocompleteInputImpl saves location as { selectedPlace: { origin: LatLng } }
+    if (location?.selectedPlace?.origin?.lat && location?.selectedPlace?.origin?.lng) {
       const { types } = require('sharetribe-flex-sdk');
       listingData.geolocation = new types.LatLng(
-        parseFloat(location.latlng.lat),
-        parseFloat(location.latlng.lng)
+        parseFloat(location.selectedPlace.origin.lat),
+        parseFloat(location.selectedPlace.origin.lng)
       );
+      console.log('📍 create-guest-listing: geolocation added', {
+        lat: location.selectedPlace.origin.lat,
+        lng: location.selectedPlace.origin.lng,
+      });
+    } else {
+      console.warn('⚠️ create-guest-listing: location data incomplete', {
+        hasLocation: !!location,
+        hasSelectedPlace: !!location?.selectedPlace,
+        hasOrigin: !!location?.selectedPlace?.origin,
+      });
     }
 
     // Add price if available

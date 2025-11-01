@@ -36,6 +36,7 @@ const ProfilePage = loadable(() => import(/* webpackChunkName: "ProfilePage" */ 
 const ProfileSettingsPage = loadable(() => import(/* webpackChunkName: "ProfileSettingsPage" */ '../containers/ProfileSettingsPage/ProfileSettingsPage'));
 const SearchPageWithMap = loadable(() => import(/* webpackChunkName: "SearchPageWithMap" */ /* webpackPrefetch: true */  '../containers/SearchPage/SearchPageWithMap'));
 const SearchPageWithGrid = loadable(() => import(/* webpackChunkName: "SearchPageWithGrid" */ /* webpackPrefetch: true */  '../containers/SearchPage/SearchPageWithGrid'));
+const SearchMapPage = loadable(() => import(/* webpackChunkName: "SearchMapPage" */ '../containers/SearchMapPage/SearchMapPage'));
 const StripePayoutPage = loadable(() => import(/* webpackChunkName: "StripePayoutPage" */ '../containers/StripePayoutPage/StripePayoutPage'));
 const TermsOfServicePage = loadable(() => import(/* webpackChunkName: "TermsOfServicePage" */ '../containers/TermsOfServicePage/TermsOfServicePage'));
 const TransactionPage = loadable(() => import(/* webpackChunkName: "TransactionPage" */ '../containers/TransactionPage/TransactionPage'));
@@ -111,6 +112,13 @@ const routeConfiguration = (layoutConfig, accessControlConfig) => {
       name: 'SearchPageWithListingType',
       ...authForPrivateMarketplace,
       component: SearchPage,
+      loadData: pageDataLoadingAPI.SearchPage.loadData,
+    },
+    {
+      path: '/map',
+      name: 'SearchMapPage',
+      ...authForPrivateMarketplace,
+      component: SearchMapPage,
       loadData: pageDataLoadingAPI.SearchPage.loadData,
     },
     {

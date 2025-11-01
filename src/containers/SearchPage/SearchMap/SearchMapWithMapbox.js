@@ -355,15 +355,26 @@ class SearchMapWithMapbox extends Component {
     const { offsetHeight, offsetWidth } = this.state.mapContainer;
     const hasDimensions = offsetHeight > 0 && offsetWidth > 0;
     if (hasDimensions) {
+      // Дефолтный центр - ОАЭ (Дубай)
+      const { center, zoom = 7 } = this.props;
+      const defaultCenter = center || [53.847818, 23.424076]; // [lng, lat] для Mapbox
+      
       this.map = new window.mapboxgl.Map({
         container: this.state.mapContainer,
         style: 'mapbox://styles/mapbox/streets-v10',
-        scrollZoom: false,
+        center: defaultCenter,
+        zoom: zoom,
+        scrollZoom: true, // Включаем зум колесиком мыши
+        dragPan: true, // Перемещение карты мышью (по умолчанию true)
+        touchZoomRotate: true, // Зум на мобильных устройствах
       });
       window.mapboxMap = this.map;
 
       var nav = new window.mapboxgl.NavigationControl({ showCompass: false });
       this.map.addControl(nav, 'top-left');
+      
+      // Добавляем fullscreen контрол
+      this.map.addControl(new window.mapboxgl.FullscreenControl());
 
       this.map.on('moveend', this.onMoveend);
 

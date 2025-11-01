@@ -471,30 +471,43 @@ class SearchMapWithGoogleMaps extends Component {
     const hasDimensions = offsetHeight > 0 && offsetWidth > 0;
 
     if (hasDimensions) {
-      const { bounds, center = new sdkTypes.LatLng(0, 0), zoom = 11 } = this.props;
+      // Дефолтный центр - ОАЭ (центр между Дубаем и Абу-Даби)
+      const defaultUAECenter = new sdkTypes.LatLng(24.5, 54.4);
+      const defaultUAEZoom = 9; // Масштаб для всей страны ОАЭ
+      
+      const { bounds, center = defaultUAECenter, zoom = defaultUAEZoom } = this.props;
       const maps = window.google.maps;
       const controlPosition = maps.ControlPosition.LEFT_TOP;
-      const zoomOutToShowEarth = { zoom: 1, center: { lat: 0, lng: 0 } };
-      const zoomAndCenter = !bounds && !center ? zoomOutToShowEarth : { zoom, center };
+      
+      // Если есть bounds, используем их, иначе центр и зум
+      const hasValidBounds = bounds && bounds.ne && bounds.sw;
 
       const mapConfig = {
-        // Disable all controls except zoom
+        // Включаем все основные контролы для интерактивности
         // https://developers.google.com/maps/documentation/javascript/reference/map#MapOptions
         mapTypeControl: false,
-        scrollwheel: false,
-        fullscreenControl: false,
+        scrollwheel: true, // Включаем зум колесиком мыши
+        fullscreenControl: true, // Полноэкранный режим
         clickableIcons: false,
         streetViewControl: false,
+        gestureHandling: 'greedy', // Разрешаем перемещение карты одним пальцем/мышью
+        zoomControl: true, // Кнопки зума
 
         cameraControlOptions: {
           position: controlPosition,
         },
 
-        // Add default viewport (the whole world)
-        ...zoomAndCenter,
+        // Начальные координаты и зум для ОАЭ
+        ...(hasValidBounds ? {} : { zoom, center }),
       };
 
       this.map = new maps.Map(this.state.mapContainer, mapConfig);
+      
+      // Если есть bounds, применяем их после создания карты
+      if (hasValidBounds) {
+        fitMapToBounds(this.map, bounds, { padding: 50 });
+      }
+      
       this.idleListener = maps.event.addListener(this.map, 'idle', this.onIdle);
       this.setState({
         isMapReady: true,

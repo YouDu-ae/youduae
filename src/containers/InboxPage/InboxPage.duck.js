@@ -71,21 +71,21 @@ const fetchOrdersOrSalesError = e => ({
 const getTransitionsBySubtab = (subtab) => {
   switch (subtab) {
     case 'active':
-      // Активные: отклики отправлены или приняты
+      // Общие заявки исполнителей: только отправленные отклики
       return [
         assignmentTransitions.INQUIRE,
-        assignmentTransitions.ACCEPT_OFFER,
       ];
     case 'need-review':
-      // Ожидают отзыва: работа завершена, но не все отзывы оставлены
+      // Одобренные исполнители: работа в процессе
+      return [
+        assignmentTransitions.ACCEPT_OFFER,
+      ];
+    case 'completed':
+      // Завершены (ожидают отзыва): работа завершена, отзывы или период истек
       return [
         assignmentTransitions.COMPLETE,
         assignmentTransitions.REVIEW_1_BY_CUSTOMER,
         assignmentTransitions.REVIEW_1_BY_PROVIDER,
-      ];
-    case 'completed':
-      // Завершены: все отзывы оставлены или период истек
-      return [
         assignmentTransitions.REVIEW_2_BY_CUSTOMER,
         assignmentTransitions.REVIEW_2_BY_PROVIDER,
         assignmentTransitions.EXPIRE_REVIEW_PERIOD,

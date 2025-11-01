@@ -89,6 +89,7 @@
   align-items: center;
   gap: 16px;
   flex-wrap: nowrap;
+  width: 100%; /* Занимаем всю ширину */
 
   @media (--viewportMedium) {
     gap: 20px;
@@ -271,18 +272,15 @@
   align-self: flex-start;
   margin-top: 8px;
 
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
 
   @media (--viewportLarge) {
     margin-top: 5px;
     margin-left: 5px;
-  }
-
-  @media (--viewportLarge) {
     justify-self: flex-start;
-    width: 8px;
-    height: 8px;
+    width: 10px;
+    height: 10px;
   }
 }
 
@@ -293,6 +291,8 @@
   height: 100%;
   border-radius: 50%;
   background-color: var(--colorFail);
+  /* Добавляем тень для лучшей видимости */
+  box-shadow: 0 0 0 2px var(--colorWhite), 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 .itemUsername {
@@ -423,45 +423,77 @@
 .subtabs {
   display: flex;
   flex-direction: row;
-  gap: 16px;
-  flex-wrap: nowrap;
-  white-space: nowrap;
-  font-size: 11px;
+  gap: 12px; /* Уменьшили gap для плотного размещения */
+  flex-wrap: nowrap; /* Все кнопки в одну строку */
+  white-space: normal;
+  font-size: 13px;
+  flex: 1; /* Растягиваемся на всю доступную ширину */
+  box-sizing: border-box; /* Учитываем padding и border в ширине */
+  min-width: 0; /* Позволяем сжиматься, если нужно */
 
   @media (--viewportMedium) {
-    gap: 20px;
-    font-size: 12px;
+    gap: 14px; /* Меньший gap для больших экранов */
+    font-size: 13px; /* Оставляем такой же размер, как на мобильной */
   }
 
   @media (--viewportLarge) {
-    gap: 24px;
-    font-size: 13px;
+    gap: 16px; /* Меньший gap для десктопа */
+    font-size: 13px; /* Оставляем такой же размер, как на мобильной */
   }
 
-  /* Стилизация ссылок - минималистично */
+  /* Стилизация ссылок - как на главной странице */
   & :global(a) {
-    display: inline-block;
-    padding: 4px 0;
-    background-color: transparent;
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    padding: 14px 24px;
+    background: #F7F7F7;
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+    border-radius: 25px;
     border: none;
-    color: var(--colorGrey700);
+    color: #000000;
     text-decoration: none;
-    font-weight: var(--fontWeightMedium);
-    transition: color 0.2s ease;
+    font-weight: var(--fontWeightBold);
+    transition: all 0.2s ease;
     cursor: pointer;
-    border-bottom: 2px solid transparent;
+    white-space: normal; /* Позволяем тексту переноситься */
+    line-height: 1.2;
+    min-height: 48px;
+    flex: 1; /* Равномерное распределение по ширине */
+    text-align: center; /* Центрируем текст */
+
+    @media (--viewportMedium) {
+      padding: 14px 16px; /* Уменьшаем padding для больших экранов */
+      min-height: 48px; /* Оставляем как на мобильной */
+    }
+
+    @media (--viewportLarge) {
+      padding: 14px 20px; /* Немного больше padding для десктопа */
+      min-height: 48px; /* Оставляем как на мобильной */
+    }
 
     &:hover {
-      color: var(--colorBlack);
+      background: #FFC934;
+      transform: translateY(-2px);
+      box-shadow: 0px 6px 15px rgba(0, 0, 0, 0.15);
+      color: #000000;
+      text-decoration: none;
+    }
+
+    &:active {
+      transform: translateY(0);
+      box-shadow: 0px 2px 8px rgba(0, 0, 0, 0.1);
     }
   }
 
   /* Активный/выбранный подтаб */
   & :global(a.selectedLink),
   & :global(a[class*="selectedLink"]) {
-    color: var(--colorBlack);
-    font-weight: var(--fontWeightSemiBold);
-    border-bottom-color: var(--colorBlack);
+    background: #FFC934;
+    color: #000000;
+    font-weight: var(--fontWeightBold);
+    box-shadow: 0px 6px 15px rgba(0, 0, 0, 0.15);
+    transform: translateY(-1px);
   }
 }
 

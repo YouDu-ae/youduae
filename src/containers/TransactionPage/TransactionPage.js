@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { compose } from 'redux';
 import { connect } from 'react-redux';
 import { withRouter } from 'react-router-dom';
@@ -12,6 +12,7 @@ import { LISTING_UNIT_TYPES, propTypes } from '../../util/types';
 import { timestampToDate } from '../../util/dates';
 import { createSlug } from '../../util/urlHelpers';
 import { requireListingImage } from '../../util/configHelpers';
+import { markTransactionAsViewed, cleanupOldViewedTransactions } from '../../util/transactionNotifications';
 
 import {
   INQUIRY_PROCESS_NAME,
@@ -57,6 +58,7 @@ import {
   fetchTimeSlots,
   fetchTransactionLineItems,
 } from './TransactionPage.duck';
+import { fetchCurrentUserNotifications } from '../../ducks/user.duck';
 import css from './TransactionPage.module.css';
 import { getCurrentUserTypeRoles, hasPermissionToViewData } from '../../util/userHelpers.js';
 
@@ -167,6 +169,22 @@ export const TransactionPageComponent = props => {
   } = props;
 
   const { listing, provider, customer, booking } = transaction || {};
+
+  // Отмечаем транзакцию как просмотренную когда страница загружается
+  useEffect(() => {
+    if (transaction?.id && props.onUpdateNotificationCount) {
+      markTransactionAsViewed(transaction.id.uuid);
+      
+      // Также очищаем старые записи (делаем это периодически)
+      cleanupOldViewedTransactions();
+      
+      // Обновляем счётчик уведомлений после небольшой задержки
+      // чтобы дать время localStorage обновиться
+      setTimeout(() => {
+        props.onUpdateNotificationCount();
+      }, 500);
+    }
+  }, [transaction?.id, props.onUpdateNotificationCount]);
   const txTransitions = transaction?.attributes?.transitions || [];
   const isProviderRole = transactionRole === PROVIDER;
   const isCustomerRole = transactionRole === CUSTOMER;
@@ -728,6 +746,7 @@ const mapDispatchToProps = dispatch => {
       dispatch(fetchTransactionLineItems(orderData, listingId, isOwnListing)), // for OrderPanel
     onFetchTimeSlots: (listingId, start, end, timeZone, options) =>
       dispatch(fetchTimeSlots(listingId, start, end, timeZone, options)), // for OrderPanel
+    onUpdateNotificationCount: () => dispatch(fetchCurrentUserNotifications()),
   };
 };
 

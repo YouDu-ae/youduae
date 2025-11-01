@@ -199,6 +199,14 @@ export const searchListings = (searchParams, config) => (dispatch, getState, sdk
       : {};
   };
 
+  // Handler для enum полей (deadline, paymentMethod и т.д.)
+  const prepareEnumParams = (paramName, params) => {
+    const enumConfig = config.listing.listingFields?.find(
+      f => f.schemaType === 'enum' && constructQueryParamName(f.key, f.scope) === paramName
+    );
+    return enumConfig ? { [paramName]: params[paramName] } : {};
+  };
+
   // This function goes through given params and if there's a specific handler for the parameter type,
   // it calls the handler to prepare the property for API.
   // Otherwise, it just passes the param through.
@@ -316,6 +324,7 @@ export const searchListings = (searchParams, config) => (dispatch, getState, sdk
     isListingTypeVariant,
     ...restOfParams
   } = searchParams;
+  
   // The params related to default filters are prepared one-by-one
   // We could consider moving them to the prepareAPIParams function too.
   const priceMaybe = priceSearchParams(price);
@@ -323,6 +332,8 @@ export const searchListings = (searchParams, config) => (dispatch, getState, sdk
   const stockMaybe = stockFilters(datesMaybe);
   const seatsMaybe = seatsSearchParams(seats, datesMaybe);
   const sortMaybe = sort === config.search.sortConfig.relevanceKey ? {} : { sort };
+  
+  const preparedParams = prepareAPIParams(restOfParams, [prepareCategoryParams, prepareIntegerRangeParam, prepareEnumParams]);
 
   const params = {
     // The params that are related to listing fields and categories are prepared here.
@@ -332,7 +343,7 @@ export const searchListings = (searchParams, config) => (dispatch, getState, sdk
     // - With integer range params, we prepare the property for API.
     //   I.e. the range end must be exclusive. E.g. 1000,2000 -> 1000,2001
     // Note: invalid independent search params are still passed through
-    ...prepareAPIParams(restOfParams, [prepareCategoryParams, prepareIntegerRangeParam]),
+    ...preparedParams,
     // If the search page variant is of type /s/:listingType, this sets the pub_listingType
     // query parameter to the value of the listing type path parameter. The ordering matters here,
     // since this value overrides any possible pub_listingType value coming from query parameters
@@ -437,6 +448,9 @@ export const loadData = (params, search, config) => (dispatch, getState, sdk) =>
         'publicData.shippingEnabled',
         'publicData.priceVariationsEnabled',
         'publicData.priceVariants',
+        // Custom fields для фильтрации
+        'publicData.deadline',
+        'publicData.paymentMethod',
       ],
       'fields.user': ['profile.displayName', 'profile.abbreviatedName'],
       'fields.image': [

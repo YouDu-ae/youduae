@@ -5,6 +5,7 @@ import { LISTING_STATE_DRAFT } from '../util/types';
 import { storableError } from '../util/errors';
 import { isUserAuthorized } from '../util/userHelpers';
 import { getTransitionsNeedingProviderAttention } from '../transactions/transaction';
+import { hasUnreadUpdates } from '../util/transactionNotifications';
 
 import { authInfo } from './auth.duck';
 import { stripeAccountCreateSuccess } from './stripeConnectAccount.duck';
@@ -109,7 +110,12 @@ export default function reducer(state = initialState, action = {}) {
     case FETCH_CURRENT_USER_NOTIFICATIONS_REQUEST:
       return { ...state, currentUserNotificationCountError: null };
     case FETCH_CURRENT_USER_NOTIFICATIONS_SUCCESS:
-      return { ...state, currentUserNotificationCount: payload.transactions.length };
+      // Фильтруем только непрочитанные транзакции
+      const unreadTransactions = payload.transactions.filter(tx => {
+        const currentUserId = state.currentUser?.id?.uuid;
+        return hasUnreadUpdates(tx, currentUserId);
+      });
+      return { ...state, currentUserNotificationCount: unreadTransactions.length };
     case FETCH_CURRENT_USER_NOTIFICATIONS_ERROR:
       console.error(payload); // eslint-disable-line
       return { ...state, currentUserNotificationCountError: payload };

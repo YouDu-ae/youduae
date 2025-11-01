@@ -39,6 +39,7 @@ import { manageDisableScrolling, isScrollingDisabled } from '../../ducks/ui.duck
 
 import { H3, H5, ModalInMobile, NamedRedirect, Page } from '../../components';
 import TopbarContainer from '../../containers/TopbarContainer/TopbarContainer';
+import SearchBar from './SearchBar/SearchBar';
 
 import { setActiveListing } from './SearchPage.duck';
 import {
@@ -104,11 +105,13 @@ export class SearchPageComponent extends Component {
       isMobileModalOpen: false,
       currentQueryParams: validUrlQueryParamsFromProps(props),
       isSecondaryFiltersOpen: false,
+      isMapViewActive: true, // По умолчанию показываем карту
     };
 
     this.onMapMoveEnd = debounce(this.onMapMoveEnd.bind(this), SEARCH_WITH_MAP_DEBOUNCE);
     this.onOpenMobileModal = this.onOpenMobileModal.bind(this);
     this.onCloseMobileModal = this.onCloseMobileModal.bind(this);
+    this.toggleMapView = this.toggleMapView.bind(this);
 
     // Filter functions
     this.applyFilters = this.applyFilters.bind(this);
@@ -118,6 +121,12 @@ export class SearchPageComponent extends Component {
 
     // SortBy
     this.handleSortBy = this.handleSortBy.bind(this);
+  }
+
+  toggleMapView() {
+    this.setState(prevState => ({
+      isMapViewActive: !prevState.isMapViewActive,
+    }));
   }
 
   // Callback to determine if new search is needed
@@ -428,7 +437,7 @@ export class SearchPageComponent extends Component {
       ...customPrimaryFilters,
       ...builtInFilters,
       ...customSecondaryFilters,
-    ];
+    ].filter(f => f.key !== 'keywords'); // Исключаем keywords из фильтров, т.к. он отображается под топбаром
 
     const hasSecondaryFilters = !!(customSecondaryFilters && customSecondaryFilters.length > 0);
 
@@ -519,6 +528,14 @@ export class SearchPageComponent extends Component {
 
     // N.B. openMobileMap button is sticky.
     // For some reason, stickyness doesn't work on Safari, if the element is <button>
+    
+    // Keyword search handling
+    const handleKeywordSearch = params => {
+      const searchParams = { ...validQueryParams, keywords: params.keywords };
+      const search = cleanSearchFromConflictingParams(searchParams, sortConfig, filterConfigs);
+      this.props.history.push(createResourceLocatorString('SearchPage', routeConfiguration, {}, search));
+    };
+
     return (
       <Page
         scrollingDisabled={scrollingDisabled}
@@ -527,9 +544,16 @@ export class SearchPageComponent extends Component {
         schema={schema}
       >
         <TopbarContainer rootClassName={topbarClasses} currentSearchParams={validQueryParams} />
+        <SearchBar
+          initialKeyword={validQueryParams.keywords}
+          onSubmit={handleKeywordSearch}
+          routeConfiguration={routeConfiguration}
+        />
         <div className={css.container}>
-          <div className={css.searchResultContainer} role="main">
-            <SearchFiltersMobile
+          {/* Список результатов - показываем только если карта НЕ активна */}
+          {!this.state.isMapViewActive && (
+            <div className={css.searchResultContainer} role="main">
+              <SearchFiltersMobile
               className={css.searchFiltersMobileMap}
               urlQueryParams={validQueryParams}
               sortByComponent={sortBy('mobile')}
@@ -660,35 +684,63 @@ export class SearchPageComponent extends Component {
                 />
               </div>
             )}
-          </div>
-          <ModalInMobile
-            className={css.mapPanel}
-            id="SearchPage_map"
-            isModalOpenOnMobile={this.state.isSearchMapOpenOnMobile}
-            onClose={() => this.setState({ isSearchMapOpenOnMobile: false })}
-            showAsModalMaxWidth={MODAL_BREAKPOINT}
-            onManageDisableScrolling={onManageDisableScrolling}
-          >
-            <div className={css.mapWrapper} data-testid="searchMapContainer">
+            </div>
+          )}
+          
+          {/* Карта на весь экран - показываем только если карта активна */}
+          {this.state.isMapViewActive && (
+            <div className={css.fullScreenMapWrapper}>
               {shouldShowSearchMap ? (
                 <SearchMap
-                  reusableContainerClassName={css.map}
+                  reusableContainerClassName={css.fullScreenMap}
                   rootClassName={css.mapRoot}
                   activeListingId={activeListingId}
                   bounds={bounds}
                   center={origin}
-                  isSearchMapOpenOnMobile={this.state.isSearchMapOpenOnMobile}
+                  zoom={7}
+                  isSearchMapOpenOnMobile={false}
                   location={location}
                   listings={listings || []}
                   onMapMoveEnd={this.onMapMoveEnd}
-                  onCloseAsModal={() => {
-                    onManageDisableScrolling('SearchPage_map', false);
-                  }}
+                  onCloseAsModal={() => {}}
                   messages={intl.messages}
                 />
               ) : null}
             </div>
-          </ModalInMobile>
+          )}
+          
+          {/* Мобильная модалка с картой - только для мобильных */}
+          {!this.state.isMapViewActive && (
+            <ModalInMobile
+              className={css.mapPanel}
+              id="SearchPage_map"
+              isModalOpenOnMobile={this.state.isSearchMapOpenOnMobile}
+              onClose={() => this.setState({ isSearchMapOpenOnMobile: false })}
+              showAsModalMaxWidth={MODAL_BREAKPOINT}
+              onManageDisableScrolling={onManageDisableScrolling}
+            >
+              <div className={css.mapWrapper} data-testid="searchMapContainer">
+                {shouldShowSearchMap ? (
+                  <SearchMap
+                    reusableContainerClassName={css.map}
+                    rootClassName={css.mapRoot}
+                    activeListingId={activeListingId}
+                    bounds={bounds}
+                    center={origin}
+                    zoom={7}
+                    isSearchMapOpenOnMobile={this.state.isSearchMapOpenOnMobile}
+                    location={location}
+                    listings={listings || []}
+                    onMapMoveEnd={this.onMapMoveEnd}
+                    onCloseAsModal={() => {
+                      onManageDisableScrolling('SearchPage_map', false);
+                    }}
+                    messages={intl.messages}
+                  />
+                ) : null}
+              </div>
+            </ModalInMobile>
+          )}
         </div>
       </Page>
     );

@@ -1,4 +1,5 @@
 import React from 'react';
+import { FormattedMessage } from '../../util/reactIntl';
 import { NamedLink } from '../../components';
 import css from './FooterCustom.module.css';
 import logo from '../../assets/Logo.png'; // проверь путь к картинке
@@ -20,27 +21,43 @@ const FooterCustom = () => {
 
         {/* Колонка 1 */}
         <div className={css.column1}>
-          <NamedLink name="PrivacyPolicyPage" className={css.col1Item}>Создать задачу</NamedLink>
-          <NamedLink name="PrivacyPolicyPage" className={css.col1Item}>Все услуги</NamedLink>
-          <NamedLink name="PrivacyPolicyPage" className={css.col1Item}>О компании</NamedLink>
+          <NamedLink name="NewListingPage" className={css.col1Item}>
+            <FormattedMessage id="TopbarDesktop.createListing" />
+          </NamedLink>
+          <NamedLink name="SearchPage" className={css.col1Item}>
+            <FormattedMessage id="TopbarDesktop.searchLink" />
+          </NamedLink>
+          <NamedLink name="PrivacyPolicyPage" className={css.col1Item}>
+            <FormattedMessage id="FooterCustom.about" />
+          </NamedLink>
         </div>
 
         {/* Колонка 2 */}
         <div className={css.column2}>
-          <NamedLink name="PrivacyPolicyPage" className={css.col2Item}>Для специалистов</NamedLink>
-          <NamedLink name="PrivacyPolicyPage" className={css.col2Item}>Контакты</NamedLink>
-          <NamedLink name="PrivacyPolicyPage" className={css.col2Item}>Блог</NamedLink>
+          <NamedLink name="SearchPage" className={css.col2Item}>
+            <FormattedMessage id="TopbarDesktop.forSpecialists" />
+          </NamedLink>
+          <NamedLink name="PrivacyPolicyPage" className={css.col2Item}>
+            <FormattedMessage id="FooterCustom.contacts" />
+          </NamedLink>
+          <NamedLink name="PrivacyPolicyPage" className={css.col2Item}>
+            <FormattedMessage id="TopbarCustom.blog" />
+          </NamedLink>
         </div>
 
         {/* Колонка 3 */}
         <div className={css.column3}>
           <div className={css.frame2}>
-            <div className={css.supportTitle}>Связаться с нами:</div>
+            <div className={css.supportTitle}>
+              <FormattedMessage id="TopbarCustom.contactUs" />:
+            </div>
             <NamedLink name="PrivacyPolicyPage" className={css.btnSupport}>
-              <span className={css.btnText}>Telegram-чат</span>
+              <span className={css.btnText}>Telegram</span>
             </NamedLink>
           </div>
-          <div className={css.supportNote}>*отвечаем круглосуточно</div>
+          <div className={css.supportNote}>
+            <FormattedMessage id="FooterCustom.supportNote" />
+          </div>
         </div>
 
         {/* Разделительная линия */}
@@ -48,9 +65,11 @@ const FooterCustom = () => {
 
         {/* Нижние строки */}
         <div className={css.bottomRow}>
-          <div className={css.copyright}>© {year}. Все права защищены.</div>
+          <div className={css.copyright}>
+            <FormattedMessage id="FooterCustom.copyright" values={{ year }} />
+          </div>
           <NamedLink name="PrivacyPolicyPage" className={css.policy}>
-            Политика обработки и защиты информации
+            <FormattedMessage id="FooterCustom.policy" />
           </NamedLink>
         </div>
       </div>

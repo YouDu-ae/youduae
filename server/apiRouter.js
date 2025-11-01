@@ -22,6 +22,7 @@ const userReviewsStats = require('./api/user-reviews-stats');
 const createGuestListing = require('./api/create-guest-listing');
 const listingStatus = require('./api/listing-status');
 const searchExecutors = require('./api/search-executors');
+const createMyExecutorProfile = require('./api/create-my-executor-profile');
 
 const createUserWithIdp = require('./api/auth/createUserWithIdp');
 
@@ -77,6 +78,7 @@ router.get('/user-reviews-stats', userReviewsStats);
 router.post('/create-guest-listing', createGuestListing);
 router.get('/listing-status', listingStatus);
 router.get('/search-executors', searchExecutors);
+router.post('/create-my-executor-profile', createMyExecutorProfile);
 
 // Create user with identity provider (e.g. Facebook or Google)
 // This endpoint is called to create a new user after user has confirmed

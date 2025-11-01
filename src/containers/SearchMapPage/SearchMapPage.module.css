@@ -1,0 +1,85 @@
+@import '../../styles/customMediaQueries.css';
+
+.topbar {
+  width: 100%;
+  z-index: var(--zIndexTopbar);
+  position: fixed;
+  top: 0;
+  left: 0;
+}
+
+.container {
+  width: 100%;
+  height: 100vh;
+  padding-top: var(--topbarHeightDesktop);
+  position: fixed;
+  top: 0;
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  
+  @media (--viewportMedium) {
+    padding-top: var(--topbarHeightDesktop);
+  }
+}
+
+.backButton {
+  position: absolute;
+  top: calc(var(--topbarHeightDesktop) + 20px);
+  left: 20px;
+  z-index: 10;
+  
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  
+  background: white;
+  border: none;
+  border-radius: 25px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+  font-size: 15px;
+  color: #000000;
+  text-decoration: none;
+  
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: #000000;
+    color: #FFFFFF;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  }
+}
+
+.mapWrapper {
+  width: 100%;
+  height: calc(100vh - var(--topbarHeightDesktop));
+  position: relative;
+  flex: 1;
+  min-height: 500px;
+}
+
+.map {
+  width: 100vw;
+  height: 100vh;
+  position: fixed !important;
+  top: var(--topbarHeightDesktop);
+  left: 0;
+  z-index: 1;
+  
+  @media (--viewportMedium) {
+    width: 100vw;
+    height: calc(100vh - var(--topbarHeightDesktop));
+  }
+}
+
+.mapRoot {
+  background-color: var(--colorGrey100);
+  width: 100%;
+  height: 100%;
+}
+

@@ -104,12 +104,15 @@ const SignupFormComponent = props => (
 
       return (
         <Form className={classes} onSubmit={handleSubmit}>
+          {/* User type теперь выбирается через вкладки, не показываем dropdown */}
+          {!preselectedUserType && (
           <FieldSelectUserType
             name="userType"
             userTypes={userTypes}
             hasExistingUserType={!!preselectedUserType}
             intl={intl}
           />
+          )}
 
           {showDefaultUserFields ? (
             <div className={css.defaultUserFields}>

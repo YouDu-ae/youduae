@@ -10,6 +10,7 @@ import { useRouteConfiguration } from '../../context/routeConfigurationContext';
 import { FormattedMessage, intlShape, useIntl } from '../../util/reactIntl';
 import { parse } from '../../util/urlHelpers';
 import { getCurrentUserTypeRoles } from '../../util/userHelpers';
+import { hasUnreadUpdates } from '../../util/transactionNotifications';
 import {
   propTypes,
   DATE_TYPE_DATE,
@@ -158,6 +159,7 @@ export const InboxItem = props => {
     isBooking,
     availabilityType,
     stockType = STOCK_MULTIPLE_ITEMS,
+    currentUser,
   } = props;
   const { customer, provider, listing } = tx;
   const { processName, processState, actionNeeded, isSaleNotification, isFinal } = stateData;
@@ -173,7 +175,14 @@ export const InboxItem = props => {
   const isOtherUserBanned = otherUser.attributes.banned;
   const isOtherUserVerified = otherUser?.attributes?.profile?.publicData?.isVerified || false;
 
-  const rowNotificationDot = isSaleNotification ? <div className={css.notificationDot} /> : null;
+  // Проверяем, есть ли непрочитанные обновления
+  // Показываем красную точку только если:
+  // 1. Транзакция имеет "sale notification" флаг (требует внимания)
+  // 2. И транзакция еще не была просмотрена или обновилась после последнего просмотра
+  const currentUserId = currentUser?.id?.uuid;
+  const isUnread = isSaleNotification && hasUnreadUpdates(tx, currentUserId);
+  
+  const rowNotificationDot = isUnread ? <div className={css.notificationDot} /> : null;
 
   const linkClasses = classNames(css.itemLink, {
     [css.bannedUserLink]: isOtherUserBanned,
@@ -316,6 +325,7 @@ export const InboxPageComponent = props => {
           stockType={stockType}
           availabilityType={availabilityType}
           isBooking={isBooking}
+          currentUser={currentUser}
         />
       </li>
     ) : null;
@@ -329,56 +339,21 @@ export const InboxPageComponent = props => {
   const hasTransactions =
     !fetchInProgress && hasOrderOrSaleTransactions(transactions, isOrders, currentUser);
 
-  // Таб "Мои отклики" показывается ТОЛЬКО для Исполнителей (provider)
-  // ⚠️ NEW ROLE MAPPING:
-  // - provider (Исполнитель): {customer: false, provider: true} → МОЖЕТ откликаться на задания
-  // - customer (Заказчик): {customer: true, provider: false} → НЕ может откликаться
-  const isOnlyCustomer = !isCustomerUserType && isProviderUserType; // Исполнитель
-  const ordersTabMaybe = isOnlyCustomer
-    ? [
-        {
-          text: (
-            <span>
-              <FormattedMessage id="InboxPage.ordersTabTitle" />
-            </span>
-          ),
-          selected: isOrders,
-          linkProps: {
-            name: 'InboxPage',
-            params: { tab: 'orders' },
-          },
-        },
-      ]
-    : [];
-
-  const salesTabMaybe = isProviderUserType
-    ? [
-        {
-          text: (
-            <span>
-              <FormattedMessage id="InboxPage.salesTabTitle" />
-              {providerNotificationCount > 0 ? (
-                <NotificationBadge count={providerNotificationCount} />
-              ) : null}
-            </span>
-          ),
-          selected: !isOrders,
-          linkProps: {
-            name: 'InboxPage',
-            params: { tab: 'sales' },
-          },
-        },
-      ]
-    : [];
-
-  const tabs = [...ordersTabMaybe, ...salesTabMaybe];
+  // ❌ УБРАЛИ основные табы "Мои отклики" / "Мои заказы"
+  // Теперь показываем только подтабы со статусами:
+  // - Для Customer (orders): "Мои отклики", "Активные заказы", "Завершены"
+  // - Для Provider (sales): "Общие заявки исполнителей", "Одобренные исполнители", "Завершены"
+  const tabs = [];
 
   // Подтабы для фильтрации по статусам
   const currentSubtab = search.subtab || 'active';
   
+  // Используем разные ключи переводов для Customer (orders) и Provider (sales)
+  const tabPrefix = isOrders ? 'InboxPage.customer.' : 'InboxPage.';
+  
   const statusSubtabs = [
     {
-      text: <FormattedMessage id="InboxPage.activeTabTitle" />,
+      text: <FormattedMessage id={`${tabPrefix}activeTabTitle`} />,
       selected: currentSubtab === 'active',
       linkProps: {
         name: 'InboxPage',
@@ -387,7 +362,7 @@ export const InboxPageComponent = props => {
       },
     },
     {
-      text: <FormattedMessage id="InboxPage.needReviewTabTitle" />,
+      text: <FormattedMessage id={`${tabPrefix}needReviewTabTitle`} />,
       selected: currentSubtab === 'need-review',
       linkProps: {
         name: 'InboxPage',
@@ -396,7 +371,7 @@ export const InboxPageComponent = props => {
       },
     },
     {
-      text: <FormattedMessage id="InboxPage.completedTabTitle" />,
+      text: <FormattedMessage id={`${tabPrefix}completedTabTitle`} />,
       selected: currentSubtab === 'completed',
       linkProps: {
         name: 'InboxPage',

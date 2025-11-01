@@ -36,7 +36,6 @@ export const listingFields = [
   {
     key: 'deadline',
     scope: 'public',
-    includeForListingTypes: ['free-listing'],
     schemaType: 'enum',
     enumOptions: [
       { option: 'today', label: 'Сегодня' },
@@ -63,7 +62,6 @@ export const listingFields = [
   {
     key: 'paymentMethod',
     scope: 'public',
-    includeForListingTypes: ['free-listing'],
     schemaType: 'enum',
     enumOptions: [
       { option: 'cash', label: 'Наличными' },

@@ -174,23 +174,14 @@ export const AuthenticationForms = props => {
   const preselectedUserType = userTypes.find(conf => conf.userType === userType)?.userType || null;
 
   const fromMaybe = from ? { from } : null;
-  const signupRouteName = !!preselectedUserType ? 'SignupForUserTypePage' : 'SignupPage';
   const userTypeMaybe = preselectedUserType ? { userType: preselectedUserType } : null;
   const fromState = { state: { ...fromMaybe, ...userTypeMaybe } };
+  
+  // Определяем, какой тип регистрации выбран
+  const isSignupProvider = !isLogin && userType === 'provider';
+  const isSignupCustomer = !isLogin && userType === 'customer';
+  
   const tabs = [
-    {
-      text: (
-        <Heading as={!isLogin ? 'h1' : 'h2'} rootClassName={css.tab}>
-          <FormattedMessage id="AuthenticationPage.signupLinkText" />
-        </Heading>
-      ),
-      selected: !isLogin,
-      linkProps: {
-        name: signupRouteName,
-        params: userTypeMaybe,
-        to: fromState,
-      },
-    },
     {
       text: (
         <Heading as={isLogin ? 'h1' : 'h2'} rootClassName={css.tab}>
@@ -200,6 +191,32 @@ export const AuthenticationForms = props => {
       selected: isLogin,
       linkProps: {
         name: 'LoginPage',
+        to: fromState,
+      },
+    },
+    {
+      text: (
+        <Heading as={isSignupProvider ? 'h1' : 'h2'} rootClassName={css.tab}>
+          <FormattedMessage id="AuthenticationPage.signupCustomerLinkText" />
+        </Heading>
+      ),
+      selected: isSignupProvider,
+      linkProps: {
+        name: 'SignupForUserTypePage',
+        params: { userType: 'provider' },
+        to: fromState,
+      },
+    },
+    {
+      text: (
+        <Heading as={isSignupCustomer ? 'h1' : 'h2'} rootClassName={css.tab}>
+          <FormattedMessage id="AuthenticationPage.signupProviderLinkText" />
+        </Heading>
+      ),
+      selected: isSignupCustomer,
+      linkProps: {
+        name: 'SignupForUserTypePage',
+        params: { userType: 'customer' },
         to: fromState,
       },
     },
@@ -710,9 +727,9 @@ export const AuthenticationPageComponent = props => {
           className={css.root}
           childrenWrapperClassName={css.contentContainer}
           as="section"
-          image={config.branding.brandImage}
+          image={null}
           sizes="100%"
-          useOverlay
+          useOverlay={false}
         >
           {showEmailVerification ? (
             <EmailVerificationInfo

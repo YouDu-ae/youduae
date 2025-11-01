@@ -319,3 +319,42 @@
 .mapRoot {
   background-color: var(--colorGrey100);
 }
+
+/* Полноэкранная карта */
+.fullScreenMapWrapper {
+  width: 100%;
+  height: calc(100vh - var(--topbarHeightDesktop) - 140px); /* вычитаем высоту топбара и SearchBar */
+  position: relative;
+  
+  @media (--viewportMedium) {
+    height: calc(100vh - var(--topbarHeightDesktop) - 140px);
+  }
+}
+
+.fullScreenMap {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  
+  @media (--viewportMedium) {
+    position: relative;
+    width: 100%;
+    height: 100%;
+  }
+}
+
+/* Модалка с картой для Grid версии */
+.mapModal {
+  /* Полноэкранная модалка */
+  width: 100vw !important;
+  height: 100vh !important;
+  max-width: 100vw !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+.mapModalWrapper {
+  width: 100%;
+  height: 100vh;
+  position: relative;
+}

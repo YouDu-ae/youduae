@@ -47,6 +47,7 @@ export const userFields = [
     showConfig: {
       label: 'Категории услуг',
       displayInProfile: true,
+      unselectedOptions: false, // Скрываем невыбранные категории
     },
     saveConfig: {
       label: 'Выберите какие услуги Вы предоставляете',

@@ -1,10 +1,11 @@
 /* === ОБЩЕЕ ОФОРМЛЕНИЕ ХЕДЕРА === */
 .wrapper {
-  position: sticky;
+  position: fixed;     /* или absolute, если внутри shell */
   top: 0;
-  z-index: 1000;
-  background: transparent; /* Убедимся что фон не блокирует */
-  pointer-events: none; /* Отключаем события на обертке */
+  left: 0;
+  right: 0;
+  z-index: 100;        /* выше всего */
+  background: transparent; /* если должен быть прозрачным */
 }
 
 .container {
@@ -15,7 +16,7 @@
   padding: 6px 10px;
   display: flex;
   align-items: center;
-  gap: 19px;
+  gap: 24px;
   pointer-events: auto; /* Включаем события на контейнере */
 }
 
@@ -40,42 +41,29 @@
 .logoBox {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 5px;
 
   height: 78px;
   padding: 9px 10px;
 
   background: #f7f7f7;
-  border-radius: 25px;
+  border-radius: 20px;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
 }
 
 .logoBadge {
-  position: relative;
   width: 60px;
   height: 60px;
   border-radius: 15px;
-  filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.1));
-  overflow: hidden;
+  filter: drop-shadow(0 4px 10px rgba(0,0,0,.1));
+  background: url('../../assets/Logo.png') no-repeat center / cover;
 }
-
-.logoBadge svg {
-  width: 100%;
-  height: 100%;
-  display: block;
-}
-
-/* 
+ 
+/*
   Чтобы использовать свое изображение вместо SVG:
   1. Добавьте файл Logo.png в папку src/assets/
   2. Раскомментируйте строку ниже:
 */
-.logoBadge {
-  background: url('../../assets/Logo.png') center center / cover no-repeat;
-}
-.logoBadge svg {
-  display: none;
-} 
 
 /* текст YouDu справа от логотипа */
 .logoText {
@@ -101,7 +89,7 @@
   height: 78px;
   background: #F7F7F7;
   box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-  border-radius: 25px;
+  border-radius: 20px;
   pointer-events: auto; /* Включаем клики для навигации */
 }
 
@@ -115,7 +103,7 @@
   height: 78px;
   background: #F7F7F7;
   box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-  border-radius: 25px;
+  border-radius: 20px;
   pointer-events: auto; /* Включаем клики для навигации */
 }
 
@@ -130,7 +118,7 @@
   height: 78px;
   background: #F7F7F7;
   box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-  border-radius: 25px;
+  border-radius: 20px;
   pointer-events: auto;
 }
 
@@ -209,7 +197,7 @@
 
   background: #FFC934;
   color: #000;
-  border-radius: 25px;
+  border-radius: 20px;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
 
   font-family: 'Inter', sans-serif;
@@ -259,7 +247,7 @@
 }
 
 .profileMenuIsOpen {
-  background: #E5E5E5;
+  background: #F7F7F7;
 }
 
 .avatar {
@@ -301,7 +289,7 @@
 }
 
 .languageSwitcherWrapper :global(button:hover) {
-  background-color: rgba(255, 255, 255, 0.3) !important;
+  background-color: #909090 !important;
 }
 
 .profileMenuContent {
@@ -320,7 +308,7 @@
 }
 
 .menuLink:hover {
-  background: #F5F5F5;
+  background: #f7f7f7;
   text-decoration: none;
 }
 
@@ -344,10 +332,10 @@
 }
 
 /* === АДАПТИВНОСТЬ === */
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
   .container {
     height: auto;
-    padding: 8px;
+    padding: 0 10px;
   }
 
   .logoBox,
@@ -365,3 +353,247 @@
   }
 }
 
+/* ========================= */
+/*          АДАПТИВЫ             */
+/* ========================= */
+ 
+/* Лого 1023-320 */
+@media (max-width: 1023px) {
+  .container { width: 100%; gap: 5px; padding: 0 20px; }
+  .logoBox { height: 50px; border-radius: 13px; padding: 5px 5px; }
+  .logoBadge { width: 40px; height: 40px; border-radius: 10px; }
+  .logoText { font-size: 14px; line-height: 17px; }
+
+}
+          
+/* ========================= */
+/*      МОБИЛЬНОЕ МЕНЮ       */
+/* ========================= */
+ 
+/* показать/спрятать блоки по брейкпоинту */
+.hideOnMobile { display: flex; }
+@media (max-width: 1023px) {
+  .hideOnMobile { display: none !important; }
+}
+
+/* Показывать блок только на мобильных */
+.showOnlyOnMobile { display: none; }
+@media (max-width: 1023px) {
+  .showOnlyOnMobile { display: flex !important; }
+}
+
+/* Правая мобильная подложка 50x50 в стиле десктопа */
+.rightSectionMobile {
+  flex: 1;
+  height: 50px;
+  background: #F7F7F7;
+  border-radius: 13px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+  display: none;              /* по умолчанию скрыта */
+  align-items: center;
+  justify-content: center;
+  margin-left: auto;          /* прижать вправо */
+  padding: 5px;               /* отступы 5px внутри */
+}
+@media (max-width: 1023px) {
+  .rightSectionMobile { display: flex; }
+}
+  
+/* === БУРГЕР: кнопка === */
+.burgerBtn {
+ display: none;
+  width: 40px;
+  height: 40px;
+  padding: 10px; /* немного внутреннего отступа */
+  flex-direction: column; /* вертикальное расположение линий */
+  justify-content: center;
+  align-items: center;
+  gap: 6px; /* расстояние между полосками */
+  background: #FFC934;
+  border: none;
+  border-radius: 10px;
+  box-shadow: 0 4px 10px rgba(0,0,0,.1);
+  cursor: pointer;
+}
+.burgerLine {
+  display: block;
+  width: 24px;
+  height: 2px; /* толщина линии */
+  background: #000; /* вместо border проще задать фон */
+  border-radius: 1px;
+}
+@media (max-width: 1023px) {
+  .burgerBtn { display: inline-flex; margin-left: auto; }
+}
+
+/* === БУРГЕР: оверлей === затемняет основную страницу */
+.burgerOverlay {
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity .2s ease;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.25);
+  z-index: 98;
+}
+.burgerOverlay.open {
+  pointer-events: auto;
+  opacity: 1;
+}
+
+/* === БУРГЕР: панель === */
+.burgerPanel {
+  position: fixed;
+  top: 0;
+  right: -320px; /* скрыта */
+  width: 293px;
+  height: 100vh;
+  background: #fff;
+  z-index: 99;
+  box-shadow: -6px 0 20px rgba(0,0,0,.15);
+
+  transition: right .25s ease;
+  display: flex;
+  flex-direction: column;
+}
+.burgerPanel.open { right: 0; }
+
+.burgerHeader {
+  position: relative;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 40px 40px;
+}
+.burgerLogo {
+  display: none;
+  position: absolute;
+  right: 40px;
+  top: 37px;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  filter: drop-shadow(0 4px 10px rgba(0,0,0,.1));
+  background: url('../../assets/Logo.png') no-repeat center / cover;
+}
+.burgerClose {
+  position: absolute;
+  right: 14px;
+  top: 14px;
+  width: 26px;
+  height: 26px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+}
+.burgerClose span {
+  position: absolute;
+  left: 5px;
+  top: 12px;
+  width: 16px;
+  height: 0;
+  border-top: 2px solid #000;
+  transform-origin: center;
+}
+.burgerClose span:first-child { transform: rotate(45deg); }
+.burgerClose span:last-child { transform: rotate(135deg); }
+
+/* === список ссылок === */
+.burgerList {
+  list-style: none;
+  margin: 0;
+  padding: 15px 40px 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  align-items: flex-end;  /* выравнивание по правому краю как в макете */
+}
+
+.burgerUser {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 47px;
+}
+.burgerUserAvatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+}
+.burgerUserName {
+  font-weight: 400;
+  font-size: 14px;
+  color: #000;
+}
+
+.burgerLink {
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 17px;
+  letter-spacing: -0.03em;
+  color: #000;
+  text-decoration: none;
+}
+.burgerLink:hover { color: #909090; text-decoration: none; }
+
+.burgerSubLink {
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
+  font-size: 12px;
+  line-height: 15px;
+  letter-spacing: -0.03em;
+  color: #909090;
+  text-decoration: none;
+}
+.burgerSubLink:hover { color: #000; text-decoration: none; }
+
+.burgerDivider {
+  width: 100%;
+  height: 0;
+  border-top: 1px solid #eee;
+  margin: 6px 0;
+  background: transparent;
+  flex: 0 0 auto;
+}
+
+/* кнопки в панели */
+.burgerPrimaryBtn {
+  height: 40px;
+  padding: 0 16px;
+  border: none;
+  border-radius: 10px;
+  background: #FFC934;
+  color: #000;
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(0,0,0,.1);
+}
+.burgerPrimaryBtn:hover { background: #000; color: #fff; }
+
+.burgerSecondaryBtn {
+  height: 40px;
+  padding: 0 16px;
+  border-radius: 10px;
+  border: 1px solid #ddd;
+  background: #fff;
+  color: #000;
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+}
+.burgerSecondaryBtn:hover { background: #f7f7f7; }
+
+/* язык внизу меню */
+.langInBurger {
+  margin-top: 6px;
+}
+.langInBurger :global(div) {
+  flex-direction: row !important;
+  gap: 8px !important;
+  background: transparent !important;
+}

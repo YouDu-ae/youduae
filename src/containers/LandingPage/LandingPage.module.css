@@ -1,117 +1,123 @@
-.page {
-  position: relative;
-  height: 3606px;           /* из макета */
-  margin: 0 auto;
-  background: #FFFFFF;
-  overflow: hidden;
+/* ========================= */
+/*        КАРКАС             */
+/* ========================= */
+.shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
-/* --- main-bg --- */
+.page {
+  position: relative;
+  flex: 1 0 auto;
+  min-height: 3520px;
+  background: #fff;
+  overflow: visible;
+  margin: 0;
+  padding: 0; /* ← важно */
+}
+
+.container {
+  max-width: 1200px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 0 0px 50px;
+  position: relative;
+}
+
+/* фоновые декоры */
 .mainBg {
   position: absolute;
-  width: 1440px;
-  height: 772px;
-  left: calc(50% - 1440px / 2);
-  top: 20px;
+  width: 1280px;
+  height: 686px;
+  left: calc(50% - 1280px / 2);
+  top: 57px;
   background: url('./main-bg.png') no-repeat center/cover;
   pointer-events: none;
 }
 
-/* --- illustration-back --- */
+.mainBgMobile {
+  display: none; /* скрыт на десктопе */
+}
+
 .illustrationBack {
   position: absolute;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  align-items: center;
-  padding: 0;
-
   left: 0;
   right: 0;
-  top: 602px;
+  top: 572px;
   height: 179px;
-
-  background: #E8F5FA;
-}
-
-/* --- container 1200 --- */
-.container {
-  position: absolute;
-  width: 1200px;
-  height: 3625px;
-  left: calc(50% - 1200px / 2);
-  top: 0;
+  background: #e8f5fa;
+  pointer-events: none;
 }
 
 /* ========================= */
-/*        HERO-БЛОК          */
+/*         HERO              */
 /* ========================= */
+.hero {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: 1fr 520px;
+  align-items: center;
+  gap: 40px;
+  padding: 183px 0 194px;
+}
 
-/* --- title --- */
-.title {
-  position: absolute;
-  left: 0px;
-  top: 197px;
-
+.heroText {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  padding: 0;
-  width: 763px;
-  height: 156px;
-  gap: 10px; /* Расстояние между h1 и subtitle */
+  gap: 49px;
+  width: 100%;
+}
+
+.heroIllustration {
+  /* Пустой элемент для grid структуры */
+}
+
+.title {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
 .titleH1 {
-  margin: 0; /* убираем стандартный отступ */
+  margin: 0;
   font-family: 'Inter', sans-serif;
-  font-style: normal;
   font-weight: 700;
-  font-size: 68px;
-  line-height: 61px; /* или 61px */
+  font-size: 55px;
+  line-height: 0.9;
   letter-spacing: -0.05em;
-  color: #000000;
+  color: #000;
 }
 
 .titleSub {
   margin: 0;
   font-family: 'Inter', sans-serif;
-  font-style: normal;
   font-weight: 400;
-  font-size: 20px;
-  line-height: 24px;
+  font-size: 16px;
+  line-height: 19px;
   letter-spacing: -0.03em;
   color: #909090;
 }
 
-/* --- search-line --- */
 .searchLine {
-  position: absolute;
-  left: 0px;
-  top: 402px;
-
   display: flex;
-  flex-direction: row;
   align-items: center;
-  padding: 0;
-  gap: 16px;
-
+  gap: 20px;
   width: 725px;
   height: 60px;
 }
 
 .search {
   display: flex;
-  flex-direction: row;
   align-items: center;
   padding: 20px 19px;
   gap: 15px;
-
   width: 529px;
   height: 60px;
-
-  background: #F7F7F7;
-  border-radius: 25px;
+  background: #f7f7f7;
+  border-radius: 20px;
+  box-shadow: 0 3px 3px rgba(0, 0, 0, 0.1);
 }
 
 .searchInput {
@@ -119,14 +125,11 @@
   border: none;
   outline: none;
   background: transparent;
-  
   font-family: 'Inter', sans-serif;
-  font-style: normal;
-  font-weight: 400;
   font-size: 16px;
   line-height: 19px;
   letter-spacing: -0.03em;
-  color: #000000;
+  color: #000;
 }
 
 .searchInput::placeholder {
@@ -135,8 +138,6 @@
 
 .placeholder {
   font-family: 'Inter', sans-serif;
-  font-style: normal;
-  font-weight: 400;
   font-size: 16px;
   line-height: 19px;
   letter-spacing: -0.03em;
@@ -147,68 +148,53 @@
   display: flex;
   justify-content: center;
   align-items: center;
-
-  padding: 20px 65px;
-  gap: 15px;
-
   width: 180px;
   height: 60px;
-
-  background: #FFC934;
-  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.15);
-  border-radius: 25px;
+  background: #ffc934;
+  border-radius: 20px;
   border: none;
-
   font-family: 'Inter', sans-serif;
   font-weight: 700;
   font-size: 16px;
   line-height: 19px;
-  letter-spacing: -0.03em;
-  color: #000000;
+  color: #000;
   text-decoration: none;
   cursor: pointer;
-  transition: background 0.2s ease;
+  transition: 0.2s;
+  box-shadow: 0 4px 3px rgba(0, 0, 0, 0.1);
 }
-
 .btnFind:hover {
-  background: #000000;
-  color: #FFFFFF;
+  background: #000;
+  color: #fff;
   text-decoration: none;
 }
 
-/* --- advantages-line --- */
-.advantagesLine {
-  position: absolute;
-  left: 0px;
-  top: 640px;
-
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  padding: 0;
-  gap: 161px;
-
-  width: 1064px;
-  height: 101px;
+/* ========================= */
+/*       ПРЕИМУЩЕСТВА        */
+/* ========================= */
+.advantages {
+  padding: 0px 0;
 }
-
+.advantagesLine {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+  justify-content: center;
+}
 .advantage {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   gap: 6px;
-
   width: 247px;
   height: 101px;
 }
-
 .advRow {
   display: flex;
   flex-direction: row;
   align-items: center;
   gap: 11px;
 }
-
 .icon {
   display: inline-block;
   width: 30px;
@@ -216,28 +202,23 @@
   background-position: center;
   background-size: cover;
 }
-
 .iconTexting {
   background-image: url('./icon-texting.png');
 }
-
 .iconFire {
   background-image: url('./icon-fire.png');
 }
-
 .iconPopular {
   background-image: url('./icon-popular.png');
 }
-
 .advTitle {
   font-family: 'Inter', sans-serif;
   font-weight: 700;
   font-size: 16px;
   line-height: 120%;
   letter-spacing: -0.03em;
-  color: #000000;
+  color: #000;
 }
-
 .advText {
   font-family: 'Inter', sans-serif;
   font-weight: 400;
@@ -247,2129 +228,622 @@
   color: #909090;
 }
 
-/* --- КАТЕГОРИИ УСЛУГ / ЗАГОЛОВОК --- */
-.catTitle {
-  position: absolute;
-  width: 399px;
-  height: 61px;
-  left: calc(50% - 399px / 2);
-  top: 892px;
-
-  font-family: 'Inter', sans-serif;
-  font-style: normal;
-  font-weight: 700;
-  font-size: 50px;
-  line-height: 61px; /* identical to box height */
-  letter-spacing: -0.03em;
-  color: #000000;
-
-  margin: 0;
+/* ========================= */
+/*       КАТЕГОРИИ           */
+/* ========================= */
+.categories {
+  padding: 130px 0 20px;
   text-align: center;
 }
-
-/* --- КАТЕГОРИИ УСЛУГ / ПОДЗАГОЛОВОК --- */
-.catSubtitle {
-  position: absolute;
-  width: 505px;
-  height: 48px;
-  left: calc(50% - 505px / 2 + 0.5px);
-  top: 963px;
-
+.catTitle {
+  margin: 0 0 5px;
   font-family: 'Inter', sans-serif;
-  font-style: normal;
+  font-weight: 700;
+  font-size: 45px;
+  line-height: 54px;
+  letter-spacing: -0.03em;
+  color: #000;
+}
+.catSubtitle {
+  margin: 0 0 37px;
+  font-family: 'Inter', sans-serif;
   font-weight: 400;
-  font-size: 20px;
-  line-height: 24px;
+  font-size: 16px;
+  line-height: 19px;
   letter-spacing: -0.03em;
   color: #909090;
-
-  margin: 0;
-  text-align: center;
 }
 
-/* --- КНОПКА "СТРОИТЕЛЬСТВО И РЕМОНТ" --- */
-.btnConstruction1 {
-  position: absolute;
-  left: 0px;
-  top: 1057px;
+.categoriesGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+  justify-content: center;
+}
 
+.cardBtn {
   display: flex;
-  flex-direction: column;
   justify-content: center;
   align-items: center;
-  padding: 40px 49px;
-  gap: 15px;
-
-  width: 384px;
   height: 114px;
-
-  background: #F7F7F7;
-  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
-  border-radius: 25px;
-
-  text-decoration: none;
-  transition: background 0.2s ease;
+  padding: 40px 32px;
+  background: #f7f7f7;
+  box-shadow: 0 3px 3px rgba(0, 0, 0, 0.1);
+  border-radius: 20px;
+  text-decoration: none !important;
+  transition: 0.2s;
+  width: 100%; /* растягиваются в пределах колонки */
+  box-sizing: border-box;
+  color: #000;
+}
+.cardBtn:hover {
+  background: #ffc934;
+  transform: translateY(-2px);
+  text-decoration: none !important;
+  color: #000;
 }
 
-.btnConstruction1:hover {
-  background: #FFC934;
-  text-decoration: none;
-}
-
-/* --- ВНУТРЕННИЙ FLEX-БЛОК С ИКОНКОЙ И ТЕКСТОМ --- */
-.textIcon1 {
+.textIcon {
   display: flex;
-  flex-direction: row;
-  justify-content: center;
   align-items: center;
-  gap: 10px;
-
-  width: 280px;
-  height: 30px;
-}
-
-/* --- ИКОНКА ДРЕЛЬ --- */
-.iconDrill {
-  width: 30px;
-  height: 30px;
-  background: url('./icon-drill.png') no-repeat center/cover;
-  transform: scaleX(-1);
-}
-
-/* --- ТЕКСТ "СТРОИТЕЛЬСТВО И РЕМОНТ" --- */
-.btnText1 {
-  width: 240px;
-  height: 20px;
-
+  gap: 12px;
   font-family: 'Inter', sans-serif;
-  font-style: normal;
   font-weight: 700;
-  font-size: 20px;
-  line-height: 100%;
+  font-size: 16px;
   letter-spacing: -0.03em;
-  color: #000000;
-
+  color: #000;
 }
 
-/* --- КНОПКА "КРАСОТА И ЗДОРОВЬЕ" --- */
-.btnConstruction2 {
-  position: absolute;
-  left: 408px;
-  top: 1057px;
-
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  padding: 40px 49px;
-  gap: 15px;
-
-  width: 384px;
-  height: 114px;
-
-  background: #F7F7F7;
-  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
-  border-radius: 25px;
-
-  text-decoration: none;
-  transition: background 0.2s ease;
-}
-
-.btnConstruction2:hover {
-  background: #FFC934;
-  text-decoration: none;
-}
-
-/* --- ВНУТРЕННИЙ FLEX-БЛОК С ИКОНКОЙ И ТЕКСТОМ --- */
-.textIcon2 {
-  display: flex;
-  flex-direction: row;
-  justify-content: center;
-  align-items: center;
-  gap: 10px;
-
-  width: 232px;
-  height: 30px;
-}
-
-/* --- ИКОНКА НОЖНИЦЫ --- */
-.iconScissors {
-  width: 30px;
-  height: 30px;
-  background: url('./icon-scissors.png') no-repeat center/cover;
-}
-
-/* --- ТЕКСТ "КРАСОТА И ЗДОРОВЬЕ" --- */
-.btnText2 {
-  width: 192px;
-  height: 20px;
-
-  font-family: 'Inter', sans-serif;
-  font-style: normal;
-  font-weight: 700;
-  font-size: 20px;
-  line-height: 100%;
-  letter-spacing: -0.03em;
-  color: #000000;
-}
-
-/* --- КНОПКА "РЕПЕТИТОРЫ И ОБУЧЕНИЕ" --- */
-.btnConstruction3 {
-  position: absolute;
-  left: 816px;
-  top: 1057px;
-
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  padding: 40px 49px;
-  gap: 15px;
-
-  width: 384px;
-  height: 114px;
-
-  background: #F7F7F7;
-  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
-  border-radius: 25px;
-
-  text-decoration: none;
-  transition: background 0.2s ease;
-}
-
-.btnConstruction3:hover {
-  background: #FFC934;
-  text-decoration: none;
-}
-
-/* --- ВНУТРЕННИЙ FLEX-БЛОК С ИКОНКОЙ И ТЕКСТОМ --- */
-.textIcon3 {
-  display: flex;
-  flex-direction: row;
-  justify-content: center;
-  align-items: center;
-  gap: 10px;
-
-  width: 270px;
-  height: 30px;
-}
-
-/* --- ИКОНКА ОБУЧЕНИЕ --- */
-.iconSchool {
-  width: 30px;
-  height: 30px;
-  background: url('./icon-school.png') no-repeat center/cover;
-}
-
-/* --- ТЕКСТ "РЕПЕТИТОРЫ И ЗДОРОВЬЕ" --- */
-.btnText3 {
-  width: 230px;
-  height: 20px;
-
-  font-family: 'Inter', sans-serif;
-  font-style: normal;
-  font-weight: 700;
-  font-size: 20px;
-  line-height: 100%;
-  letter-spacing: -0.03em;
-  color: #000000;
-}
-
-/* --- КНОПКА "УБОРКА И ПОМОЩЬ В ДОМЕ" --- */
-.btnConstruction4 {
-  position: absolute;
-  left: 0px;
-  top: 1195px;
-
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  padding: 40px 49px;
-  gap: 15px;
-
-  width: 384px;
-  height: 114px;
-
-  background: #F7F7F7;
-  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
-  border-radius: 25px;
-
-  text-decoration: none;
-  transition: background 0.2s ease;
-}
-
-.btnConstruction4:hover {
-  background: #FFC934;
-  text-decoration: none;
-}
-
-/* --- ВНУТРЕННИЙ FLEX-БЛОК С ИКОНКОЙ И ТЕКСТОМ --- */
-.textIcon4 {
-  display: flex;
-  flex-direction: row;
-  justify-content: center;
-  align-items: center;
-  gap: 10px;
-
-  width: 281px;
-  height: 30px;
-}
-
-/* --- ИКОНКА ДОМРАБОТНИЦА --- */
-.iconHousekeeper {
-  width: 30px;
-  height: 30px;
-  background: url('./icon-housekeeper.png') no-repeat center/cover;
-}
-
-/* --- ТЕКСТ "УБОРКА И ПОМОЩЬ В ДОМЕ" --- */
-.btnText4 {
-  width: 241px;
-  height: 20px;
-
-  font-family: 'Inter', sans-serif;
-  font-style: normal;
-  font-weight: 700;
-  font-size: 20px;
-  line-height: 100%;
-  letter-spacing: -0.03em;
-  color: #000000;
-}
-
-/* --- КНОПКА "ЮРИДИЧЕСКАЯ И БУХГАЛТЕРСКАЯ ПОМОЩЬ" --- */
-.btnConstruction5 {
-  position: absolute;
-  left: 408px;
-  top: 1195px;
-
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  padding: 40px 49px;
-  gap: 15px;
-
-  width: 384px;
-  height: 114px;
-
-  background: #F7F7F7;
-  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
-  border-radius: 25px;
-
-  text-decoration: none;
-  transition: background 0.2s ease;
-}
-
-.btnConstruction5:hover {
-  background: #FFC934;
-  text-decoration: none;
-}
-
-/* --- ВНУТРЕННИЙ FLEX-БЛОК С ИКОНКОЙ И ТЕКСТОМ --- */
-.textIcon5 {
-  display: flex;
-  flex-direction: row;
-  justify-content: center;
-  align-items: center;
-  gap: 10px;
-
-  width: 342px;
-  height: 40px;
-}
-
-/* --- ИКОНКА ВЕСЫ --- */
-.iconWeight {
-  width: 30px;
-  height: 30px;
-  background: url('./icon-weight.png') no-repeat center/cover;
-}
-
-/* --- ТЕКСТ "ЮРИДИЧЕСКАЯ И БУХГАЛТЕРСКАЯ ПОМОЩЬ" --- */
-.btnText5 {
-  width: 302px;
-  height: 40px;
-
-  font-family: 'Inter', sans-serif;
-  font-style: normal;
-  font-weight: 700;
-  text-align: center;
-  font-size: 20px;
-  line-height: 100%;
-  letter-spacing: -0.03em;
-  color: #000000;
-}
-
-/* --- КНОПКА "УСТАНОВКА БЫТОВОЙ ТЕХНИКИ" --- */
-.btnConstruction6 {
-  position: absolute;
-  left: 816px;
-  top: 1195px;
-
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  padding: 40px 49px;
-  gap: 15px;
-
-  width: 384px;
-  height: 114px;
-
-  background: #F7F7F7;
-  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
-  border-radius: 25px;
-
-  text-decoration: none;
-  transition: background 0.2s ease;
-}
-
-.btnConstruction6:hover {
-  background: #FFC934;
-  text-decoration: none;
-}
-
-/* --- ВНУТРЕННИЙ FLEX-БЛОК С ИКОНКОЙ И ТЕКСТОМ --- */
-.textIcon6 {
-  display: flex;
-  flex-direction: row;
-  justify-content: center;
-  align-items: center;
-  gap: 10px;
-
-  width: 312px;
-  height: 30px;
-}
-
-/* --- ИКОНКА КУХНЯ --- */
-.iconKitchen {
-  width: 30px;
-  height: 30px;
-  background: url('./icon-kitchen.png') no-repeat center/cover;
-}
-
-/* --- ТЕКСТ "УСТАНОВКА БЫТОВОЙ ТЕХНИКИ" --- */
-.btnText6 {
-  width: 272px;
-  height: 20px;
-
-  font-family: 'Inter', sans-serif;
-  font-style: normal;
-  font-weight: 700;
-  font-size: 20px;
-  line-height: 100%;
-  letter-spacing: -0.03em;
-  color: #000000;
-}
-
-/* --- КНОПКА "ФОТО, ВИДЕО, АУДИО" --- */
-.btnConstruction7 {
-  position: absolute;
-  left: 0px;
-  top: 1333px;
-
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  padding: 40px 49px;
-  gap: 15px;
-
-  width: 384px;
-  height: 114px;
-
-  background: #F7F7F7;
-  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
-  border-radius: 25px;
-
-  text-decoration: none;
-  transition: background 0.2s ease;
-}
-
-.btnConstruction7:hover {
-  background: #FFC934;
-  text-decoration: none;
-}
-
-/* --- ВНУТРЕННИЙ FLEX-БЛОК С ИКОНКОЙ И ТЕКСТОМ --- */
-.textIcon7 {
-  display: flex;
-  flex-direction: row;
-  justify-content: center;
-  align-items: center;
-  gap: 10px;
-
-  width: 227px;
-  height: 30px;
-}
-
-/* --- ИКОНКА КАМЕРА --- */
-.iconCamera {
-  width: 30px;
-  height: 30px;
-  background: url('./icon-camera.png') no-repeat center/cover;
-}
-
-/* --- ТЕКСТ "ФОТО, ВИДЕО, АУДИО" --- */
-.btnText7 {
-  width: 187px;
-  height: 20px;
-
-  font-family: 'Inter', sans-serif;
-  font-style: normal;
-  font-weight: 700;
-  font-size: 20px;
-  line-height: 100%;
-  letter-spacing: -0.03em;
-  color: #000000;
-}
-
-/* --- КНОПКА "КУРЬЕРСКИЕ УСЛУГИ" --- */
-.btnConstruction8 {
-  position: absolute;
-  left: 408px;
-  top: 1333px;
-
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  padding: 40px 49px;
-  gap: 15px;
-
-  width: 384px;
-  height: 114px;
-
-  background: #F7F7F7;
-  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
-  border-radius: 25px;
-
-  text-decoration: none;
-  transition: background 0.2s ease;
-}
-
-.btnConstruction8:hover {
-  background: #FFC934;
-  text-decoration: none;
-}
-
-/* --- ВНУТРЕННИЙ FLEX-БЛОК С ИКОНКОЙ И ТЕКСТОМ --- */
-.textIcon8 {
-  display: flex;
-  flex-direction: row;
-  justify-content: center;
-  align-items: center;
-  gap: 10px;
-
-  width: 229px;
-  height: 30px;
-}
-
-/* --- ИКОНКА КУРЬЕР --- */
-.iconCourier {
-  width: 30px;
-  height: 30px;
-  background: url('./icon-courier.png') no-repeat center/cover;
-}
-
-/* --- ТЕКСТ "КУРЬЕРСКИЕ УСЛУГИ" --- */
-.btnText8 {
-  width: 189px;
-  height: 20px;
-
-  font-family: 'Inter', sans-serif;
-  font-style: normal;
-  font-weight: 700;
-  font-size: 20px;
-  line-height: 100%;
-  letter-spacing: -0.03em;
-  color: #000000;
-}
-
-/* --- КНОПКА "ГРУЗОПЕРЕВОЗКИ" --- */
-.btnConstruction9 {
-  position: absolute;
-  left: 816px;
-  top: 1333px;
-
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  padding: 40px 49px;
-  gap: 15px;
-
-  width: 384px;
-  height: 114px;
-
-  background: #F7F7F7;
-  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
-  border-radius: 25px;
-
-  text-decoration: none;
-  transition: background 0.2s ease;
-}
-
-.btnConstruction9:hover {
-  background: #FFC934;
-  text-decoration: none;
-}
-
-/* --- ВНУТРЕННИЙ FLEX-БЛОК С ИКОНКОЙ И ТЕКСТОМ --- */
-.textIcon9 {
-  display: flex;
-  flex-direction: row;
-  justify-content: center;
-  align-items: center;
-  gap: 10px;
-
-  width: 197px;
-  height: 24px;
-}
-
-/* --- ИКОНКА ГРУЗОВИК --- */
-.iconTruck {
-  width: 30px;
-  height: 24px;
-  background: url('./icon-truck.png') no-repeat center/cover;
-}
-
-/* --- ТЕКСТ "ГРУЗОПЕРЕВОЗКИ" --- */
-.btnText9 {
-  width: 157px;
-  height: 20px;
-
-  font-family: 'Inter', sans-serif;
-  font-style: normal;
-  font-weight: 700;
-  font-size: 20px;
-  line-height: 100%;
-  letter-spacing: -0.03em;
-  color: #000000;
-}
-
-/* --- КНОПКА "РЕМОНТ ЦИФРОВОЙ ТЕХНИКИ" --- */
-.btnConstruction10 {
-  position: absolute;
-  left: 0px;
-  top: 1471px;
-
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  padding: 40px 49px;
-  gap: 15px;
-
-  width: 384px;
-  height: 114px;
-
-  background: #F7F7F7;
-  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
-  border-radius: 25px;
-
-  text-decoration: none;
-  transition: background 0.2s ease;
-}
-
-.btnConstruction10:hover {
-  background: #FFC934;
-  text-decoration: none;
-}
-
-/* --- ВНУТРЕННИЙ FLEX-БЛОК С ИКОНКОЙ И ТЕКСТОМ --- */
-.textIcon10 {
-  display: flex;
-  flex-direction: row;
-  justify-content: center;
-  align-items: center;
-  gap: 10px;
-
-  width: 299px;
-  height: 30px;
-}
-
-/* --- ИКОНКА ПОИСК --- */
-.iconSearch {
-  width: 30px;
-  height: 30px;
-  background: url('./icon-search.png') no-repeat center/cover;
-}
-
-/* --- ТЕКСТ "РЕМОНТ ЦИФРОВОЙ ТЕХНИКИ" --- */
-.btnText10 {
-  width: 259px;
-  height: 20px;
-
-  font-family: 'Inter', sans-serif;
-  font-style: normal;
-  font-weight: 700;
-  font-size: 20px;
-  line-height: 100%;
-  letter-spacing: -0.03em;
-  color: #000000;
-}
-
-/* --- КНОПКА "АВТОМОБИЛЬНЫЕ УСЛУГИ" --- */
-.btnConstruction11 {
-  position: absolute;
-  left: 408px;
-  top: 1471px;
-
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  padding: 40px 49px;
-  gap: 15px;
-
-  width: 384px;
-  height: 114px;
-
-  background: #F7F7F7;
-  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
-  border-radius: 25px;
-
-  text-decoration: none;
-  transition: background 0.2s ease;
-}
-
-.btnConstruction11:hover {
-  background: #FFC934;
-  text-decoration: none;
-}
-
-/* --- ВНУТРЕННИЙ FLEX-БЛОК С ИКОНКОЙ И ТЕКСТОМ --- */
-.textIcon11 {
-  display: flex;
-  flex-direction: row;
-  justify-content: center;
-  align-items: center;
-  gap: 10px;
-
-  width: 270px;
-  height: 30px;
-}
-
-/* --- ИКОНКА МАШИНА --- */
+.iconDrill,
+.iconScissors,
+.iconSchool,
+.iconHousekeeper,
+.iconWeight,
+.iconKitchen,
+.iconCamera,
+.iconCourier,
+.iconSearch,
 .iconCar {
   width: 30px;
   height: 30px;
-  background: url('./icon-car.png') no-repeat center/cover;
+  background-position: center;
+  background-size: cover;
 }
 
-/* --- ТЕКСТ "АВТОМОБИЛЬНЫЕ УСЛУГИ" --- */
-.btnText11 {
-  width: 230px;
-  height: 20px;
-
-  font-family: 'Inter', sans-serif;
-  font-style: normal;
-  font-weight: 700;
-  font-size: 20px;
-  line-height: 100%;
-  letter-spacing: -0.03em;
-  color: #000000;
+.iconTruck {
+  width: 30px;
+  height: 24px;
+  background-position: center;
+  background-size: cover;
 }
 
-/* --- ЗАГОЛОВОК "КАК ЭТО РАБОТАЕТ" --- */
-.howItWorksTitle {
-  position: absolute;
-  width: 413px;
-  height: 61px;
-  left: calc(50% - 413px / 2 + 0.5px);
-  top: 1690px;
+.iconDrill {
+  background-image: url('./icon-drill.png');
+  transform: scaleX(-1);
+}
+.iconScissors {
+  background-image: url('./icon-scissors.png');
+}
+.iconSchool {
+  background-image: url('./icon-school.png');
+}
+.iconHousekeeper {
+  background-image: url('./icon-housekeeper.png');
+}
+.iconWeight {
+  background-image: url('./icon-weight.png');
+}
+.iconKitchen {
+  background-image: url('./icon-kitchen.png');
+}
+.iconCamera {
+  background-image: url('./icon-camera.png');
+}
+.iconCourier {
+  background-image: url('./icon-courier.png');
+}
+.iconTruck {
+  background-image: url('./icon-truck.png');
+}
+.iconSearch {
+  background-image: url('./icon-search.png');
+}
+.iconCar {
+  background-image: url('./icon-car.png');
+}
 
-  font-family: 'Inter', sans-serif;
-  font-style: normal;
-  font-weight: 700;
-  font-size: 50px;
-  line-height: 61px; /* как в макете */
-  letter-spacing: -0.03em;
-  color: #000000;
+/* ========================= */
+/*     КАК ЭТО РАБОТАЕТ      */
+/* ========================= */
+.howItWorks {
+  padding: 60px 0;
   text-align: center;
 }
 
-/* --- КАК ЭТО РАБОТАЕТ : карточка 1 --- */
-.howItWorks1 {
-  position: absolute;
-  left: 0px;
-  top: 1790px;
-
-  width: 384px;
-  height: 369px;
-
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  align-items: center;
-  gap: 15px;
-
-  background: url('./howitworks1.png') no-repeat center/cover; /* положи 2.png рядом с модулем */
-  border-radius: 25px;
+.h2 {
+  margin-bottom: 24px;
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 45px;
+  line-height: 61px;
+  letter-spacing: -0.03em;
+  color: #000;
 }
 
-/* нижняя «плашка» с текстом */
-.hwBackText1 {
-  width: 384px;
-  height: 131px;
-
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 15px;
-
-  padding: 18px 31px;
-  background: #F7F7F7;
-  border-radius: 25px;
-}
-
-/* обёртка текста внутри плашки */
-.hwText1 {
-  width: 321px;
-  height: 91px;
-
-  display: flex;
-  flex-direction: column;
+/* Сетка */
+.hiwGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
   justify-content: center;
-  align-items: center;
-  gap: 10px;
 }
 
-/* заголовок карточки */
-.hwTitle1 {
-  width: 321px;
-  height: 24px;
-
-  font-family: 'Inter', sans-serif;
-  font-weight: 700;
-  font-size: 20px;
-  line-height: 120%;
-  letter-spacing: -0.03em;
-  color: #000000;
-  text-align: center;
-}
-
-/* описание карточки */
-.hwDesc1 {
-  width: 321px;
-  height: 57px;
-
-  font-family: 'Inter', sans-serif;
-  font-weight: 400;
-  font-size: 16px;
-  line-height: 19px;
-  letter-spacing: -0.03em;
-  color: #000000;
-  text-align: center;
-}
-
-/* --- КАК ЭТО РАБОТАЕТ : карточка 2 --- */
-.howItWorks2 {
-  position: absolute;
-  left: 408px;
-  top: 1790px;
-
+/* Базовый стиль карточки */
+.hiwCard {
   width: 384px;
-  height: 369px;
-
+  aspect-ratio: 384 / 369;     /* вместо фикс. высоты */
+  background: center/cover no-repeat;
+  border-radius: 21px;
   display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  align-items: center;
-  gap: 15px;
-
-  background: url('./howitworks2.png') no-repeat center/cover;
-  border-radius: 25px;
+  align-items: flex-end;
+  padding: 0px;
+}
+ 
+/* Карточки с разными фонами */
+.hiwCard1 {
+  background-image: url('./howitworks1.png');
 }
 
-.hwBackText2 {
-  width: 384px;
+.hiwCard2 {
+  background-image: url('./howitworks2.png');
+}
+
+.hiwCard3 {
+  background-image: url('./howitworks3.png');
+}
+
+/* Подложка */
+.hiwBack {
+  background: #f7f7f7;
+  border-radius: 20px;
+  padding: 18px 24px;
+  width: 100%;
   height: 131px;
-
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 15px;
-
-  padding: 18px 23px;
-  background: #F7F7F7;
-  border-radius: 25px;
-}
-
-.hwText2 {
-  width: 337px;
-  height: 72px;
-
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
   gap: 10px;
 }
 
-.hwTitle2 {
-  width: 337px;
-  height: 24px;
-
+/* Тексты */
+.hiwTitle {
   font-family: 'Inter', sans-serif;
   font-weight: 700;
-  font-size: 20px;
-  line-height: 120%;
+  font-size: 16px;
   letter-spacing: -0.03em;
-  color: #000000;
   text-align: center;
+  color: #000;
 }
 
-.hwDesc2 {
-  width: 337px;
-  height: 38px;
-
+.hiwText {
   font-family: 'Inter', sans-serif;
-  font-weight: 400;
   font-size: 16px;
   line-height: 19px;
   letter-spacing: -0.03em;
-  color: #000000;
   text-align: center;
+  color: #000;
 }
 
-/* --- КАК ЭТО РАБОТАЕТ : карточка 3 --- */
-.howItWorks3 {
-  position: absolute;
-  left: 816px;
-  top: 1790px;
+/* ========================= */
+/*         ОТЗЫВЫ            */
+/* ========================= */
+.reviews { padding: 20px 0; text-align: left; }
 
-  width: 384px;
-  height: 369px;
-
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  align-items: center;
-  gap: 15px;
-
-  background: url('./howitworks3.png') no-repeat center/cover;
-  border-radius: 25px;
-}
-
-.hwBackText3 {
-  width: 384px;
-  height: 131px;
-
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 15px;
-
-  padding: 18px 48px;
-  background: #F7F7F7;
-  border-radius: 25px;
-}
-
-.hwText3 {
-  width: 288px;
-  height: 72px;
-
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-}
-
-.hwTitle3 {
-  width: 288px;
-  height: 24px;
-
+/* общие заголовки — как у тебя */
+.reviews .h2 {
+  margin-bottom: 24px;
   font-family: 'Inter', sans-serif;
   font-weight: 700;
-  font-size: 20px;
-  line-height: 120%;
+  font-size: 45px;
+  line-height: 61px;
   letter-spacing: -0.03em;
-  color: #000000;
+  color: #000;
   text-align: center;
 }
 
-.hwDesc3 {
-  width: 288px;
-  height: 38px;
-
-  font-family: 'Inter', sans-serif;
-  font-weight: 400;
-  font-size: 16px;
-  line-height: 19px;
-  letter-spacing: -0.03em;
-  color: #000000;
-  text-align: center;
+/* сцена для абсолютного позиционирования карточек (десктоп) */
+.reviewsStage {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
 }
 
-/* --- ОТЗЫВЫ ОБ ИСПОЛНИТЕЛЯХ --- */
-.reviewsTitle {
+.reviewsCanvas {
+  position: relative;
+  width: 1200px;        /* базовая ширина композиции */
+  height: 500px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+/* сама карточка */
+.reviewCard {
   position: absolute;
-  width: 612px;
-  height: 61px;
-  left: calc(50% - 612px / 2 + 1px);
-  top: 2269px;
-
-  font-family: 'Inter', sans-serif;
-  font-weight: 700;
-  font-size: 50px;
-  line-height: 61px; /* identical to box height */
-  letter-spacing: -0.03em;
-  color: #000000;
-  text-align: center;
-}
-
-/* === CARD 1: Отзыв 1 === */
-.reviewCard1 {
+  border-radius: 20px;
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  padding: 28px;
-  gap: 15px;
+  gap: 17px;
+  padding-top: 28px;
+  padding-left: 28px;
+  padding-right: 20px;
+  overflow: hidden;
+  transition: transform 0.3s ease;
+}
 
-  position: absolute;
+/* индивидуальные карточки */
+.card1 {
+  background: #000;
   width: 309px;
   height: 240px;
-  left: 146px;
-  top: 2393px;
-
-  background: #000000;
-  border-radius: 25px;
   transform: rotate(-4deg);
-}
-
-/* Основной фрейм */
-.frame1 {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 25px;
-  width: 253px;
-  height: 150px;
-}
-
-/* Аватар и имя */
-.namePic1 {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 7px;
-  width: 190px;
-  height: 44px;
-}
-
-.avatar1 {
-  width: 43px;
-  height: 43px;
-  background: url('./avatar1.png') center/cover no-repeat;
-  border-radius: 50%;
-}
-
-.nameGroup1 {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: flex-start;
-  gap: 3px;
-}
-
-.name1 {
-  font-family: 'Inter', sans-serif;
-  font-weight: 700;
-  font-size: 16px;
-  line-height: 19px;
   color: #fff;
-  letter-spacing: -0.03em;
 }
 
-.rating1 {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 3px;
-}
-
-.starSmall1 {
-  width: 15px;
-  height: 15px;
-  background: #ffc934;
-  clip-path: polygon(
-    50% 0%,
-    61% 35%,
-    98% 35%,
-    68% 57%,
-    79% 91%,
-    50% 70%,
-    21% 91%,
-    32% 57%,
-    2% 35%,
-    39% 35%
-  );
-}
-
-.ratingText1 {
-  font-family: 'Inter', sans-serif;
-  font-size: 16px;
-  line-height: 19px;
-  color: #909090;
-  letter-spacing: -0.03em;
-}
-
-/* Текст отзыва */
-.text1 {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  width: 253px;
-}
-
-.textFrom1 {
-  font-family: 'Inter', sans-serif;
-  font-size: 16px;
-  color: #909090;
-  line-height: 19px;
-  letter-spacing: -0.03em;
-}
-
-.textBody1 {
-  font-family: 'Inter', sans-serif;
-  font-size: 16px;
-  line-height: 19px;
-  color: #fff;
-  letter-spacing: -0.03em;
-}
-
-/* Пять звёзд */
-.stars1 {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 0;
-}
-
-.star1 {
-  width: 25px;
-  height: 25px;
-  background: #ffc934;
-  clip-path: polygon(
-    50% 0%,
-    61% 35%,
-    98% 35%,
-    68% 57%,
-    79% 91%,
-    50% 70%,
-    21% 91%,
-    32% 57%,
-    2% 35%,
-    39% 35%
-  );
-}
-
-/* === CARD 2: Отзыв 2 === */
-.reviewCard2 {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  padding: 28px;
-  gap: 15px;
-
-  position: absolute;
+.card2 {
+  background: #95CBE5;
   width: 321px;
   height: 259px;
-  left: 428px;
-  top: 2370px;
-
-  background: #95CBE5;
-  border-radius: 25px;
-}
-
-/* Основной фрейм */
-.frame2 {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 25px;
-  width: 265px;
-  height: 169px;
-}
-
-/* Аватар и имя */
-.namePic2 {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 7px;
-  width: 206px;
-  height: 44px;
-}
-
-.avatar2 {
-  width: 43px;
-  height: 43px;
-  background: url('./avatar2.png') center/cover no-repeat;
-  border-radius: 50%;
-}
-
-.nameGroup2 {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: flex-start;
-  gap: 3px;
-}
-
-.name2 {
-  font-family: 'Inter', sans-serif;
-  font-weight: 700;
-  font-size: 16px;
-  line-height: 19px;
+  transform: rotate(0deg);
   color: #fff;
-  letter-spacing: -0.03em;
 }
+.card2 .starSmall { background: #fff; }
+.card2 .star { background: #fff; }
+.card2 .reviewText { color: #fff; }
 
-.rating2 {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 3px;
-}
-
-.starSmall2 {
-  width: 15px;
-  height: 15px;
-  background: #fff;
-  clip-path: polygon(
-    50% 0%,
-    61% 35%,
-    98% 35%,
-    68% 57%,
-    79% 91%,
-    50% 70%,
-    21% 91%,
-    32% 57%,
-    2% 35%,
-    39% 35%
-  );
-}
-
-.ratingText2 {
-  font-family: 'Inter', sans-serif;
-  font-size: 16px;
-  line-height: 19px;
-  color: #909090;
-  letter-spacing: -0.03em;
-}
-
-/* Текст отзыва */
-.text2 {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  width: 265px;
-}
-
-.textFrom2 {
-  font-family: 'Inter', sans-serif;
-  font-size: 16px;
-  color: #909090;
-  line-height: 19px;
-  letter-spacing: -0.03em;
-}
-
-.textBody2 {
-  font-family: 'Inter', sans-serif;
-  font-size: 16px;
-  line-height: 19px;
-  color: #fff;
-  letter-spacing: -0.03em;
-}
-
-/* Пять звёзд */
-.stars2 {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 0;
-}
-
-.star2 {
-  width: 25px;
-  height: 25px;
-  background: #fff;
-  clip-path: polygon(
-    50% 0%,
-    61% 35%,
-    98% 35%,
-    68% 57%,
-    79% 91%,
-    50% 70%,
-    21% 91%,
-    32% 57%,
-    2% 35%,
-    39% 35%
-  );
-}
-
-/* === CARD 3: Отзыв 3 === */
-.reviewCard3 {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  padding: 28px;
-  gap: 15px;
-
-  position: absolute;
-  width: 353px;
-  height: 221px;
-  left: 700px;
-  top: 2390px;
-
+.card3 {
   background: #F7F7F7;
-  border-radius: 25px;
-  transform: rotate(6deg);
-}
-
-/* Основной фрейм */
-.frame3 {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 25px;
-  width: 297px;
-  height: 131px;
-}
-
-/* Аватар и имя */
-.namePic3 {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 7px;
-  width: 214px;
-  height: 44px;
-}
-
-.avatar3 {
-  width: 43px;
-  height: 43px;
-  background: url('./avatar3.png') center/cover no-repeat;
-  border-radius: 50%;
-}
-
-.nameGroup3 {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: flex-start;
-  gap: 3px;
-}
-
-.name3 {
-  font-family: 'Inter', sans-serif;
-  font-weight: 700;
-  font-size: 16px;
-  line-height: 19px;
-  color: #000;
-  letter-spacing: -0.03em;
-}
-
-.rating3 {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 3px;
-}
-
-.starSmall3 {
-  width: 15px;
-  height: 15px;
-  background: #ffc934;
-  clip-path: polygon(
-    50% 0%,
-    61% 35%,
-    98% 35%,
-    68% 57%,
-    79% 91%,
-    50% 70%,
-    21% 91%,
-    32% 57%,
-    2% 35%,
-    39% 35%
-  );
-}
-
-.ratingText3 {
-  font-family: 'Inter', sans-serif;
-  font-size: 16px;
-  line-height: 19px;
-  color: #909090;
-  letter-spacing: -0.03em;
-}
-
-/* Текст отзыва */
-.text3 {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  width: 297px;
-}
-
-.textFrom3 {
-  font-family: 'Inter', sans-serif;
-  font-size: 16px;
-  color: #909090;
-  line-height: 19px;
-  letter-spacing: -0.03em;
-}
-
-.textBody3 {
-  font-family: 'Inter', sans-serif;
-  font-size: 16px;
-  line-height: 19px;
-  color: #000;
-  letter-spacing: -0.03em;
-}
-
-/* Пять звёзд */
-.stars3 {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 0;
-}
-
-.star3 {
-  width: 25px;
-  height: 25px;
-  background: #ffc934;
-  clip-path: polygon(
-    50% 0%,
-    61% 35%,
-    98% 35%,
-    68% 57%,
-    79% 91%,
-    50% 70%,
-    21% 91%,
-    32% 57%,
-    2% 35%,
-    39% 35%
-  );
-}
-
-/* === CARD 4: Отзыв 4 === */
-.reviewCard4 {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  padding: 28px;
-  gap: 15px;
-
-  position: absolute;
   width: 353px;
   height: 221px;
-  left: 157px;
-  top: 2563px;
+  margin-top: 6px;
+  transform: rotate(0deg);
+  color: #000;
+}
+.card3 .reviewText { color: #000; }
 
+.card4 {
   background: #C4E1EE;
-  border-radius: 25px;
+  width: 348px;
+  height: 221px;
   transform: rotate(-12deg);
-}
-
-/* Основной фрейм */
-.frame4 {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 25px;
-  width: 229px;
-  height: 131px;
-}
-
-/* Аватар и имя */
-.namePic4 {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 7px;
-  width: 167px;
-  height: 44px;
-}
-
-.avatar4 {
-  width: 43px;
-  height: 43px;
-  background: url('./avatar4.png') center/cover no-repeat;
-  border-radius: 50%;
-}
-
-.nameGroup4 {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: flex-start;
-  gap: 3px;
-}
-
-.name4 {
-  font-family: 'Inter', sans-serif;
-  font-weight: 700;
-  font-size: 16px;
-  line-height: 19px;
   color: #000;
-  letter-spacing: -0.03em;
 }
+.card4 .starSmall { background: #000; }
+.card4 .star { background: #000; }
+.card4 .reviewText { color: #000; }
 
-.rating4 {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 3px;
-}
-
-.starSmall4 {
-  width: 15px;
-  height: 15px;
-  background: #000;
-  clip-path: polygon(
-    50% 0%,
-    61% 35%,
-    98% 35%,
-    68% 57%,
-    79% 91%,
-    50% 70%,
-    21% 91%,
-    32% 57%,
-    2% 35%,
-    39% 35%
-  );
-}
-
-.ratingText4 {
-  font-family: 'Inter', sans-serif;
-  font-size: 16px;
-  line-height: 19px;
-  color: #909090;
-  letter-spacing: -0.03em;
-}
-
-/* Текст отзыва */
-.text4 {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  width: 299px;
-}
-
-.textFrom4 {
-  font-family: 'Inter', sans-serif;
-  font-size: 16px;
-  color: #909090;
-  line-height: 19px;
-  letter-spacing: -0.03em;
-}
-
-.textBody4 {
-  font-family: 'Inter', sans-serif;
-  font-size: 16px;
-  line-height: 19px;
-  color: #000;
-  letter-spacing: -0.03em;
-}
-
-/* Пять звёзд */
-.stars4 {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 0;
-}
-
-.star4 {
-  width: 25px;
-  height: 25px;
-  background: #000;
-  clip-path: polygon(
-    50% 0%,
-    61% 35%,
-    98% 35%,
-    68% 57%,
-    79% 91%,
-    50% 70%,
-    21% 91%,
-    32% 57%,
-    2% 35%,
-    39% 35%
-  );
-}
-
-/* === CARD 6: Отзыв 6 === */
-.reviewCard6 {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  padding: 28px;
-  gap: 15px;
-
-  position: absolute;
-  width: 349px;
-  height: 240px;
-  left: 646px;
-  top: 2546px;
-
-  background: #FFC934;
-  border-radius: 25px;
-  transform: rotate(12deg);
-}
-
-/* Основной фрейм */
-.frame6 {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 25px;
-  width: 293px;
-  height: 150px;
-}
-
-/* Аватар и имя */
-.namePic6 {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 7px;
-  width: 287px;
-  height: 44px;
-}
-
-.avatar6 {
-  width: 43px;
-  height: 43px;
-  background: url('./avatar6.png') center/cover no-repeat;
-  border-radius: 50%;
-}
-
-.nameGroup6 {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: flex-start;
-  gap: 3px;
-}
-
-.name6 {
-  font-family: 'Inter', sans-serif;
-  font-weight: 700;
-  font-size: 16px;
-  line-height: 19px;
-  color: #000;
-  letter-spacing: -0.03em;
-}
-
-.rating6 {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 3px;
-}
-
-.starSmall6 {
-  width: 15px;
-  height: 15px;
-  background: #000;
-  clip-path: polygon(
-    50% 0%,
-    61% 35%,
-    98% 35%,
-    68% 57%,
-    79% 91%,
-    50% 70%,
-    21% 91%,
-    32% 57%,
-    2% 35%,
-    39% 35%
-  );
-}
-
-.ratingText6 {
-  font-family: 'Inter', sans-serif;
-  font-size: 16px;
-  line-height: 19px;
-  color: #909090;
-  letter-spacing: -0.03em;
-}
-
-/* Текст отзыва */
-.text6 {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  width: 293px;
-}
-
-.textFrom6 {
-  font-family: 'Inter', sans-serif;
-  font-size: 16px;
-  color: #909090;
-  line-height: 19px;
-  letter-spacing: -0.03em;
-}
-
-.textBody6 {
-  font-family: 'Inter', sans-serif;
-  font-size: 16px;
-  line-height: 19px;
-  color: #000;
-  letter-spacing: -0.03em;
-}
-
-/* Пять звёзд */
-.stars6 {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 0;
-}
-
-.star6 {
-  width: 25px;
-  height: 25px;
-  background: #000;
-  clip-path: polygon(
-    50% 0%,
-    61% 35%,
-    98% 35%,
-    68% 57%,
-    79% 91%,
-    50% 70%,
-    21% 91%,
-    32% 57%,
-    2% 35%,
-    39% 35%
-  );
-}
-
-/* === CARD 5: Отзыв 5 === */
-.reviewCard5 {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  padding: 28px;
-  gap: 15px;
-
-  position: absolute;
+.card5 {
+  background: #F7F7F7;
   width: 313px;
   height: 221px;
-  left: 432px;
-  top: 2600px;
-
-  background: #F7F7F7;
-  border-radius: 25px;
+  transform: rotate(-2deg);
+  color: #000;
 }
+.card5 .reviewText { color: #000; }
 
-/* Основной фрейм */
-.frame5 {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 25px;
-  width: 263px;
-  height: 131px;
+.card6 {
+  background: #FFC934;
+  width: 349px;
+  height: 240px;
+  transform: rotate(10deg);
+  color: #000;
 }
+.card6 .starSmall { background: #000; }
+.card6 .star { background: #000; }
+.card6 .reviewText { color: #000; }
 
-/* Аватар и имя */
-.namePic5 {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 7px;
-  width: 193px;
-  height: 44px;
-}
+.rotL { transform: rotate(0deg); }
+.rotR { transform: rotate(8deg); }
 
-.avatar5 {
-  width: 43px;
-  height: 43px;
-  background: url('./avatar5.png') center/cover no-repeat;
+/* координаты карточек (подгони при желании) */
+.pos1 { left: 146px;   top: 28px; }
+.pos2 { left: 428px;   top: 12px; }
+.pos3 { left: 688px;   top: 15px; }
+.pos4 { left: 157px;   top: 220px; }
+.pos5 { left: 432px;   top: 245px; }
+.pos6 { left: 646px;   top: 195px; }
+
+/* шапка карточки */
+.reviewHeader { display: flex; align-items: center; gap: 12px; }
+
+/* аватар + подключение картинок через CSS (как просила) */
+.avatar {
+  width: 43px; height: 43px;
   border-radius: 50%;
+  background-size: cover; background-position: center;
 }
 
-.nameGroup5 {
-  display: flex;
-  flex-direction: column;
+/* файлы лежат рядом с этим .module.css */
+.ava1 { background-image: url('./avatar1.png'); }
+.ava2 { background-image: url('./avatar2.png'); }
+.ava3 { background-image: url('./avatar3.png'); }
+.ava4 { background-image: url('./avatar4.png'); }
+.ava5 { background-image: url('./avatar5.png'); }
+.ava6 { background-image: url('./avatar6.png'); }
+
+.person {
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 16px; line-height: 19px;
+  letter-spacing: -0.03em;
+}
+.ratingRow { display: flex; align-items: center; gap: 3px; }
+.starSmall {
+  width: 15px; height: 15px; background: #ffc934;
+  clip-path: polygon(50% 0%,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%);
+}
+.ratingText { color: #909090; font-size: 16px; font-weight: 400; }
+
+.reviewBody { display: flex; flex-direction: column; gap: 5px; }
+.reviewFrom { color: #909090; font-size: 16px; font-weight: 400; line-height: 19px; }
+.reviewText { color: #fff; font-size: 16px; font-weight: 400; line-height: 19px; }
+
+.stars { display: flex; gap: 1px; }
+.star {
+  width: 25px; height: 25px; background: #ffc934;
+  clip-path: polygon(50% 0%,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%);
+}
+ 
+/* ========================= */
+/*          БЛОГ             */
+/* ========================= */
+
+.blog .h2 {
+  margin-bottom: 24px;
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 45px;
+  line-height: 61px;
+  letter-spacing: -0.03em;
+  color: #000;
+  text-align: center; /* ← можешь поменять на left, если нужно слева */
+}
+
+.blog {
+  padding: 30px 0;
+  text-align: center;
+}
+
+.blogGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
   justify-content: center;
-  align-items: flex-start;
-  gap: 3px;
 }
 
-.name5 {
-  font-family: 'Inter', sans-serif;
-  font-weight: 700;
+/* карта с фоном через CSS */
+.blogCard {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 14px;
+  text-decoration: none !important;
+}
+
+/* делаем адаптивно и удобно: ширина от колонки, высоту — через aspect-ratio */
+.blogImage {
+  width: 384px;
+  aspect-ratio: 384 / 282;     /* вместо фикс. высоты */
+  background: center/cover no-repeat;
+  border-radius: 20px;
+  overflow: hidden;
+}
+
+/* подставляем разные фоны */
+.blogImageVilla   { background-image: url('./blog-villa.png'); }
+.blogImagePlane   { background-image: url('./blog-plane.png'); }
+.blogImageTeacher { background-image: url('./blog-teacher.png'); }
+
+.blogTextBlock {
+ display: flex;
+ flex-direction: column;
+ gap: 1px;
+ text-align: left;
+}
+
+.blogTag  {
+  color: #909090;
   font-size: 16px;
-  line-height: 19px;
+}
+
+.blogName {
   color: #000;
-  letter-spacing: -0.03em;
-}
-
-.rating5 {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 3px;
-}
-
-.starSmall5 {
-  width: 15px;
-  height: 15px;
-  background: #FFC934;
-  clip-path: polygon(
-    50% 0%,
-    61% 35%,
-    98% 35%,
-    68% 57%,
-    79% 91%,
-    50% 70%,
-    21% 91%,
-    32% 57%,
-    2% 35%,
-    39% 35%
-  );
-}
-
-.ratingText5 {
-  font-family: 'Inter', sans-serif;
-  font-size: 16px;
-  line-height: 19px;
-  color: #909090;
-  letter-spacing: -0.03em;
-}
-
-/* Текст отзыва */
-.text5 {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  width: 263px;
-}
-
-.textFrom5 {
-  font-family: 'Inter', sans-serif;
-  font-size: 16px;
-  color: #909090;
-  line-height: 19px;
-  letter-spacing: -0.03em;
-}
-
-.textBody5 {
-  font-family: 'Inter', sans-serif;
-  font-size: 16px;
-  line-height: 19px;
-  color: #000;
-  letter-spacing: -0.03em;
-}
-
-/* Пять звёзд */
-.stars5 {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 0;
-}
-
-.star5 {
-  width: 25px;
-  height: 25px;
-  background: #FFC934;
-  clip-path: polygon(
-    50% 0%,
-    61% 35%,
-    98% 35%,
-    68% 57%,
-    79% 91%,
-    50% 70%,
-    21% 91%,
-    32% 57%,
-    2% 35%,
-    39% 35%
-  );
-}
-
-/* --- ПОПУЛЯРНОЕ В БЛОГЕ --- */
-.blogTitle {
-  position: absolute;
-  width: 485px;
-  height: 61px;
-  left: 0;
-  top: 2941px;
-
-  font-family: 'Inter', sans-serif;
   font-weight: 700;
-  font-size: 50px;
-  line-height: 61px; /* identical to box height */
-  letter-spacing: -0.03em;
-  color: #000000;
-}
-
-/* --- КАРТОЧКА БЛОГА 1 --- */
-.blogCard1 {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  padding: 0;
-  gap: 14px;
-
-  position: absolute;
-  width: 384px;
-  height: 340px;
-  left: 0;
-  top: 3041px;
-
-  text-decoration: none;
-  transition: all 0.3s ease;
-}
-
-.blogImage1 {
-  width: 384px;
-  height: 282px;
-  background: url('./blog-villa.png') center/cover no-repeat;
-  border-radius: 25px;
-}
-
-.blogTextBlock1 {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 1px;
-  width: 297px;
-  height: 44px;
-}
-
-.blogTag1 {
-  font-family: 'Inter', sans-serif;
-  font-style: normal;
-  font-weight: 400;
   font-size: 16px;
-  line-height: 19px;
-  letter-spacing: -0.03em;
-  color: #909090;
+  transition: color .2s;
+  text-decoration: none;
 }
 
-.blogName1 {
-  font-family: 'Inter', sans-serif;
-  font-style: normal;
-  font-weight: 700;
-  font-size: 20px;
-  line-height: 24px;
-  letter-spacing: -0.03em;
-  color: #000000;
-  transition: color 0.3s ease;
-}
-
-/* Эффект при наведении */
-.blogCard1:hover .blogName1 {
+.blogCard:hover .blogName {
   color: #909090;
   text-decoration: none;
 }
 
-.blogCard1,
-.blogCard1:hover,
-.blogCard1:focus,
-.blogCard1:active {
-  text-decoration: none;
-  outline: none;
-}
-
-/* --- КАРТОЧКА БЛОГА 2 --- */
-.blogCard2 {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  padding: 0;
-  gap: 14px;
-
-  position: absolute;
-  width: 384px;
-  height: 340px;
-  left: 408px;
-  top: 3041px;
-
-  text-decoration: none;
-  transition: all 0.3s ease;
-}
-
-.blogImage2 {
-  width: 384px;
-  height: 282px;
-  background: url('./blog-plane.png') center/cover no-repeat;
-  border-radius: 25px;
-}
-
-.blogTextBlock2 {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 1px;
-  width: 234px;
-  height: 44px;
-}
-
-.blogTag2 {
-  font-family: 'Inter', sans-serif;
-  font-style: normal;
-  font-weight: 400;
-  font-size: 16px;
-  line-height: 19px;
-  letter-spacing: -0.03em;
-  color: #909090;
-}
-
-.blogName2 {
-  font-family: 'Inter', sans-serif;
-  font-style: normal;
-  font-weight: 700;
-  font-size: 20px;
-  line-height: 24px;
-  letter-spacing: -0.03em;
-  color: #000000;
-  transition: color 0.3s ease;
-}
-
-/* Эффект при наведении */
-.blogCard2:hover .blogName2 {
-  color: #909090;
-  text-decoration: none;
-}
-
-.blogCard2,
-.blogCard2:hover,
-.blogCard2:focus,
-.blogCard2:active {
-  text-decoration: none;
-  outline: none;
-}
-
-/* --- КАРТОЧКА БЛОГА 3 --- */
-.blogCard3 {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  padding: 0;
-  gap: 14px;
-
-  position: absolute;
-  width: 384px;
-  height: 340px;
-  left: 816px;
-  top: 3041px;
-
-  text-decoration: none;
-  transition: all 0.3s ease;
-}
-
-.blogImage3 {
-  width: 384px;
-  height: 282px;
-  background: url('./blog-teacher.png') center/cover no-repeat;
-  border-radius: 25px;
-}
-
-.blogTextBlock3 {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 1px;
-  width: 243px;
-  height: 44px;
-}
-
-.blogTag3 {
-  font-family: 'Inter', sans-serif;
-  font-style: normal;
-  font-weight: 400;
-  font-size: 16px;
-  line-height: 19px;
-  letter-spacing: -0.03em;
-  color: #909090;
-}
-
-.blogName3 {
-  font-family: 'Inter', sans-serif;
-  font-style: normal;
-  font-weight: 700;
-  font-size: 20px;
-  line-height: 24px;
-  letter-spacing: -0.03em;
-  color: #000000;
-  transition: color 0.3s ease;
-}
-
-/* Эффект при наведении */
-.blogCard3:hover .blogName3 {
-  color: #909090;
-  text-decoration: none;
-}
-
-.blogCard3,
-.blogCard3:hover,
-.blogCard3:focus,
-.blogCard3:active {
-  text-decoration: none;
-  outline: none;
-}
-
-/* --- КНОПКА "ПОСМОТРЕТЬ ВСЕ СТАТЬИ" --- */
 .btnBlog {
   display: flex;
-  flex-direction: row;
   justify-content: center;
   align-items: center;
-  padding: 20px 29px;
-  gap: 15px;
-
-  position: absolute;
   width: 239px;
   height: 60px;
-  left: calc(50% - 239px / 2 + 0.5px);
-  top: 3426px;
-
+  margin: 0 auto;
+  margin-top: 45px;
   background: #ffc934;
-  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.15);
-  border-radius: 25px;
-
+  border-radius: 20px;
+  color: #000;
   font-family: 'Inter', sans-serif;
-  font-style: normal;
   font-weight: 700;
   font-size: 16px;
-  line-height: 19px;
-  letter-spacing: -0.03em;
-  color: #000000;
   text-decoration: none;
-
-  transition: all 0.3s ease;
+  box-shadow: 0 4px 3px rgba(0,0,0,.1);
+  transition: .2s;
 }
-
-/* эффект при наведении */
 .btnBlog:hover {
-  background: #000000;
-  color: #ffffff;
+  background: #000;
+  color: #fff;
   text-decoration: none;
 }
+  
+/* ========================= */
+/*          АДАПТИВЫ             */
+/* ========================= */
 
-/* --- ФУТЕР --- */
-/* Каркас страницы: хедер сверху, контент растягивается, футер внизу */
-.shell {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
+/* адаптив 1279-1024 */
+@media (max-width: 1279px) {
+  .page { min-height: 3400px;}
+  .mainBg {  position: absolute; width: 1024px; height: 549px; left: calc(50% - 1024px / 2); top: 150px; }
+ .titleH1 { font-size: 45px; line-height: 1; }
+ .searchLine { width: 600px; }
+ .illustrationBack { top: 572px; }
+ .hero { padding: 190px 20px 194px; }
+ .advantages { padding: 0px 20px; }
+ .advantagesLine { gap: 24px; }
+ .advantage { width: 100%; }
+
+ .categoriesGrid {
+    width: 100%;
+    padding: 0 20px;/* 🔹 отступы по краям экрана */
+    box-sizing: border-box;
+    grid-template-columns: repeat(3, 1fr); /* 3 карточки равной ширины */
+    gap: 24px; }
+
+.howItWorks { padding: 0px 20px; padding-top: 50px; }
+.hiwCard { width: 100%; }
+.hiwBack { height: 131px; }
+
+.blog { padding: 30px 20px 70px;}
+.blogImage { width: 100%; }
+
+.reviews .h2 { padding-top: 60px; }
+}
+ 
+/* адаптив 1023-768 */
+@media (max-width: 1023px) {
+  .page { min-height: 3400px;}
+  /* смена текста */
+  .hero { display: flex; flex-direction: column; width: 100%; align-items: center; margin: 0 auto; padding: 90px 0 70px; }
+  .heroText { text-align: center; }
+  .titleH1 { font-size: 45px; line-height: 1; }
+  .titleSub { font-size: 16px; line-height: 19px; padding: 5px; }
+  .catTitle, .h2, .blog .h2, .reviews .h2 { font-size: 35px; line-height: 42px; text-align: center; }
+  /* поисковая строка */
+ .searchLine { display: flex; align-items: center; width: 100%; max-width: 700px; margin: 0 auto; padding-top: 300px; gap: 5px; }
+ .btnFind { font-size: 14px; line-height: 17px; height: 50px; border-radius: 13px; }
+ .search { height: 50px; border-radius: 13px; }
+ .placeholder { font-size: 14px; line-height: 17px; }
+
+  /* картинка фоновая в мобильной версии */
+ .mainBg { display: none; }
+ .mainBgMobile {
+  display: block;
+  position: absolute;
+  top: 200px; /* ← отступ сверху */
+  left: 50%;
+  transform: translateX(-50%); /* центрируем только по горизонтали */
+  max-width: 100%;
+  max-height: calc(100vh - 200px); /* чтобы не вылезала за нижний край */
+  width: 500px;
+  height: 333px;
+  object-fit: contain;
+  z-index: 0;
+  background: url('./main-bg-mobile.png') no-repeat center/cover; pointer-events: none; }
+ 
+ .illustrationBack { display: none; }
+ .advantagesLine { margin-top: 0px; }
+ .advTitle, .advText { font-size: 14px; }
+ .icon { width: 20px; height: 20px; }
+
+ .categories { padding: 70px 0 20px; }
+ .categoriesGrid { gap: 10px; grid-template-columns: repeat(2, 1fr); /* 2 карточки равной ширины */ }
+ .cardBtn { height: 90px; border-radius: 13px; }
+ .textIcon { gap: 10px; font-size: 14px; }
+ .iconDrill, .iconScissors, .iconSchool, .iconHousekeeper, .iconWeight, .iconKitchen, .iconCamera, .iconCourier, .iconSearch, .iconCar { width: 20px; height: 20px; }
+ .iconTruck { width: 20px; height: 16px; }
+ .hiwGrid { gap: 10px; }
+ .hiwCard { border-radius: 14px; aspect-ratio: auto; width: 100%; height: 335px; }
+ .hiwBack { gap: 5px; border-radius: 13px; height: 110px; padding: 9px 8px;}
+ .hiwTitle, .hiwText { font-size: 14px;  }
+
+ .blogImage { border-radius: 13px; }
+ .blogCard { gap: 5px; }
+ .blogName, .blogTag, .btnBlog { font-size: 14px; }
+ .btnBlog { height: 50px; border-radius: 13px; margin-top: 30px; }
+ .blogGrid { gap: 10px; }
+.reviewCard { border-radius: 13px;}
+.reviewsCanvas { width: 768px; margin-bottom: 135px; }
+.pos1 { left: 60px;   top: 28px; }
+.pos2 { left: 400px;   top: 185px; }
+.pos3 { left: 350px;   top: 20px; }
+.pos4 { left: 60px;   top: 210px; }
+.pos5 { left: 80px;   top: 380px; }
+.pos6 { left: 350px;   top: 350px; }
+
+}
+  
+/* адаптив 767-320 */
+@media (max-width: 767px) {
+  .page { min-height: 5600px;}
+  .hero { padding: 90px 0 60px; }
+  .titleH1 { font-size: 30px; line-height: 1; }
+  .titleSub { font-size: 14px; line-height: 17px; padding: 10px;}
+  .mainBgMobile { display: block; width: 320px; height: 213px;}
+  .searchLine { display: flex;
+  width: 100%;          /* ширина на всю область видимой части экрана */
+  padding: 200px 20px 0;
+  height: 50px;
+  justify-content: center; /* если хочешь выровнять содержимое по центру */
+  box-sizing: border-box;  /* чтобы padding не влиял на ширину */
+  gap: 5px; }
+
+  .search { height: 50px; border-radius: 13px; }
+  .placeholder { font-size: 14px; line-height: 17px; }
+  .btnFind { font-size: 14px; line-height: 17px; height: 50px; border-radius: 13px; }
+ 
+  .advantagesLine { grid-template-columns: 1fr; gap: 20px; }
+  .advantage { width: 100%; height: auto;  align-items: center; text-align: center; }
+  .advTitle br { display: none; }
+  .advTitle { text-align: left;  white-space: nowrap; }
+  .advRow { gap: 5px; }
+
+  .categories { padding: 70px 0 20px; }
+  .catTitle, .h2 { font-size: 25px; line-height: 30px; }
+  .catSubtitle { font-size: 14px; line-height: 17px; }
+  .categoriesGrid { gap: 10px; grid-template-columns: 1fr; }
+  .cardBtn { height: 80px; border-radius: 13px; justify-content: flex-start; padding-left: 20px; }
+  .textIcon { justify-content: flex-start; text-align: left; }
+
+  .howItWorks { padding-top: 40px; }
+  .hiwGrid { display: flex !important; flex-direction: column; align-items: center; gap: 10px; }
+  .hiwBack { gap: 5px; border-radius: 13px; height: 110px; padding: 18px 20px;}
+  .hiwCard { aspect-ratio: auto; height: 335px; width: 384px; }
+
+ .blog .h2 { font-size: 25px; line-height: 30px; text-align: center; }
+ .blogGrid { display: flex !important; flex-direction: column; align-items: center; gap: 10px; }
+ .blogCard { height: 335px; width: 384px; gap: 5px; }
+
+ .reviews .h2 { font-size: 25px; line-height: 30px; text-align: center; }
+ .person, .ratingText, .reviewFrom, .reviewText { font-size: 14px; line-height: 17px; }
+ .reviews { padding: 0;}
+ .reviewCard { width: 100%; max-width: 380px; padding: 20px; height: auto; left: 50%; }
+
+.reviewsCanvas {  width: 300px; height: 920px; margin-bottom: 115px;}
+.card1 { top: 0px; transform: translateX(-50%) rotate(-4deg); }
+.card3  { top: 160px; transform: translateX(-50%) rotate(0deg); }
+.card4  {top: 460px; transform: translateX(-50%) rotate(-8deg); }
+.card5   {top: 800px; transform: translateX(-50%) rotate(-2deg); }
+.card6  {top: 650px; transform: translateX(-50%) rotate(7deg); }
+.card2 { top: 340px; transform: translateX(-50%) rotate(5deg); }
+
 }
 
-/* Контент занимает всё доступное место между топбаром и футером */
-.page {
-  position: relative;
-  flex: 1 0 auto;   /* ← ключевое */
-
-  /* ВАЖНО: чтобы absolute-дети не обрезались */
-  min-height: 3606px;   /* или height: 3625px; как было у тебя */
-  overflow: visible;    /* можно вернуть hidden, если оставишь фикс. высоту */
-  background: #fff;
-}
+@media (max-width: 480px) {
+    .hiwCard { width: 100%; max-width: none; }
+    .blogCard { width: 100%; max-width: none; }
+  }
