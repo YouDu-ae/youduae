@@ -18,3 +18,15 @@ build
 .env.production
 npm-debug.log
 yarn-error.log
+
+# Документация с чувствительными данными
+EXECUTOR_SEARCH_COMPLETE.md
+EXECUTOR_PROFILES_SETUP.md
+INTEGRATION_TEST_COMPLETE.md
+CREATE_TEST_EXECUTORS.md
+.env.backup*
+check-api-type.js
+check-users-data.js
+test-integration-api.js
+scripts/create-executor-profiles.js
+search-schema.json
