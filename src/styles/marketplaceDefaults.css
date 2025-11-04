@@ -75,11 +75,11 @@
     'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol';
 
   --fontWeightRegular: 400;
-  --fontWeightMedium: 500;
-  --fontWeightSemiBold: 600;
+  
+  
   --fontWeightBold: 700;
-  --fontWeightHeavy: 800;
-  --fontWeightBlack: 900;
+  
+  
 
   --fontWeightHighlightEmail: var(--fontWeightBold);
 
@@ -461,6 +461,7 @@ input,
 textarea {
   font-family: var(--fontFamily);
   font-size: 16px;
+  
 }
 
 select {
@@ -769,6 +770,8 @@ textarea {
   }
 }
 
+
+
 .p,
 .marketplaceBodyFontStyles {
   /* margin-top + n * line-height + margin-bottom => x * 6px */
@@ -817,7 +820,7 @@ textarea {
 
 .marketplaceSmallFontStyles {
   font-weight: var(--fontWeightMedium);
-  font-size: 12px;
+  font-size: 14px;
   line-height: 24px;
 }
 

@@ -18,7 +18,7 @@
 .privacyLink,
 .termsLink {
   composes: marketplaceModalHelperLink from global;
-  color: var(--marketplaceColor);
+  color: #95CBE5;
 
   &:hover {
     color: var(--marketplaceColorDark);

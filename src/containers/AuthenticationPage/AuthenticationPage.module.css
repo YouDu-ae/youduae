@@ -6,10 +6,12 @@
 .root {
   flex-grow: 1;
   position: relative;
-  
+
+ 
   /* Светлый фон как на главной странице для десктопа */
   @media (--viewportMedium) {
-    background: #E8F5FA;
+    
+    background: #fff;
     min-height: 100vh;
     display: flex;
     justify-content: center;
@@ -31,7 +33,7 @@
     display: flex;
     flex-direction: row;
     align-items: center;
-    gap: 60px;
+    gap: px;
     max-width: 1200px;
     margin: 0 auto;
   }
@@ -40,25 +42,34 @@
 /* Иллюстрация справа от формы */
 .contentContainer::after {
   @media (--viewportMedium) {
+    display: flex;
     content: '';
     flex-shrink: 0;
     width: 400px;
     height: 500px;
-    background: url('./worker-illustration.png') no-repeat center/contain;
-    order: 2;
+    background: url('./bg-autorization.png') no-repeat center/contain;
+    order: 1;
   }
+  @media (max-width: 1023px) {
+  display: none;}
 }
 
 .content {
   composes: marketplaceModalBaseStyles from global;
-  padding-top: 29px;
+  padding-top: 28px;
+  border-radius: 0px;
+  background-color: #fff;
+
+
 
   @media (--viewportMedium) {
     margin-top: 0;
     margin-bottom: 0;
     min-height: auto;
     flex-shrink: 0;
-    order: 1;
+    order: 2;
+    border-bottom: none;
+    
   }
 }
 
@@ -77,19 +88,33 @@
   }
 }
 
+
+
 .tab {
   composes: marketplaceModalTitleStyles from global;
-  padding: 0;
-  margin-top: 0;
-  margin-bottom: 0;
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
   font-size: 16px;
-
-  @media (--viewportMedium) {
-    padding: 0;
-    margin-top: 0;
-    font-size: 18px;
+  line-height: 19px;
+  text-align: center;
+  justify-content: center;
+  letter-spacing: -0.03em;
+  background-color: none;
+  box-shadow: 0 4px 3px rgba(0,0,0,.01);
+ font-weight: 700;
+  color: #000;
+  height: 60px;
+  min-width: 70px;
+  border-radius: 20px;
+  padding: 0 40px;
+  
+  &:hover, &:focus {
+    background-color: #ffc934;
   }
+
 }
+
 
 .form {
   margin-top: 24px;
@@ -97,11 +122,14 @@
   @media (--viewportMedium) {
     margin-top: 30px;
     padding-top: 2px;
+  
   }
 }
 
 .loginForm {
   margin-top: 24px;
+  font-size: 16px;
+  
 
   /* We don't want the form to take the whole space so that on mobile view
   the social login buttons will be after the sign up button
@@ -133,6 +161,7 @@
     flex-basis: 410px;
     margin-top: 30px;
     padding-top: 2px;
+    
   }
 }
 
@@ -151,6 +180,7 @@
   padding-top: 40px;
 
   @media (--viewportMedium) {
+  
     width: 604px;
     padding-top: 11px;
   }
@@ -158,7 +188,10 @@
 
 /* userType selection */
 .userTypeSelect {
+
+
   margin-bottom: 24px;
+ 
 
   @media (--viewportMedium) {
     margin-bottom: 32px;
@@ -167,15 +200,18 @@
 
 .selectedLabel {
   composes: label from global;
+  
 }
 .selectedValue {
   margin-top: 0;
   margin-bottom: 6px;
 
+
   @media (--viewportMedium) {
     margin-top: 0;
     margin-bottom: 0;
     padding: 2px 0 6px 0;
+    
   }
 }
 
@@ -211,11 +247,14 @@
 /* Title of the modal */
 .modalTitle {
   composes: marketplaceModalTitleStyles from global;
+  
+  
 }
 
 /* Paragraph for the Modal */
 .modalMessage {
   composes: marketplaceModalParagraphStyles from global;
+  
 }
 
 /* Make the email pop */
@@ -233,6 +272,7 @@
 .modalHelperLink {
   composes: a from global;
   composes: marketplaceModalHelperLink from global;
+  
 }
 
 /* Helper texts for the links, not the actual links */
@@ -322,4 +362,58 @@
   padding: 0 20px 0 20px;
   position: relative;
   margin: 0;
+}
+
+/* Главная кнопка (например "Войти") */
+.content button,
+.content .buttonPrimary {
+  background-color: #ffc934 !important;
+  color: #000 !important;
+  border: none;
+  border-radius: 20px;
+  font-weight: 700;
+  transition: 0.2s;
+  font-family: 'Inter', sans-serif;
+  font-size: 16px;
+  line-height: 19px;
+  letter-spacing: -0.03em;
+  height: 60px;
+
+}
+
+.content button:hover,
+.content .buttonPrimary:hover {
+  background-color: #000 !important;
+  color: #fff !important;
+  text-decoration: none;
+} 
+
+
+/* Поля ввода (Email / Пароль) */
+.content input {
+  background-color: #ffffff !important;  /* белый фон */
+  border: 1px solid #909090 !important;  /* светло-серая рамка */
+  color: #909090 !important;                /* цвет текста */
+  border-radius: 10px;                   /* плавные углы */
+  height: 50px;
+  padding: 10px 14px;
+  font-size: 16px;
+  font-family: 'Inter', sans-serif;
+}
+
+/* Цвет рамки при наведении */
+.content input:hover {
+  border-color: #c5c5c5 !important;
+}
+
+/* Цвет рамки при фокусе (когда кликаешь внутрь) */
+.content input:focus {
+  border-color: #000 !important;         /* чёрный */
+  box-shadow: none !important;           /* убираем голубое свечение браузера */
+}
+
+@media (max-width: 1023px) {
+  .content input { font-size: 16px; }
+  .content button, .content .buttonPrimary { font-size: 14px; border-radius: 13px; height: 50px;}
+.tab { font-size: 12px; padding: 0 20px; height: 50px; line-height: 1.1; border-radius: 13px;}
 }

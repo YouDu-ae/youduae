@@ -4,6 +4,7 @@
   composes: marketplaceModalFormRootStyles from global;
 
   justify-content: flex-start;
+  
 
   @media (--viewportMedium) {
     justify-content: space-between;
@@ -12,6 +13,7 @@
 
 .password {
   composes: marketplaceModalPasswordMargins from global;
+  
 }
 
 .bottomWrapper {
@@ -21,6 +23,8 @@
 /* Adjust the bottomWrapper's margin to match modals without the helper text */
 .bottomWrapperText {
   composes: marketplaceModalBottomWrapperText from global;
+  
+  
 }
 
 .recoveryLink {
