@@ -182,12 +182,12 @@ const TopbarDesktop = props => {
   const classes = classNames(rootClassName || css.root, className);
 
   const inboxLinkMaybe =
-    authenticatedOnClientSide && isAuthenticated ? (
+    authenticatedOnClientSide ? (
       <InboxLink notificationCount={notificationCount} inboxTab={inboxTab} />
     ) : null;
 
   const profileMenuMaybe =
-    authenticatedOnClientSide && isAuthenticated ? (
+    authenticatedOnClientSide ? (
       <ProfileMenu
         currentPage={currentPage}
         currentUser={currentUser}
