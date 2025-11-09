@@ -74,3 +74,43 @@
   margin-top: 0;
   margin-bottom: 0;
 }
+
+.closeTaskModal {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.closeTaskModalContent {
+  padding: 32px 24px;
+  max-width: 420px;
+  text-align: center;
+}
+
+.closeTaskModalTitle {
+  composes: h3 from global;
+  margin: 0 0 12px 0;
+}
+
+.closeTaskModalText {
+  composes: marketplaceSmallFontStyles from global;
+  margin: 0;
+}
+
+.closeTaskModalError {
+  composes: marketplaceSmallFontStyles from global;
+  color: var(--colorFail);
+  margin: 16px 0 0 0;
+}
+
+.closeTaskModalActions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  justify-content: center;
+  margin-top: 24px;
+
+  @media (--viewportMedium) {
+    flex-direction: row;
+  }
+}

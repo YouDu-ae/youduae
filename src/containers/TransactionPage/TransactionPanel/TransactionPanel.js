@@ -360,6 +360,7 @@ export class TransactionPanelComponent extends Component {
                       </div>
                     )}
                     <button 
+                      type="button"
                       onClick={this.props.onComplete} 
                       disabled={this.props.completeBusy}
                       style={{

@@ -39,6 +39,9 @@ import {
   OrderBreakdown,
   OrderPanel,
   LayoutSingleColumn,
+  Modal,
+  PrimaryButton,
+  SecondaryButton,
 } from '../../components';
 
 import TopbarContainer from '../../containers/TopbarContainer/TopbarContainer';
@@ -505,26 +508,29 @@ const isProviderOwnSale = isOwnSale;
 const canComplete =
   isProviderRole && lastTransition === 'transition/accept-offer';
 
+const [isCloseTaskModalOpen, setCloseTaskModalOpen] = useState(false);
 const [completeBusy, setCompleteBusy] = useState(false);
 const [completeErr, setCompleteErr] = useState(null);
 
-const onComplete = async () => {
-  // Запрос подтверждения перед закрытием задания
-  const confirmMessage = intl.formatMessage({ 
-    id: 'TransactionPage.confirmCloseTask' 
-  });
-  
-  if (!window.confirm(confirmMessage)) {
-    console.log('🚫 onComplete: User cancelled');
-    return; // Пользователь отменил
-  }
+const openCloseTaskModal = () => {
+  setCompleteErr(null);
+  setCloseTaskModalOpen(true);
+};
 
+const onDismissCloseTaskModal = () => {
+  if (completeBusy) {
+    return;
+  }
+  setCloseTaskModalOpen(false);
+  setCompleteErr(null);
+};
+
+const confirmCompleteTask = async () => {
   // eslint-disable-next-line no-console
   console.log('🔄 onComplete: starting transition/complete for transaction', transaction.id);
   setCompleteBusy(true);
   setCompleteErr(null);
   try {
-    // Используем privileged API для transition/complete
     const result = await transitionPrivileged({
       isSpeculative: false,
       bodyParams: {
@@ -534,11 +540,11 @@ const onComplete = async () => {
       },
       queryParams: { expand: true },
     });
-    
+
     // eslint-disable-next-line no-console
     console.log('✅ onComplete: transition successful', result);
-    
-    // Перезагрузить транзакцию чтобы обновить состояние
+
+    setCloseTaskModalOpen(false);
     window.location.reload();
   } catch (e) {
     // eslint-disable-next-line no-console
@@ -570,7 +576,7 @@ const onComplete = async () => {
       onSendMessage={onSendMessage}
       onOpenDisputeModal={onOpenDisputeModal}
       canComplete={canComplete}
-      onComplete={onComplete}
+      onComplete={openCloseTaskModal}
       completeBusy={completeBusy}
       completeErr={completeErr}
       stateData={stateData}
@@ -640,6 +646,38 @@ const onComplete = async () => {
     >
       <LayoutSingleColumn topbar={<TopbarContainer />} footer={<FooterContainer />}>
         <div className={css.root}>{panel}</div>
+        <Modal
+          id="CompleteTaskModal"
+          isOpen={isCloseTaskModalOpen}
+          onClose={onDismissCloseTaskModal}
+          onManageDisableScrolling={onManageDisableScrolling}
+          containerClassName={css.closeTaskModal}
+          contentClassName={css.closeTaskModalContent}
+          usePortal
+        >
+          <h2 className={css.closeTaskModalTitle}>
+            <FormattedMessage id="TransactionPage.confirmCloseTaskTitle" />
+          </h2>
+          <p className={css.closeTaskModalText}>
+            <FormattedMessage id="TransactionPage.confirmCloseTask" />
+          </p>
+          {completeErr ? (
+            <p className={css.closeTaskModalError}>{completeErr}</p>
+          ) : null}
+          <div className={css.closeTaskModalActions}>
+            <SecondaryButton type="button" disabled={completeBusy} onClick={onDismissCloseTaskModal}>
+              <FormattedMessage id="TransactionPage.closeTaskCancelButton" />
+            </SecondaryButton>
+            <PrimaryButton
+              type="button"
+              inProgress={completeBusy}
+              disabled={completeBusy}
+              onClick={confirmCompleteTask}
+            >
+              <FormattedMessage id="TransactionPage.closeTaskConfirmButton" />
+            </PrimaryButton>
+          </div>
+        </Modal>
         <ReviewModal
           id="ReviewOrderModal"
           isOpen={isReviewModalOpen}
