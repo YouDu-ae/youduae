@@ -51,9 +51,14 @@ const FooterCustom = () => {
             <div className={css.supportTitle}>
               <FormattedMessage id="TopbarCustom.contactUs" />:
             </div>
-            <NamedLink name="PrivacyPolicyPage" className={css.btnSupport}>
+            <a
+              className={css.btnSupport}
+              href="https://t.me/Gross_Ai"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
               <span className={css.btnText}>Telegram</span>
-            </NamedLink>
+            </a>
           </div>
           <div className={css.supportNote}>
             <FormattedMessage id="FooterCustom.supportNote" />
