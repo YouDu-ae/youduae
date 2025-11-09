@@ -1155,21 +1155,16 @@ const mergeUserConfig = (hostedConfig, defaultConfigs) => {
   const { userFields: defaultUserFields, userTypes: defaultUserTypes } =
     (defaultConfigs.user || {});
 
-  // ✅ ВКЛЮЧАЕМ локальные настройки для поддержки serviceCategories
-  const shouldMerge = mergeDefaultTypesAndFieldsForDebugging(true);
+  // ✅ ВСЕГДА используем локальные userTypes/userFields, чтобы hosted-конфиг не подменял кастомную логику.
+  // Hosted конфигурации в Console могут отдавать дефолтные роли Sharetribe, что ломает топбар и регистрацию.
+  const userTypes =
+    defaultUserTypes?.length > 0 ? defaultUserTypes : hostedUserTypes;
 
-  // ⚠️ ИСПОЛЬЗУЕМ ТОЛЬКО ЛОКАЛЬНЫЕ userTypes и userFields (иначе дубликаты из Console!)
-  const userTypes = shouldMerge
-    ? defaultUserTypes // ТОЛЬКО локальные!
-    : appendMissingItems(hostedUserTypes, defaultUserTypes, 'userType');
-
-  const userFields = shouldMerge
-    ? defaultUserFields // ТОЛЬКО локальные!
-    : appendMissingItems(hostedUserFields, defaultUserFields, 'key');
+  const userFields =
+    defaultUserFields?.length > 0 ? defaultUserFields : hostedUserFields;
 
   if (process.env.NODE_ENV !== 'development') {
     console.log('🔍 mergeUserConfig result', {
-      shouldMerge,
       hostedUserTypesCount: hostedUserTypes.length,
       defaultUserTypesCount: defaultUserTypes?.length || 0,
       resultUserTypes: userTypes.map(ut => ut?.userType),
