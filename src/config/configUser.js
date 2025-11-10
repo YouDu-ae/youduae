@@ -73,6 +73,44 @@ export const userFields = [
       userTypeIds: ['customer'], // ⚠️ Исполнитель = customer (НЕТ прав создавать листинги в Console)
     },
   },
+  {
+    key: 'instagram',
+    scope: 'public',
+    schemaType: 'text',
+    showConfig: {
+      label: 'ProfileSettingsForm.socialInstagram',
+      displayInProfile: true,
+    },
+    saveConfig: {
+      label: 'ProfileSettingsForm.socialInstagram',
+      placeholderMessage: 'ProfileSettingsForm.socialInstagramPlaceholder',
+      displayInSignUp: true,
+      isRequired: false,
+    },
+    userTypeConfig: {
+      limitToUserTypeIds: true,
+      userTypeIds: ['customer'],
+    },
+  },
+  {
+    key: 'website',
+    scope: 'public',
+    schemaType: 'text',
+    showConfig: {
+      label: 'ProfileSettingsForm.socialWebsite',
+      displayInProfile: true,
+    },
+    saveConfig: {
+      label: 'ProfileSettingsForm.socialWebsite',
+      placeholderMessage: 'ProfileSettingsForm.socialWebsitePlaceholder',
+      displayInSignUp: true,
+      isRequired: false,
+    },
+    userTypeConfig: {
+      limitToUserTypeIds: true,
+      userTypeIds: ['customer'],
+    },
+  },
 ];
 
 /////////////////////////////////////

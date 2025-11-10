@@ -137,6 +137,7 @@ const CustomFieldMultiEnum = props => {
   return enumOptions ? (
     <FieldCheckboxGroup
       className={css.customField}
+      rootClassName={css.customFieldset}
       id={formId ? `${formId}.${name}` : name}
       name={name}
       label={translatedLabel}

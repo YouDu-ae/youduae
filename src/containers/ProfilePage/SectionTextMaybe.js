@@ -1,12 +1,14 @@
 import React from 'react';
 import { Heading } from '../../components';
 import { richText } from '../../util/richText';
+import { useIntl } from '../../util/reactIntl';
 
 import css from './ProfilePage.module.css';
 
 const MIN_LENGTH_FOR_LONG_WORDS = 20;
 
 const SectionTextMaybe = props => {
+  const intl = useIntl();
   const { text, heading, showAsIngress = false } = props;
   const textClass = showAsIngress ? css.ingress : css.text;
   const content = richText(text, {
@@ -16,11 +18,16 @@ const SectionTextMaybe = props => {
     breakChars: '/',
   });
 
+  const translatedHeading =
+    heading && typeof heading === 'string' && heading.includes('.')
+      ? intl.formatMessage({ id: heading, defaultMessage: heading })
+      : heading;
+
   return text ? (
     <div className={css.sectionText}>
-      {heading ? (
+      {translatedHeading ? (
         <Heading as="h2" rootClassName={css.sectionHeading}>
-          {heading}
+          {translatedHeading}
         </Heading>
       ) : null}
       <p className={textClass}>{content}</p>

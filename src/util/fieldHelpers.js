@@ -8,6 +8,28 @@ import appSettings from '../config/settings';
 
 const { stripeSupportedCurrencies, subUnitDivisors } = appSettings;
 
+const LABEL_TRANSLATION_MAP = {
+  'Social network': 'ProfileSettingsForm.socialNetwork',
+  'Instagram': 'ProfileSettingsForm.socialInstagram',
+  'Instagram link': 'ProfileSettingsForm.socialInstagram',
+  'Website': 'ProfileSettingsForm.socialWebsite',
+  'Website link': 'ProfileSettingsForm.socialWebsite',
+  'Site': 'ProfileSettingsForm.socialWebsite',
+};
+
+const mapLabelToTranslationKey = label => {
+  if (!label || typeof label !== 'string') {
+    return label;
+  }
+
+  const trimmed = label.trim();
+  if (trimmed.length === 0) {
+    return trimmed;
+  }
+
+  return LABEL_TRANSLATION_MAP[trimmed] || trimmed;
+};
+
 const keyMapping = {
   userType: {
     wrapper: 'userTypeConfig',
@@ -129,7 +151,7 @@ export const pickCustomFieldProps = (
     const isTargetEntityType = isFieldFor(entityTypeKey, entityType, config);
 
     const createFilterOptions = options =>
-      options.map(o => ({ key: `${o.option}`, label: o.label }));
+      options.map(o => ({ key: `${o.option}`, label: mapLabelToTranslationKey(o.label) }));
 
     const shouldPick = shouldPickFn ? shouldPickFn(config) : true;
 
@@ -146,7 +168,7 @@ export const pickCustomFieldProps = (
           {
             schemaType,
             key,
-            heading: label,
+            heading: mapLabelToTranslationKey(label),
             options: createFilterOptions(enumOptions),
             selectedOptions: value || [],
             showUnselectedOptions: showUnselectedOptions !== false,
@@ -158,7 +180,7 @@ export const pickCustomFieldProps = (
           {
             schemaType,
             key,
-            heading: label,
+            heading: mapLabelToTranslationKey(label),
             text: value,
           },
         ]
@@ -169,7 +191,7 @@ export const pickCustomFieldProps = (
             schemaType,
             key,
             videoUrl: value,
-            heading: label,
+            heading: mapLabelToTranslationKey(label),
           },
         ]
       : pickedElements;
