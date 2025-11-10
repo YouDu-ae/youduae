@@ -24,6 +24,7 @@ import {
 } from '../../util/urlHelpers';
 import { getProcess, isBookingProcessAlias } from '../../transactions/transaction';
 import { fetchCurrentUser, fetchCurrentUserHasOrdersSuccess } from '../../ducks/user.duck';
+import { trackOfferSubmitted } from '../../analytics/plausibleEvents';
 
 const { UUID } = sdkTypes;
 const MINUTE_IN_MS = 1000 * 60;
@@ -438,15 +439,36 @@ export const sendInquiry = (listing, message) => (dispatch, getState, sdk) => {
     processAlias,
     params: { listingId },
   };
+  const trimmedMessage = (message || '').trim();
   return sdk.transactions
     .initiate(bodyParams)
     .then(response => {
       const transactionId = response.data.data.id;
 
       // Send the message to the created transaction
-      return sdk.messages.send({ transactionId, content: message }).then(() => {
+      return sdk.messages.send({ transactionId, content: trimmedMessage }).then(() => {
         dispatch(sendInquirySuccess());
         dispatch(fetchCurrentUserHasOrdersSuccess(true));
+        const stateAfterSend = getState();
+        const currentUserId = stateAfterSend?.user?.currentUser?.id?.uuid;
+        const listingAttributes = listing?.attributes || {};
+        const publicData = listingAttributes.publicData || {};
+        const locationData = publicData.location || {};
+        const price = listingAttributes.price || {};
+
+        trackOfferSubmitted({
+          listingId: listingId?.uuid || listingId,
+          priceAmount: price.amount,
+          priceCurrency: price.currency,
+          commentLength: trimmedMessage.length,
+          hasComment: trimmedMessage.length > 0,
+          processAlias,
+          listingStatus: listingAttributes.state,
+          userId: currentUserId,
+          category: publicData.category,
+          city: publicData.city || locationData.city,
+        });
+
         return transactionId;
       });
     })

@@ -282,7 +282,6 @@ const canShowOfferForm =
 // - customer (Заказчик): {customer: true, provider: false} → НЕ МОЖЕТ откликаться
 const userRoles = getCurrentUserTypeRoles(config, currentUser);
 const isOnlyCustomer = !userRoles.customer && userRoles.provider; // Исполнитель
-
 const viewerRole = currentUser
   ? userRoles.customer
     ? 'customer'
