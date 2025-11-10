@@ -30,6 +30,24 @@ const LABEL_TRANSLATION_MAP = {
   'Website link': 'ProfileSettingsForm.socialWebsite',
 };
 
+const sanitizeInstagramHandle = value => {
+  if (value == null) {
+    return value;
+  }
+
+  let handle = `${value}`.trim();
+  if (!handle) {
+    return '';
+  }
+
+  handle = handle.replace(/^https?:\/\/(www\.)?instagram\.com\//i, '');
+  handle = handle.replace(/\?.*$/, '');
+  handle = handle.replace(/\/+$/, '');
+  handle = handle.replace(/^@/, '');
+
+  return handle;
+};
+
 const translateMaybe = (value, intl) => {
   if (!value || typeof value !== 'string') {
     return value;
@@ -161,6 +179,11 @@ const CustomFieldText = props => {
   const placeholder =
     translatedPlaceholder || intl.formatMessage({ id: 'CustomExtendedDataField.placeholderText' });
 
+  const isInstagramField = fieldConfig?.key === 'instagram';
+  const parseInstagramMaybe = isInstagramField
+    ? value => sanitizeInstagramHandle(value)
+    : undefined;
+
   return (
     <FieldTextInput
       className={css.customField}
@@ -169,6 +192,8 @@ const CustomFieldText = props => {
       type="textarea"
       label={label}
       placeholder={placeholder}
+      parse={parseInstagramMaybe}
+      format={parseInstagramMaybe}
       {...validateMaybe}
     />
   );

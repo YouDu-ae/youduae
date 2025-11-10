@@ -62,6 +62,38 @@ import SectionYoutubeVideoMaybe from './SectionYoutubeVideoMaybe';
 const MAX_MOBILE_SCREEN_WIDTH = 768;
 const MIN_LENGTH_FOR_LONG_WORDS = 20;
 
+const capitalizeFirstLetter = str =>
+  str ? str.charAt(0).toUpperCase() + str.slice(1) : str;
+
+const formatRegistrationDate = (dateValue, intl) => {
+  if (!dateValue) {
+    return null;
+  }
+
+  const date = dateValue instanceof Date ? dateValue : new Date(dateValue);
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
+
+  const formatted = intl.formatDate(date, {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  });
+
+  if (intl.locale?.toLowerCase().startsWith('ru')) {
+    const withoutSuffix = formatted.replace(/ г\.?$/i, '').trim();
+    const parts = withoutSuffix.split(/\s+/);
+    if (parts.length >= 3) {
+      const [day, month, year] = parts;
+      const monthCapitalized = capitalizeFirstLetter(month);
+      return `${day} ${monthCapitalized} ${year} года`;
+    }
+  }
+
+  return formatted;
+};
+
 export const AsideContent = props => {
   const { user, displayName, showLinkToProfileSettingsPage } = props;
   const isVerified = user?.attributes?.profile?.publicData?.isVerified;
@@ -247,13 +279,7 @@ export const CustomerStats = props => {
   
   // Дата регистрации
   const createdAt = user?.attributes?.createdAt;
-  const registrationDate = createdAt 
-    ? new Date(createdAt).toLocaleDateString(intl.locale, { 
-        year: 'numeric', 
-        month: 'long', 
-        day: 'numeric' 
-      })
-    : null;
+  const registrationDate = formatRegistrationDate(createdAt, intl);
 
   // Отображаем звезды с точным расчётом
   const renderStars = rating => {

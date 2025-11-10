@@ -6,6 +6,28 @@ import { useIntl } from '../../util/reactIntl';
 import css from './ProfilePage.module.css';
 
 const MIN_LENGTH_FOR_LONG_WORDS = 20;
+const INSTAGRAM_BASE_URL = 'https://www.instagram.com/';
+
+const sanitizeInstagramHandle = value => {
+  if (value == null) {
+    return null;
+  }
+
+  let handle = `${value}`.trim();
+  if (!handle) {
+    return null;
+  }
+
+  handle = handle.replace(/^https?:\/\/(www\.)?instagram\.com\//i, '');
+  handle = handle.replace(/\?.*$/, '');
+  handle = handle.replace(/\/+$/, '');
+  handle = handle.replace(/^@/, '');
+
+  return handle || null;
+};
+
+const ensureUrlProtocol = value =>
+  /^https?:\/\//i.test(value) ? value : `https://${value}`;
 
 const SectionTextMaybe = props => {
   const intl = useIntl();
@@ -24,26 +46,32 @@ const SectionTextMaybe = props => {
       ? intl.formatMessage({ id: heading, defaultMessage: heading })
       : heading;
 
-  const isInstagram = rawHeading === 'ProfileSettingsForm.socialInstagram';
-  const isWebsite = rawHeading === 'ProfileSettingsForm.socialWebsite';
+  const isInstagramField = rawHeading === 'ProfileSettingsForm.socialInstagram';
+  const isWebsiteField = rawHeading === 'ProfileSettingsForm.socialWebsite';
 
-  if ((isInstagram || isWebsite) && text) {
+  if ((isInstagramField || isWebsiteField) && text) {
     const trimmed = text.trim();
-    if (!trimmed) {
-      return null;
-    }
+    if (!trimmed) return null;
 
-    const ensureProtocol = value => (/^https?:\/\//i.test(value) ? value : `https://${value}`);
-    const normalizedUrl = ensureProtocol(trimmed);
-    const displayValue = trimmed.replace(/^https?:\/\//i, '');
-
-    const icon = isInstagram ? (
-      <IconSocialMediaInstagram className={css.socialIcon} />
-    ) : (
+    let normalizedUrl = trimmed;
+    let displayValue = trimmed.replace(/^https?:\/\//i, '');
+    let icon = (
       <span className={css.socialWebsiteIcon} aria-hidden="true">
         🌐
       </span>
     );
+
+    if (isInstagramField) {
+      const handle = sanitizeInstagramHandle(trimmed);
+      if (!handle) return null;
+
+      normalizedUrl = `${INSTAGRAM_BASE_URL}${handle}`;
+      displayValue = `@${handle}`;
+      icon = <IconSocialMediaInstagram className={css.socialIcon} />;
+    } else {
+      normalizedUrl = ensureUrlProtocol(trimmed);
+      displayValue = normalizedUrl.replace(/^https?:\/\//i, '');
+    }
 
     return (
       <div className={css.sectionText}>
