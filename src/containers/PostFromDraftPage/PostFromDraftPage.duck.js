@@ -1,6 +1,7 @@
 import { types as sdkTypes, createImageVariantConfig } from '../../util/sdkLoader';
 import { storableError } from '../../util/errors';
 import { addMarketplaceEntities } from '../../ducks/marketplaceData.duck';
+import { trackListingCreated } from '../../analytics/plausibleEvents';
 
 const requestAction = actionType => params => ({ type: actionType, payload: { params } });
 
@@ -103,6 +104,7 @@ export const createListingDraft = params => (dispatch, getState, sdk) => {
     .then(response => {
       dispatch(addMarketplaceEntities(response));
       dispatch(createListingDraftSuccess(response));
+      trackListingCreated(response?.data?.data, { stage: 'draft' });
       return response;
     })
     .catch(e => {
@@ -122,6 +124,7 @@ export const publishListingDraft = params => (dispatch, getState, sdk) => {
       console.log('✅ Listing published successfully');
       dispatch(addMarketplaceEntities(response));
       dispatch(publishListingSuccess(response));
+      trackListingCreated(response?.data?.data, { stage: 'published' });
       return response;
     })
     .catch(e => {

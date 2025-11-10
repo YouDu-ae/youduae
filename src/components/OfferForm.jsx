@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { initiatePrivileged, checkMyOffer } from '../util/api';
 import { NamedLink } from '../components';
+import { trackOfferSubmitted } from '../analytics/plausibleEvents';
 
 /**
  * Форма отклика на листинг.
@@ -17,14 +18,16 @@ import { NamedLink } from '../components';
  *  - currentUser: Полный объект currentUser для проверки userType
  *  - isOnlyCustomer: Boolean флаг, может ли пользователь откликаться (только Customer роль)
  */
-export default function OfferForm({ 
-  listingId, 
+export default function OfferForm({
+  listingId,
   processAlias = 'assignment-flow-v3/release-1',
   listingStatus,
   assignedTo,
   currentUserId,
   currentUser,
   isOnlyCustomer = false,
+  category,
+  city,
 }) {
   const [price, setPrice] = useState('');
   const [comment, setComment] = useState('');
@@ -118,6 +121,18 @@ export default function OfferForm({
       const response = await initiatePrivileged(body);
 
       console.log('✅ OfferForm: inquiry sent successfully', response);
+      trackOfferSubmitted({
+        listingId,
+        userId: currentUserId,
+        priceAmount: amount,
+        priceCurrency: currency,
+        commentLength: comment.trim().length,
+        hasComment: !!comment.trim(),
+        processAlias,
+        listingStatus,
+        category,
+        city,
+      });
       setOk(true);
       setAlreadySent(true); // Блокируем повторную отправку
       setPrice('');
@@ -279,4 +294,6 @@ OfferForm.propTypes = {
   currentUserId: PropTypes.string,
   currentUser: PropTypes.object,
   isOnlyCustomer: PropTypes.bool,
+  category: PropTypes.string,
+  city: PropTypes.string,
 };

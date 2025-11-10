@@ -78,6 +78,8 @@ import {
   handleSubmit,
   priceForSchemaMaybe,
 } from './ListingPage.shared';
+
+import { trackListingView } from '../../analytics/plausibleEvents';
 import SectionHero from './SectionHero';
 import SectionTextMaybe from './SectionTextMaybe';
 import SectionReviews from './SectionReviews';
@@ -138,6 +140,17 @@ export const ListingPageComponent = props => {
     isPendingApprovalVariant || isDraftVariant || showOwnListingsOnly
       ? ensureOwnListing(getOwnListing(listingId))
       : ensureListing(getListing(listingId));
+
+  const viewerRole = currentUser ? 'user' : 'guest';
+
+  useEffect(() => {
+    if (mounted && currentListing?.id?.uuid) {
+      trackListingView(currentListing, {
+        viewerRole,
+        viewerId: currentUser?.id?.uuid,
+      });
+    }
+  }, [mounted, currentListing?.id?.uuid, viewerRole, currentUser?.id?.uuid]);
 
   const listingSlug = rawParams.slug || createSlug(currentListing.attributes.title || '');
   const params = { slug: listingSlug, ...rawParams };

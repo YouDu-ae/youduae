@@ -12,6 +12,7 @@ import StarRating from './StarRating/StarRating';
 import { NamedLink, Avatar, VerificationBadge } from '../components';
 
 import css from './OfferList.module.css';
+import { trackProviderSelected } from '../analytics/plausibleEvents';
 
 /**
  * Helper: извлекает связанные сущности из included массива
@@ -182,6 +183,7 @@ export default function OfferList({ listingId, isOwner }) {
     setErr(null);
     try {
       console.log('🔍 OfferList: accepting offer, tx =', tx.id.uuid);
+      const offerData = tx?.attributes?.protectedData?.offer || {};
       
       // Используем серверный API для privileged transition
       const body = {
@@ -205,6 +207,14 @@ export default function OfferList({ listingId, isOwner }) {
         listingId,
         assignedTo: customerId,
         status: 'in-progress',
+      });
+
+      trackProviderSelected({
+        listingId,
+        transactionId: tx.id?.uuid || tx.id,
+        providerId: customerId,
+        priceAmount: offerData?.price,
+        priceCurrency: offerData?.currency,
       });
       
       console.log('✅ OfferList: listing status updated');

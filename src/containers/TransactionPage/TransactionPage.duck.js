@@ -24,8 +24,9 @@ import {
   isBookingProcess,
 } from '../../transactions/transaction';
 
-import { addMarketplaceEntities } from '../../ducks/marketplaceData.duck';
+import { addMarketplaceEntities, getMarketplaceEntities } from '../../ducks/marketplaceData.duck';
 import { fetchCurrentUserNotifications } from '../../ducks/user.duck';
+import { trackMessageSent, trackReviewSubmitted } from '../../analytics/plausibleEvents';
 
 const { UUID } = sdkTypes;
 
@@ -755,6 +756,21 @@ export const fetchMoreMessages = (txId, config) => (dispatch, getState, sdk) => 
 
 export const sendMessage = (txId, message, config) => (dispatch, getState, sdk) => {
   dispatch(sendMessageRequest());
+  const messageLength = (message || '').trim().length;
+  const trackEvent = () => {
+    const stateAfterSend = getState();
+    const [transactionEntity] =
+      getMarketplaceEntities(stateAfterSend, [{ id: txId, type: 'transaction' }]) || [];
+    const listingId =
+      transactionEntity?.listing?.id?.uuid ||
+      transactionEntity?.attributes?.listing?.id?.uuid ||
+      transactionEntity?.relationships?.listing?.data?.id?.uuid;
+    trackMessageSent({
+      transactionId: txId?.uuid || txId,
+      listingId,
+      messageLength,
+    });
+  };
 
   return sdk.messages
     .send({ transactionId: txId, content: message })
@@ -768,9 +784,13 @@ export const sendMessage = (txId, message, config) => (dispatch, getState, sdk) 
       return dispatch(fetchMessages(txId, 1, config))
         .then(() => {
           dispatch(sendMessageSuccess());
+          trackEvent();
           return messageId;
         })
-        .catch(() => dispatch(sendMessageSuccess()));
+        .catch(() => {
+          dispatch(sendMessageSuccess());
+          trackEvent();
+        });
     })
     .catch(e => {
       dispatch(sendMessageError(storableError(e)));
@@ -844,9 +864,24 @@ export const sendReview = (tx, transitionOptionsInfo, params, config) => (
   const { reviewAsFirst, reviewAsSecond, hasOtherPartyReviewedFirst } = transitionOptionsInfo;
   dispatch(sendReviewRequest());
 
-  return hasOtherPartyReviewedFirst
+  const trackSuccess = response => {
+    const listingId =
+      tx?.listing?.id?.uuid ||
+      tx?.attributes?.listing?.id?.uuid ||
+      tx?.relationships?.listing?.data?.id?.uuid;
+    trackReviewSubmitted({
+      transactionId: tx?.id?.uuid || tx?.id,
+      listingId,
+      rating: params?.reviewRating,
+      role: params?.reviewerRole,
+    });
+    return response;
+  };
+
+  return (hasOtherPartyReviewedFirst
     ? sendReviewAsSecond(tx?.id, reviewAsSecond, params, dispatch, sdk, config)
-    : sendReviewAsFirst(tx?.id, reviewAsFirst, params, dispatch, sdk, config);
+    : sendReviewAsFirst(tx?.id, reviewAsFirst, params, dispatch, sdk, config)
+  ).then(trackSuccess);
 };
 
 const isNonEmpty = value => {

@@ -1,5 +1,6 @@
 import { storableError } from '../../util/errors';
 import { fetchCurrentUser } from '../../ducks/user.duck';
+import { trackKycStarted } from '../../analytics/plausibleEvents';
 
 // ================ Action types ================ //
 
@@ -72,6 +73,9 @@ export const clearVerificationState = () => ({ type: CLEAR_STATE });
  */
 export const uploadVerificationDocuments = (files, documentType) => (dispatch, getState, sdk) => {
   dispatch(uploadDocumentsRequest());
+  const state = getState();
+  const currentUserId = state?.user?.currentUser?.id?.uuid;
+  trackKycStarted({ userId: currentUserId, documentType });
 
   // 1. Upload all images in parallel
   const uploadPromises = files.map(file =>

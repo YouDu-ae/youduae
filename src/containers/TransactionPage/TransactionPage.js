@@ -64,6 +64,7 @@ import {
 import { fetchCurrentUserNotifications } from '../../ducks/user.duck';
 import css from './TransactionPage.module.css';
 import { getCurrentUserTypeRoles, hasPermissionToViewData } from '../../util/userHelpers.js';
+import { trackJobCompleted } from '../../analytics/plausibleEvents';
 
 // Submit dispute and close the review modal
 const onDisputeOrder = (
@@ -332,7 +333,8 @@ export const TransactionPageComponent = props => {
               .getTransitionsToStates([states.REVIEWED_BY_CUSTOMER])
               .includes(transaction.attributes.lastTransition),
           };
-    const params = { reviewRating: rating, reviewContent };
+    const reviewerRole = transactionRole === CUSTOMER ? 'customer' : 'provider';
+    const params = { reviewRating: rating, reviewContent, reviewerRole };
 
     onSendReview(transaction, transitionOptions, params, config)
       .then(r => {
@@ -543,6 +545,11 @@ const confirmCompleteTask = async () => {
 
     // eslint-disable-next-line no-console
     console.log('✅ onComplete: transition successful', result);
+
+    trackJobCompleted({
+      transactionId: transaction?.id?.uuid,
+      listingId: listing?.id?.uuid,
+    });
 
     setCloseTaskModalOpen(false);
     window.location.reload();

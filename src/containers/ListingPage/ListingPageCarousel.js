@@ -90,6 +90,7 @@ import SectionGallery from './SectionGallery';
 import CustomListingFields from './CustomListingFields';
 
 import css from './ListingPage.module.css';
+import { trackListingView } from '../../analytics/plausibleEvents';
 
 const MIN_LENGTH_FOR_LONG_WORDS_IN_TITLE = 16;
 
@@ -259,6 +260,12 @@ const listingClosed = listingStatus === 'closed';
 const assignedTo = publicData.assignedTo;
 // Дополнительная проверка - если publicData.hired=true, значит исполнитель уже выбран
 const isHired = publicData.hired === true;
+const offerCity =
+  publicData.city ||
+  publicData.location?.city ||
+  publicData.location?.address ||
+  publicData.location?.name ||
+  publicData.location;
 
 // Убираем hasValidSlug из проверки, так как листинги могут иметь slug="no-slug"
 // Форма отклика показывается если:
@@ -275,6 +282,23 @@ const canShowOfferForm =
 // - customer (Заказчик): {customer: true, provider: false} → НЕ МОЖЕТ откликаться
 const userRoles = getCurrentUserTypeRoles(config, currentUser);
 const isOnlyCustomer = !userRoles.customer && userRoles.provider; // Исполнитель
+
+const viewerRole = currentUser
+  ? userRoles.customer
+    ? 'customer'
+    : userRoles.provider
+    ? 'provider'
+    : 'user'
+  : 'guest';
+
+useEffect(() => {
+  if (mounted && currentListing?.id?.uuid) {
+    trackListingView(currentListing, {
+      viewerRole,
+      viewerId: currentUser?.id?.uuid,
+    });
+  }
+}, [mounted, currentListing?.id?.uuid, viewerRole, currentUser?.id?.uuid]);
 
   const isBooking = isBookingProcess(processName);
   const isPurchase = isPurchaseProcess(processName);
@@ -503,6 +527,8 @@ const isOnlyCustomer = !userRoles.customer && userRoles.provider; // Испол�
         currentUserId={currentUser?.id?.uuid}
         currentUser={currentUser}
         isOnlyCustomer={isOnlyCustomer}
+        category={publicData.category}
+        city={offerCity}
       />
     </div>
   )}

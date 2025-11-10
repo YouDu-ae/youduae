@@ -24,6 +24,7 @@ import {
   fetchStripeAccount,
 } from '../../ducks/stripeConnectAccount.duck';
 import { fetchCurrentUser } from '../../ducks/user.duck';
+import { trackListingCreated } from '../../analytics/plausibleEvents';
 
 const { UUID } = sdkTypes;
 
@@ -631,6 +632,7 @@ export function requestCreateListingDraft(data, config) {
       .then(() => {
         // Modify store to understand that we have created listing and can redirect away
         dispatch(createListingDraftSuccess(createDraftResponse));
+        trackListingCreated(createDraftResponse?.data?.data, { stage: 'draft' });
         return createDraftResponse;
       })
       .catch(e => {
@@ -701,6 +703,7 @@ export const requestPublishListingDraft = listingId => (dispatch, getState, sdk)
       // Add the created listing to the marketplace data
       dispatch(addMarketplaceEntities(response));
       dispatch(publishListingSuccess(response));
+      trackListingCreated(response?.data?.data, { stage: 'published' });
       return response;
     })
     .catch(e => {
