@@ -142,7 +142,7 @@ export const EditListingLocationForm = props => (
                 onClick={onGoBack}
                 disabled={updateInProgress}
               >
-                <FormattedMessage id="EditListingLocationForm.backButton" />
+                <FormattedMessage id="Назад" />
               </Button>
             )}
             <Button

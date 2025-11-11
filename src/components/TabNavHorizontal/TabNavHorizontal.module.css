@@ -97,7 +97,7 @@
 }
 
   @media (max-width: 1023px) {
-  .tabContent { font-size: 14px; line-height: 17px; border-radius: 13px;}
+  .tabContent { font-size: 14px; line-height: 17px; border-radius: 13px; }
   .tab { height: 50px;}
   .root { gap:5px;  }
 }

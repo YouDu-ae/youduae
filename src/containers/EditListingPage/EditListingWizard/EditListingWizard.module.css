@@ -20,40 +20,65 @@
   display: flex;
   flex-direction: column;
 
-  @media (--viewportLarge) {
+  @media (min-width: 1024px) {
     flex-direction: row;
     justify-content: center;
   }
+
+  
 }
 
 .nav {
   /* Layout */
   display: flex;
   flex-direction: row;
-  padding: 0;
+  padding: 10px;
   flex-shrink: 0;
-  background-color: var(--colorWhite);
-  box-shadow: var(--boxShadowLight);
-  border-top: 1px solid var(--colorGrey100);
+  background-color: #f7f7f7;
+  box-shadow: none;
+ 
   overflow-x: scroll;
+  border-radius: 13px;
 
-  @media (--viewportLarge) {
+
+  @media (min-width: 1280px) {
     padding: 72px 0 82px 36px;
     flex-direction: column;
     overflow-x: auto;
-    background-color: var(--colorGrey50);
+    background-color: #f7f7f7;
+    border-radius: 20px 0 0 20px;
     box-shadow: none;
     border-top: none;
+    
   }
 
+
+  @media (min-width: 1024px) {
+    padding: 72px 0 82px 36px;
+    flex-direction: column;
+    overflow-x: auto;
+    background-color: #f7f7f7;
+    border-radius: 20px 0 0 20px;
+    box-shadow: none;
+    border-top: none;
+    
+  }
   @media (--viewportLargeWithPaddings) {
     padding: 72px 0 82px calc((100% - 1056px) / 2);
+  }
+
+  @media (max-width: 1023px) {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  box-shadow: 0 4px 3px rgba(0,0,0,0.05);
   }
 }
 
 .tab {
-  margin-left: 16px;
+  margin-left: 20px;
   white-space: nowrap;
+  
 
   &:first-child {
     margin-left: 0;
@@ -82,6 +107,7 @@
 
 .modalTitle {
   composes: marketplaceModalTitleStyles from global;
+  
 }
 
 .modalPayoutDetailsWrapper {
@@ -102,3 +128,5 @@
     margin-bottom: 40px;
   }
 }
+
+

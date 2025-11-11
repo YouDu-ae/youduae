@@ -1,5 +1,6 @@
 import React from 'react';
 import loadable from '@loadable/component';
+import styles from './PrivacyPolicyPage.module.css';
 
 import { bool, object } from 'prop-types';
 import { compose } from 'redux';
@@ -61,7 +62,11 @@ const PrivacyPolicyPageComponent = props => {
 
   // ВСЕГДА показываем FallbackPage с нашим контентом
   // Игнорируем данные из Console
-  return <FallbackPage />;
+  return (
+    <div className={styles.privacyWrapper}>
+      <FallbackPage />
+    </div>
+  );
 };
 
 PrivacyPolicyPageComponent.propTypes = {

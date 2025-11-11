@@ -23,7 +23,7 @@
   --colorSuccessLight: #f0fff6;
   --colorFail: #ff0000;
   --colorFailLight: #fff0f0;
-  --colorAttention: #ffaa00;
+  --colorAttention: #FFC934;
   --colorAttentionLight: #fff7f0;
   --colorBannedLight: var(--marketplaceColorLight);
   --colorBannedDark: var(--marketplaceColor);
@@ -71,15 +71,15 @@
   --colorSecondaryButtonLight: var(--colorWhite);
 
   /* ================ Font ================ */
-  --fontFamily: -apple-system, BlinkMacSystemFont, 'Inter', Helvetica, Arial, sans-serif,
+  --fontFamily: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif,
     'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol';
 
   --fontWeightRegular: 400;
-  
-  
+  --fontWeightMedium: 500;
+  --fontWeightSemiBold: 600;
   --fontWeightBold: 700;
-  
-  
+  --fontWeightHeavy: 800;
+  --fontWeightBlack: 900;
 
   --fontWeightHighlightEmail: var(--fontWeightBold);
 
@@ -88,8 +88,8 @@
   /**
    * Note: changing --contentMaxWidth does not affect layouts with LayoutSideNavigation or search pages.
    */
-  --contentMaxWidth: 1056px;
-  --contentMaxWidthPages: 1120px; /* calc(Global width (1056px) + (Horizontal padding (32px) * 2) */
+  --contentMaxWidth: 1200px;
+  --contentMaxWidthPages: 1200px; /* calc(Global width (1056px) + (Horizontal padding (32px) * 2) */
 
   /* Multiples of mobile and desktop spacing units should be used with margins and paddings. */
   --spacingUnit: 6px;
@@ -208,8 +208,7 @@ body {
   text-rendering: optimizeSpeed;
   font-optical-sizing: auto;
 
-  background-color: var(--colorGrey50);
-  background-color: #fff !important;
+  background-color: #fff;
 }
 
 ::selection {
@@ -461,7 +460,6 @@ input,
 textarea {
   font-family: var(--fontFamily);
   font-size: 16px;
-  
 }
 
 select {
@@ -770,8 +768,6 @@ textarea {
   }
 }
 
-
-
 .p,
 .marketplaceBodyFontStyles {
   /* margin-top + n * line-height + margin-bottom => x * 6px */
@@ -912,7 +908,7 @@ textarea {
 }
 .marketplaceInputStyles:focus {
   background-color: #fff;
-  border-color: #80bdff;
+  border-color: #C4E1EE;
   box-shadow: 0 0 0 0.2rem rgb(0 123 255 / 25%);
   transition: all ease-in-out 100ms;
 }

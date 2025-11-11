@@ -190,7 +190,7 @@ export const EditListingPricingForm = props => (
                 onClick={onGoBack}
                 disabled={updateInProgress}
               >
-                <FormattedMessage id="EditListingPricingForm.backButton" />
+                <FormattedMessage id="Назад" />
               </Button>
             )}
             <Button

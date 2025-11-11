@@ -291,7 +291,7 @@ export const EditListingPhotosForm = props => {
                   onClick={onGoBack}
                   disabled={updateInProgress}
                 >
-                  <FormattedMessage id="EditListingPhotosForm.backButton" />
+                  <FormattedMessage id="Назад" />
                 </Button>
               )}
               <Button

@@ -13,13 +13,13 @@
   flex-shrink: 0;
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 24px;
+  gap: 10px;
   margin: 0 0 24px 0;
 }
 
 .thumbnail {
   width: 100%;
-  background-color: var(--colorGrey50);
+  background-color: #FFC934;
 }
 
 .addImageWrapper {
@@ -34,6 +34,7 @@
     display: block;
     height: 0;
     clear: both;
+   
   }
 }
 
@@ -51,19 +52,23 @@
   justify-content: center;
   align-items: center;
   margin-top: 0;
+  
 
   /* Colors */
-  background-color: var(--colorWhite);
+  background-color: #f7f7f7;
 
   @media (--viewportLarge) {
-    background-color: var(--colorGrey50);
+    background-color: #fff;
   }
 
   border-style: dashed;
   border-color: var(--colorGrey100);
   border-width: 2px;
-  border-radius: 2px;
+  border-radius: 20px;
 
+  @media (max-width: 1023px) {
+    border-radius: 13px;
+  }
   /* Behaviour */
   cursor: pointer;
   transition: var(--transitionStyleButton);
@@ -81,14 +86,16 @@
 
 .chooseImage {
   composes: h4 from global;
-  color: var(--colorGrey700);
-  font-weight: var(--fontWeightSemiBold);
+  color: #000;
+  font-weight: 700;
+ font-family: 'Inter', sans-serif;
+  font-size: 14px;
 
   margin-top: 0;
   margin-bottom: 0;
 
-  @media (--viewportLarge) {
-    font-weight: var(--fontWeightSemiBold);
+  @media (min-width: 1024px) {
+    font-size: 16px;
     margin-top: 0;
     margin-bottom: 0;
   }
@@ -96,7 +103,7 @@
 
 .imageTypes {
   composes: marketplaceTinyFontStyles from global;
-  color: var(--colorGrey300);
+  color: #909090;
 
   margin-top: 0;
   margin-bottom: 0;
@@ -115,9 +122,9 @@
   composes: h5 from global;
 
   flex-shrink: 0;
-  color: var(--colorGrey300);
+  color: #909090;
   margin-top: 24px;
-  margin-bottom: 60px;
+  margin-bottom: 0px;
 
   @media (--viewportLarge) {
     margin-top: 0;
@@ -150,46 +157,106 @@
 
 .buttonGroup {
   display: flex;
-  gap: 16px;
+  gap: 10px;
   flex-shrink: 0;
   margin-top: auto;
   margin-bottom: 24px;
 
-  @media (--viewportLarge) {
-    margin-top: 100px;
+  @media (min-width: 1280px) {
+    margin-top: 20px;
+  }
+
+   @media (min-width: 1024px) {
+    margin-top: 20px;
+  }
+
+  @media (max-width: 1023px) {
+    margin-top: 20px;
   }
 }
 
 .backButton {
   flex: 0 0 auto;
-  min-width: 120px;
+  min-width: 50%;
+  background-color: #C4E1EE;
+  color: #000;
+   border-radius: 20px;
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 16px;
+  text-decoration: none;
+  box-shadow: 0 4px 3px rgba(0,0,0,.1);
+  height: 60px;
 
-  @media (--viewportLarge) {
-    width: 150px;
+  &:hover {
+    background-color: #000;
+    border-color: #000;
+    color: #fff;
+  }
+
+  @media (max-width: 1023px) {
+    width: 50%;
+    border-radius: 13px;
+     font-size: 14px;
+      height: 50px;
+  }
+
+   @media (min-width: 1024px) {
+    width: 50%;
   }
 }
 
 .submitButton {
   flex: 1;
-  background-color: #4caf50;
-  border-color: #4caf50;
+  background-color: #FFC934;
+  border-color: #FFC934;
+  color: #000;
+   border-radius: 20px;
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 16px;
+  text-decoration: none;
+  box-shadow: 0 4px 3px rgba(0,0,0,.1);
+  height: 60px;
+
+/* Только для мобильных */
+@media (max-width: 1023px) {
+   padding: 0 20px;
+   line-height: 1.2;
+   height: 50px;
+}
 
   &:hover {
-    background-color: #45a049;
-    border-color: #45a049;
+    background-color: #000;
+    border-color: #000;
+    color: #fff;
   }
 
   &:focus {
-    background-color: #45a049;
-    border-color: #45a049;
+    background-color: #000;
+    border-color: #000;
   }
 
   &:disabled {
-    background-color: #a5d6a7;
-    border-color: #a5d6a7;
+    background-color: #FFC934;
+    border-color: #FFC934;
+    color: #000;
+   border-radius: 20px;
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 16px;
+  text-decoration: none;
+  box-shadow: 0 4px 3px rgba(0,0,0,.1);
+ @media (max-width: 1023px) {
+    width: 50%;
+     border-radius: 13px;
+     font-size: 14px;
+  }
   }
 
-  @media (--viewportLarge) {
-    width: 241px;
+  @media (max-width: 1023px) {
+    width: 50%;
+     border-radius: 13px;
+     font-size: 14px;
   }
 }
