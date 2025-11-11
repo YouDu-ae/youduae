@@ -275,10 +275,10 @@ const AddListingFields = props => {
           fieldElement,
           <div key={`${namespacedKey}-description`} className={css.paymentMethodDescription}>
             <p className={css.paymentMethodDescriptionTitle}>
-              <FormattedMessage id="EditListingDetailsForm.paymentMethodDirectWarning" />
+              <FormattedMessage id="Оплата напрямую исполнителю" />
             </p>
             <p className={css.paymentMethodDescriptionText}>
-              <FormattedMessage id="EditListingDetailsForm.paymentMethodDirectDescription" />
+              <FormattedMessage id="Без гарантий и компенсаций YouDu: вы напрямую договариваетесь с исполнителем об условиях и способе оплаты." />
             </p>
           </div>
         ];

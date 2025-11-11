@@ -27,7 +27,7 @@ const EditIcon = props => {
         strokeLinecap="round"
         strokeLinejoin="round"
       >
-        <g transform="translate(-255.000000, -76.000000)" stroke="#FFFFFF">
+        <g transform="translate(-255.000000, -76.000000)" stroke="currentColor">
           <g transform="translate(0.000000, 60.000000)">
             <g transform="translate(256.000000, 16.000000)">
               <polygon points="5.1611 12.8804 0.2121 15.0004 2.3331 10.0504 11.1721 1.2124 14.0001 4.0404" />

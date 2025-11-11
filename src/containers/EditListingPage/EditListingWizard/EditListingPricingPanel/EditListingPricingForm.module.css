@@ -30,45 +30,102 @@
 
 .buttonGroup {
   display: flex;
-  gap: 16px;
+  gap: 10px;
   margin-top: auto;
   margin-bottom: 24px;
 
-  @media (--viewportLarge) {
-    margin-top: 100px;
+
+  @media (min-width: 1280px) {
+    margin-top: 20px;
+  }
+
+   @media (min-width: 1024px) {
+    margin-top: 20px;
+  }
+
+  @media (max-width: 1023px) {
+    margin-top: 20px;
   }
 }
 
 .backButton {
   flex: 0 0 auto;
-  min-width: 120px;
+  min-width: 50%;
+  background-color: #C4E1EE;
+  color: #000;
+   border-radius: 20px;
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 16px;
+  text-decoration: none;
+  box-shadow: 0 4px 3px rgba(0,0,0,.1);
+  height: 60px;
 
-  @media (--viewportLarge) {
-    width: 150px;
+  &:hover {
+    background-color: #000;
+    border-color: #000;
+    color: #fff;
+  }
+
+  @media (max-width: 1023px) {
+    width: 50%;
+    border-radius: 13px;
+     font-size: 14px;
+     height: 50px;
+  }
+
+   @media (min-width: 1024px) {
+    width: 50%;
   }
 }
 
 .submitButton {
   flex: 1;
-  background-color: #4caf50;
-  border-color: #4caf50;
+  background-color: #FFC934;
+  border-color: #FFC934;
+  color: #000;
+   border-radius: 20px;
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 16px;
+  text-decoration: none;
+  box-shadow: 0 4px 3px rgba(0,0,0,.1);
+  height: 60px;
+@media (max-width: 1023px) {
+height: 50px;
+}
 
   &:hover {
-    background-color: #45a049;
-    border-color: #45a049;
+    background-color: #000;
+    border-color: #000;
+    color: #fff;
   }
 
   &:focus {
-    background-color: #45a049;
-    border-color: #45a049;
+    background-color: #000;
+    border-color: #000;
   }
 
   &:disabled {
-    background-color: #a5d6a7;
-    border-color: #a5d6a7;
+    background-color: #FFC934;
+    border-color: #FFC934;
+    color: #000;
+   border-radius: 20px;
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 16px;
+  text-decoration: none;
+  box-shadow: 0 4px 3px rgba(0,0,0,.1);
+ @media (max-width: 1023px) {
+    width: 50%;
+     border-radius: 13px;
+     font-size: 14px;
+  }
   }
 
-  @media (--viewportLarge) {
-    width: 241px;
+  @media (max-width: 1023px) {
+    width: 50%;
+     border-radius: 13px;
+     font-size: 14px;
   }
 }

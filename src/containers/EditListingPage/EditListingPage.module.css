@@ -4,6 +4,7 @@
   /* Size */
   width: 100%;
   height: var(--topbarHeight);
+  
 
   /* Layout for child components */
   display: flex;
@@ -33,12 +34,25 @@
 
 .wizard {
   flex-grow: 1;
+  width: 1200px;
+  margin: 20px auto;
+  height: auto;
+  
+
+  @media (max-width: 1279px) {
+width: 100%;
+margin: 20px auto;
+padding: 0 20px;
+ height: auto;
+
+  }
   /* Для десктопа - убираем прокрутку и используем все пространство */
-  @media (min-width: 1024px) {
+  @media (max-width: 1023px) {
     height: auto; /* Убираем фиксированную высоту */
     overflow-y: visible; /* Убираем прокрутку */
-    max-width: 1200px; /* Увеличиваем ширину */
-    margin: 0 auto; /* Центрируем */
-    padding: 0 80px; /* Увеличиваем боковые отступы */
+    width: 100%; /* Увеличиваем ширину */
+    margin: 20px auto; /* Центрируем */
+    padding: 0 20px; /* Увеличиваем боковые отступы */
   }
 }
+

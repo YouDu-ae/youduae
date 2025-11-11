@@ -1,0 +1,49 @@
+/* Базовая обёртка страницы политики */
+.privacyWrapper {
+  box-sizing: border-box;
+  margin: 0 auto;              /* центрируем контейнер */
+  text-align: left;            /* текст выравниваем слева */
+  padding-left: 20px;          /* 320–1279: отступы по 20px */
+  padding-right: 20px;
+  max-width: none;             /* до 1280 — растягиваемся на ширину экрана */
+  font-size: 14px;             /* 320–1279: базовый шрифт 14px */
+  line-height: 1.6;
+  color: #111;
+}
+
+/* Типографика внутри markdown/контента */
+.privacyWrapper h1 {
+  margin: 0 0 16px 0;
+  font-weight: 700;
+  line-height: 1.2;
+  font-size: 25px;             /* 320–767: 25px (мобилка по умолчанию) */
+}
+
+.privacyWrapper p,
+.privacyWrapper li {
+  margin: 0 0 12px 0;
+}
+
+/* ≥768px: заголовок 35px */
+@media (min-width: 768px) {
+  .privacyWrapper h1 {
+    font-size: 35px;
+  }
+}
+
+/* ≥1024px: заголовок 45px */
+@media (min-width: 1024px) {
+  .privacyWrapper h1 {
+    font-size: 45px;
+  }
+}
+
+/* ≥1280px: фиксируем ширину контента 1200px и увеличиваем базовый шрифт до 16px */
+@media (min-width: 1280px) {
+  .privacyWrapper {
+    max-width: 1200px;         /* фиксированная ширина контента */
+    padding-left: 0;           /* убираем боковые отступы на больших экранах */
+    padding-right: 0;
+    font-size: 16px;           /* базовый шрифт 16px */
+  }
+}
