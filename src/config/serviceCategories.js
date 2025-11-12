@@ -97,6 +97,30 @@ export const SERVICE_CATEGORIES = [
     },
     icon: 'car',
   },
+  {
+    id: 'Interior_designer',
+    label: {
+      ru: 'Дизайнер интерьеров',
+      en: 'Interior Designer',
+    },
+    icon: 'interior',
+  },
+  {
+    id: 'Tourist_services',
+    label: {
+      ru: 'Туристические услуги',
+      en: 'Tourist Services',
+    },
+    icon: 'tourist',
+  },
+  {
+    id: 'Web_design',
+    label: {
+      ru: 'Веб Дизайн/SEO',
+      en: 'Web Design/SEO',
+    },
+    icon: 'web',
+  },
 ];
 
 /**

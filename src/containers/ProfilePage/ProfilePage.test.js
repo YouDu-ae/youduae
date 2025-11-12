@@ -171,7 +171,16 @@ describe('ProfilePage', () => {
       });
     });
 
-    expect(screen.getByText('ProfilePage.listingsTitle')).toBeInTheDocument();
+    expect(
+      screen.getByText((content, element) => {
+        const text = element?.textContent || content;
+        return (
+          text === 'ProfilePage.openListingsTitle' ||
+          text.includes('Active jobs') ||
+          text.includes('Текущие задания')
+        );
+      })
+    ).toBeInTheDocument();
     expect(screen.getByText('l1 title')).toBeInTheDocument();
     expect(screen.getByText('ListingCard.price')).toBeInTheDocument();
   });

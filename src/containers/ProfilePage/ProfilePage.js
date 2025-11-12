@@ -133,71 +133,71 @@ export const ReviewsErrorMaybe = props => {
 };
 
 export const MobileReviews = props => {
-  const { reviews, queryReviewsError } = props;
+  const { reviews, queryReviewsError, userTypeRoles } = props;
   const reviewsOfProvider = reviews.filter(r => r.attributes.type === REVIEW_TYPE_OF_PROVIDER);
   const reviewsOfCustomer = reviews.filter(r => r.attributes.type === REVIEW_TYPE_OF_CUSTOMER);
+
+  const showListingOwnerReviews = !!userTypeRoles?.customer;
+  const showServiceProviderReviews = !!userTypeRoles?.provider;
+
+  if (!showListingOwnerReviews && !showServiceProviderReviews) {
+    return null;
+  }
+
   return (
     <div className={css.mobileReviews}>
-      <H4 as="h2" className={css.mobileReviewsTitle}>
-        <FormattedMessage
-          id="ProfilePage.reviewsFromMyCustomersTitle"
-          values={{ count: reviewsOfProvider.length }}
-        />
-      </H4>
-      <ReviewsErrorMaybe queryReviewsError={queryReviewsError} />
-      <Reviews reviews={reviewsOfProvider} />
-      <H4 as="h2" className={css.mobileReviewsTitle}>
-        <FormattedMessage
-          id="ProfilePage.reviewsAsACustomerTitle"
-          values={{ count: reviewsOfCustomer.length }}
-        />
-      </H4>
-      <ReviewsErrorMaybe queryReviewsError={queryReviewsError} />
-      <Reviews reviews={reviewsOfCustomer} />
+      {showListingOwnerReviews ? (
+        <>
+          <H4 as="h2" className={css.mobileReviewsTitle}>
+            <FormattedMessage
+              id="ProfilePage.reviewsFromMyCustomersTitle"
+              values={{ count: reviewsOfProvider.length }}
+            />
+          </H4>
+          <ReviewsErrorMaybe queryReviewsError={queryReviewsError} />
+          <Reviews reviews={reviewsOfProvider} />
+        </>
+      ) : null}
+
+      {showServiceProviderReviews ? (
+        <>
+          <H4 as="h2" className={css.mobileReviewsTitle}>
+            <FormattedMessage
+              id="ProfilePage.reviewsAsACustomerTitle"
+              values={{ count: reviewsOfCustomer.length }}
+            />
+          </H4>
+          <ReviewsErrorMaybe queryReviewsError={queryReviewsError} />
+          <Reviews reviews={reviewsOfCustomer} />
+        </>
+      ) : null}
     </div>
   );
 };
 
 export const DesktopReviews = props => {
   const { reviews, queryReviewsError, userTypeRoles } = props;
-  const { customer: isCustomerUserType, provider: isProviderUserType } = userTypeRoles;
-
-  const initialReviewState = !isProviderUserType
-    ? REVIEW_TYPE_OF_CUSTOMER
-    : REVIEW_TYPE_OF_PROVIDER;
-  const [showReviewsType, setShowReviewsType] = useState(initialReviewState);
+  const { customer: canCreateListings, provider: isServiceProvider } = userTypeRoles;
 
   const reviewsOfProvider = reviews.filter(r => r.attributes.type === REVIEW_TYPE_OF_PROVIDER);
   const reviewsOfCustomer = reviews.filter(r => r.attributes.type === REVIEW_TYPE_OF_CUSTOMER);
+
+  const showListingOwnerReviews = !!canCreateListings;
+  const showServiceProviderReviews = !!isServiceProvider;
+
+  if (!showListingOwnerReviews && !showServiceProviderReviews) {
+    return null;
+  }
+
+  const initialReviewState = showListingOwnerReviews
+    ? REVIEW_TYPE_OF_PROVIDER
+    : REVIEW_TYPE_OF_CUSTOMER;
+  const [showReviewsType, setShowReviewsType] = useState(initialReviewState);
+
   const isReviewTypeProviderSelected = showReviewsType === REVIEW_TYPE_OF_PROVIDER;
   const isReviewTypeCustomerSelected = showReviewsType === REVIEW_TYPE_OF_CUSTOMER;
 
-  // Для Исполнителей (provider) показываем отзывы сразу без табов
-  // ⚠️ NEW ROLE MAPPING:
-  // - provider (Исполнитель): {customer: false, provider: true}
-  // - customer (Заказчик): {customer: true, provider: false}
-  const isOnlyCustomer = !isCustomerUserType && isProviderUserType; // Исполнитель
-
-  if (isOnlyCustomer) {
-    return (
-      <div className={css.desktopReviews}>
-        <div className={css.desktopReviewsWrapper}>
-          <Heading as="h3" rootClassName={css.desktopReviewsTitle}>
-            <FormattedMessage
-              id="ProfilePage.reviewsAsACustomerTitle"
-              values={{ count: reviewsOfCustomer.length }}
-            />
-          </Heading>
-
-          <ReviewsErrorMaybe queryReviewsError={queryReviewsError} />
-          <Reviews reviews={reviewsOfCustomer} />
-        </div>
-      </div>
-    );
-  }
-
-  // Для Provider и пользователей с обеими ролями показываем табы
-  const providerReviewsMaybe = isProviderUserType
+  const providerTab = showListingOwnerReviews
     ? [
         {
           text: (
@@ -214,7 +214,7 @@ export const DesktopReviews = props => {
       ]
     : [];
 
-  const customerReviewsMaybe = isCustomerUserType
+  const customerTab = showServiceProviderReviews
     ? [
         {
           text: (
@@ -230,7 +230,36 @@ export const DesktopReviews = props => {
         },
       ]
     : [];
-  const desktopReviewTabs = [...providerReviewsMaybe, ...customerReviewsMaybe];
+
+  const desktopReviewTabs = [...providerTab, ...customerTab];
+
+  if (desktopReviewTabs.length <= 1) {
+    return (
+      <div className={css.desktopReviews}>
+        <div className={css.desktopReviewsWrapper}>
+          {showListingOwnerReviews ? (
+            <Heading as="h3" rootClassName={css.desktopReviewsTitle}>
+              <FormattedMessage
+                id="ProfilePage.reviewsFromMyCustomersTitle"
+                values={{ count: reviewsOfProvider.length }}
+              />
+            </Heading>
+          ) : (
+            <Heading as="h3" rootClassName={css.desktopReviewsTitle}>
+              <FormattedMessage
+                id="ProfilePage.reviewsAsACustomerTitle"
+                values={{ count: reviewsOfCustomer.length }}
+              />
+            </Heading>
+          )}
+          <ReviewsErrorMaybe queryReviewsError={queryReviewsError} />
+          <Reviews
+            reviews={showListingOwnerReviews ? reviewsOfProvider : reviewsOfCustomer}
+          />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={css.desktopReviews}>
@@ -249,23 +278,26 @@ export const DesktopReviews = props => {
   );
 };
 
-export const CustomerStats = props => {
-  const { reviews, user, userTypeRoles } = props;
+export const ListingOwnerStats = props => {
+  const { reviews, user, userTypeRoles, completedTaskCount = 0 } = props;
   const intl = useIntl();
   
-  const { customer: isCustomerUserType, provider: isProviderUserType } = userTypeRoles;
-  // ⚠️ NEW ROLE MAPPING:
-  // - provider (Исполнитель): {customer: false, provider: true}
-  // - customer (Заказчик): {customer: true, provider: false}
-  const isOnlyCustomer = !isCustomerUserType && isProviderUserType; // Исполнитель
+  const canCreateListings = !!userTypeRoles?.customer;
+  const isPureProvider = canCreateListings && !userTypeRoles?.provider;
 
-  // Показываем статистику только для Исполнителей (provider)
-  if (!isOnlyCustomer) {
+  const tasksLabelId = isPureProvider
+    ? 'ProfilePage.proposedTasks'
+    : 'ProfilePage.completedTasks';
+
+  // Статистика только для владельцев заданий (могут создавать листинги)
+  if (!canCreateListings) {
     return null;
   }
 
-  // Фильтруем отзывы Customer (как исполнитель)
-  const reviewsOfCustomer = reviews.filter(r => r.attributes.type === REVIEW_TYPE_OF_CUSTOMER);
+  // Отзывы о владельце задания (тип ofProvider)
+  const reviewsOfListingOwner = reviews.filter(
+    r => r.attributes.type === REVIEW_TYPE_OF_PROVIDER
+  );
   
   // Расчёт среднего рейтинга
   const calculateAverageRating = reviews => {
@@ -274,8 +306,8 @@ export const CustomerStats = props => {
     return (sum / reviews.length).toFixed(1);
   };
 
-  const averageRating = calculateAverageRating(reviewsOfCustomer);
-  const completedTasks = reviewsOfCustomer.length;
+  const averageRating = calculateAverageRating(reviewsOfListingOwner);
+  const completedTasks = Math.max(completedTaskCount, reviewsOfListingOwner.length);
   
   // Дата регистрации
   const createdAt = user?.attributes?.createdAt;
@@ -350,7 +382,7 @@ export const CustomerStats = props => {
         {/* Количество выполненных заданий */}
         <div className={css.statItem}>
           <div className={css.statLabel}>
-            <FormattedMessage id="ProfilePage.completedTasks" />
+            <FormattedMessage id={tasksLabelId} />
           </div>
           <div className={css.statValue}>
             <span className={css.taskCount}>{completedTasks}</span>
@@ -421,7 +453,10 @@ export const MainContent = props => {
     userTypeRoles,
   } = props;
 
-  const hasListings = listings.length > 0;
+  const openListings = listings.filter(l => l?.attributes?.state === 'published');
+  const closedListings = listings.filter(l => l?.attributes?.state === 'closed');
+  const hasOpenListings = openListings.length > 0;
+  const hasClosedListings = closedListings.length > 0;
   const hasMatchMedia = typeof window !== 'undefined' && window?.matchMedia;
   const isMobileLayout =
     mounted && hasMatchMedia
@@ -456,8 +491,13 @@ export const MainContent = props => {
       </H2>
       {hasBio ? <p className={css.bio}>{bioWithLinks}</p> : null}
 
-      {/* Статистика Customer */}
-      <CustomerStats reviews={reviews} user={user} userTypeRoles={userTypeRoles} />
+      {/* Статистика владельца заданий */}
+      <ListingOwnerStats
+        reviews={reviews}
+        user={user}
+        userTypeRoles={userTypeRoles}
+        completedTaskCount={closedListings.length}
+      />
 
       {displayName ? (
         <CustomUserFields
@@ -468,20 +508,58 @@ export const MainContent = props => {
         />
       ) : null}
 
-      {hasListings ? (
+      {hasOpenListings ? (
         <div className={listingsContainerClasses}>
           <H4 as="h2" className={css.listingsTitle}>
-            <FormattedMessage id="ProfilePage.listingsTitle" values={{ count: listings.length }} />
+            <FormattedMessage
+              id="ProfilePage.openListingsTitle"
+              values={{ count: openListings.length }}
+            />
           </H4>
           <ul className={css.listings}>
-            {listings.map(l => (
+            {openListings.map(l => (
               <li className={css.listing} key={l.id.uuid}>
                 <ListingCard listing={l} showAuthorInfo={false} />
               </li>
             ))}
           </ul>
         </div>
-      ) : null}
+      ) : (
+        <div className={listingsContainerClasses}>
+          <H4 as="h2" className={css.listingsTitle}>
+            <FormattedMessage id="ProfilePage.openListingsTitle" values={{ count: 0 }} />
+          </H4>
+          <p className={css.emptyState}>
+            <FormattedMessage id="ProfilePage.emptyOpenListings" />
+          </p>
+        </div>
+      )}
+      {hasClosedListings ? (
+        <div className={classNames(css.listingsContainer, css.completedListings)}>
+          <H4 as="h2" className={css.listingsTitle}>
+            <FormattedMessage
+              id="ProfilePage.completedListingsTitle"
+              values={{ count: closedListings.length }}
+            />
+          </H4>
+          <ul className={css.listings}>
+            {closedListings.map(l => (
+              <li className={css.listing} key={l.id.uuid}>
+                <ListingCard listing={l} showAuthorInfo={false} />
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : (
+        <div className={classNames(css.listingsContainer, css.completedListings)}>
+          <H4 as="h2" className={css.listingsTitle}>
+            <FormattedMessage id="ProfilePage.completedListingsTitle" values={{ count: 0 }} />
+          </H4>
+          <p className={css.emptyState}>
+            <FormattedMessage id="ProfilePage.emptyCompletedListings" />
+          </p>
+        </div>
+      )}
       {hideReviews ? null : isMobileLayout ? (
         <MobileReviews
           reviews={reviews}

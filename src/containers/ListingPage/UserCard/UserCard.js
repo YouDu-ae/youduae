@@ -71,8 +71,6 @@ const ExpandableBio = props => {
  * @param {string} [props.rootClassName] - Custom class that overrides the default class for the root element
  * @param {propTypes.user | propTypes.currentUser} props.user - The user
  * @param {propTypes.currentUser} props.currentUser - The current user
- * @param {function} props.onContactUser - The on contact user function
- * @param {boolean} [props.showContact] - Whether to show the contact user button
  * @returns {JSX.Element} user card component
  */
 const UserCard = props => {
@@ -81,7 +79,7 @@ const UserCard = props => {
     setMounted(true);
   }, []);
 
-  const { rootClassName, className, user, currentUser, onContactUser, showContact = true } = props;
+  const { rootClassName, className, user, currentUser } = props;
 
   const userIsCurrentUser = user && user.type === 'currentUser';
   const ensuredUser = userIsCurrentUser ? ensureCurrentUser(user) : ensureUser(user);
@@ -92,30 +90,11 @@ const UserCard = props => {
   const { displayName, bio } = ensuredUser.attributes.profile;
   const isVerified = ensuredUser?.attributes?.profile?.publicData?.isVerified;
 
-  const handleContactUserClick = () => {
-    onContactUser(user);
-  };
-
   const hasBio = !!bio;
   const classes = classNames(rootClassName || css.root, className);
   const linkClasses = classNames(css.links, {
     [css.withBioMissingAbove]: !hasBio,
   });
-
-  const separator =
-    (mounted && isCurrentUser) || !showContact ? null : (
-      <span className={css.linkSeparator}>•</span>
-    );
-
-  const contact = showContact ? (
-    <InlineTextButton
-      rootClassName={css.contact}
-      onClick={handleContactUserClick}
-      enforcePagePreloadFor="SignupPage"
-    >
-      <FormattedMessage id="UserCard.contactUser" />
-    </InlineTextButton>
-  ) : null;
 
   const editProfileMobile = (
     <span className={css.editProfileMobile}>
@@ -138,8 +117,7 @@ const UserCard = props => {
       <NamedLink className={css.link} name="ProfilePage" params={{ id: ensuredUser.id.uuid }}>
         <FormattedMessage id="UserCard.viewProfileLink" />
       </NamedLink>
-      {separator}
-      {mounted && isCurrentUser ? editProfileMobile : contact}
+      {mounted && isCurrentUser ? editProfileMobile : null}
     </p>
   ) : null;
 

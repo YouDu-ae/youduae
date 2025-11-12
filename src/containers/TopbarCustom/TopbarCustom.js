@@ -98,7 +98,7 @@ const TopbarCustom = props => {
                 params={{ tab: isProvider ? 'sales' : 'orders' }}
                 className={css.menuLink}
               >
-                <FormattedMessage id="TopbarDesktop.inbox" defaultMessage="Входящие" />
+                <FormattedMessage id="TopbarDesktop.inbox" defaultMessage="Сообщения" />
               </NamedLink>
             </MenuItem>
             {isProvider && (
@@ -156,7 +156,7 @@ const TopbarCustom = props => {
         </NamedLink>
       </li>
       <li>
-        <NamedLink name="SearchPage" className={css.burgerLink} onClick={closeBurger}>
+        <NamedLink name="CooperationPage" className={css.burgerLink} onClick={closeBurger}>
           <FormattedMessage id="TopbarDesktop.forSpecialists" />
         </NamedLink>
       </li>
@@ -167,7 +167,7 @@ const TopbarCustom = props => {
         </NamedLink>
       </li>
       <li>
-        <NamedLink name="PrivacyPolicyPage" className={css.burgerSubLink} onClick={closeBurger}>
+        <NamedLink name="AboutPage" className={css.burgerSubLink} onClick={closeBurger}>
           <FormattedMessage id="TopbarCustom.aboutCompany" />
         </NamedLink>
       </li>
@@ -198,7 +198,7 @@ const TopbarCustom = props => {
     </ul>
   );
 
-  // Customer (Исполнитель): Найти задания | Мои отзывы | Входящие
+  // Customer (Исполнитель): Найти задания | Мои отзывы | Сообщения
   const CustomerMenu = () => (
     <ul className={css.burgerList}>
       <li>
@@ -248,7 +248,7 @@ const TopbarCustom = props => {
     </ul>
   );
 
-  // Provider (Заказчик): Создать задания | Мои задания | Входящие
+  // Provider (Заказчик): Создать задания | Мои задания | Сообщения
   const ProviderMenu = () => (
     <ul className={css.burgerList}>
       <li>
@@ -310,7 +310,7 @@ const TopbarCustom = props => {
         {isAuthenticated ? (
           <nav className={`${css.rightSection} ${css.hideOnMobile}`} aria-label="Главная навигация">
             {isProvider ? (
-              // Provider (Заказчик): Создать задания | Мои задания | Входящие
+              // Provider (Заказчик): Создать задания | Мои задания | Сообщения
               <>
                 <NamedLink name="NewListingPage" className={css.navLinkUnified}>
                   <FormattedMessage id="TopbarDesktop.createListing" />
@@ -323,7 +323,7 @@ const TopbarCustom = props => {
                 </NamedLink>
               </>
             ) : (
-              // Customer (Исполнитель): Найти задания | Мои отзывы | Входящие
+              // Customer (Исполнитель): Найти задания | Мои отзывы | Сообщения
               <>
                 <NamedLink name="SearchPage" className={css.navLinkUnified}>
                   <FormattedMessage id="TopbarDesktop.findTasks" />
@@ -343,7 +343,7 @@ const TopbarCustom = props => {
           </nav>
         ) : (
           <nav className={`${css.nav} ${css.hideOnMobile}`} aria-label="Главная навигация">
-            <NamedLink name="SearchPage" className={css.navLink}>
+          <NamedLink name="CooperationPage" className={css.navLink}>
               <FormattedMessage id="TopbarDesktop.forSpecialists" />
             </NamedLink>
             <div className={css.rightButtons}>

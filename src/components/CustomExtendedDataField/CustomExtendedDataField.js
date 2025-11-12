@@ -184,16 +184,20 @@ const CustomFieldText = props => {
     ? value => sanitizeInstagramHandle(value)
     : undefined;
 
+  const shouldUseTextarea =
+    fieldConfig?.saveConfig?.displayAsTextarea || fieldConfig?.schemaType === 'long';
+
   return (
     <FieldTextInput
       className={css.customField}
       id={formId ? `${formId}.${name}` : name}
       name={name}
-      type="textarea"
+      type={shouldUseTextarea ? 'textarea' : 'text'}
       label={label}
       placeholder={placeholder}
       parse={parseInstagramMaybe}
       format={parseInstagramMaybe}
+      inputRootClass={shouldUseTextarea ? undefined : css.customTextInput}
       {...validateMaybe}
     />
   );

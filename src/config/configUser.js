@@ -55,6 +55,9 @@ export const userFields = [
       { option: 'moving', label: 'ServiceCategory.moving' },
       { option: 'tech-repair', label: 'ServiceCategory.techRepair' },
       { option: 'auto', label: 'ServiceCategory.auto' },
+      { option: 'Interior_designer', label: 'ServiceCategory.interior' },
+      { option: 'Tourist_services', label: 'ServiceCategory.tourist' },
+      { option: 'Web_design', label: 'ServiceCategory.web' },
     ],
     showConfig: {
       label: 'ServiceCategory.title',

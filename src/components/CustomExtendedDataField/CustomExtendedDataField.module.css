@@ -33,3 +33,9 @@
     margin-bottom: 32px;
   }
 }
+
+.customTextInput {
+  height: 44px;
+  line-height: 44px;
+  padding: 0 16px;
+}

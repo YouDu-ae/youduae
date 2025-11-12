@@ -45,7 +45,7 @@ const LoginLink = () => {
 // Компонент: "Для специалистов" - серая ссылка из Figма
 const ForSpecialistsLink = () => {
   return (
-    <NamedLink name="SearchPage" className={css.forSpecialistsLink}>
+    <NamedLink name="CooperationPage" className={css.forSpecialistsLink}>
       <FormattedMessage id="TopbarDesktop.forSpecialists" />
     </NamedLink>
   );

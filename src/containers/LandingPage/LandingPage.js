@@ -203,6 +203,27 @@ const LandingPage = () => {
                   <span><FormattedMessage id="LandingPage.category.auto" /></span>
                 </div>
               </NamedLink>
+
+              <NamedLink name="CategoryExecutorsPage" params={{ categoryId: 'Interior_designer' }} className={css.cardBtn}>
+                <div className={css.textIcon}>
+                  <span className={css.iconInterior}></span>
+                  <span><FormattedMessage id="LandingPage.category.interior" /></span>
+                </div>
+              </NamedLink>
+
+              <NamedLink name="CategoryExecutorsPage" params={{ categoryId: 'Tourist_services' }} className={css.cardBtn}>
+                <div className={css.textIcon}>
+                  <span className={css.iconTourist}></span>
+                  <span><FormattedMessage id="LandingPage.category.tourist" /></span>
+                </div>
+              </NamedLink>
+
+              <NamedLink name="CategoryExecutorsPage" params={{ categoryId: 'Web_design' }} className={css.cardBtn}>
+                <div className={css.textIcon}>
+                  <span className={css.iconWeb}></span>
+                  <span><FormattedMessage id="LandingPage.category.web" /></span>
+                </div>
+              </NamedLink>
             </div>
           </section>
  

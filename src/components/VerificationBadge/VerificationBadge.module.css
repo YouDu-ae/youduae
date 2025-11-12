@@ -1,6 +1,7 @@
 @import '../../styles/customMediaQueries.css';
 
 .root {
+  position: relative;
   display: inline-flex;
   align-items: center;
   gap: 3px;
@@ -9,6 +10,52 @@
   font-weight: 600;
   margin-left: 6px;
   vertical-align: middle;
+  cursor: help;
+  outline: none;
+}
+
+.root::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%) translateY(6px);
+  bottom: calc(100% + 10px);
+  background: rgba(0, 0, 0, 0.85);
+  color: #fff;
+  font-size: 12px;
+  line-height: 1.4;
+  padding: 8px 10px;
+  border-radius: 6px;
+  white-space: normal;
+  width: max-content;
+  max-width: 260px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  z-index: 20;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+.root::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%) translateY(4px);
+  bottom: calc(100% + 3px);
+  border-width: 6px;
+  border-style: solid;
+  border-color: rgba(0, 0, 0, 0.85) transparent transparent transparent;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  z-index: 19;
+}
+
+.root:hover::after,
+.root:hover::before,
+.root:focus-visible::after,
+.root:focus-visible::before {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
 }
 
 .icon {

@@ -307,7 +307,10 @@
 .iconCamera,
 .iconCourier,
 .iconSearch,
-.iconCar {
+.iconCar,
+.iconInterior,
+.iconTourist,
+.iconWeb {
   width: 30px;
   height: 30px;
   background-position: center;
@@ -354,6 +357,18 @@
 }
 .iconCar {
   background-image: url('./icon-car.png');
+}
+.iconInterior {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M3 10.5L12 4l9 6.5'/><path d='M5 10v9h5v-5h4v5h5v-9'/><path d='M9 19v-3h6v3'/></svg>");
+  background-size: contain;
+}
+.iconTourist {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M10.5 2.5L13.5 21.5'/><path d='M2 9l20-5-7 9 4 8-5.5-4-4.5 5z'/></svg>");
+  background-size: contain;
+}
+.iconWeb {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='9'/><path d='M3 12h18'/><path d='M12 3a16 16 0 0 1 0 18'/><path d='M12 3a16 16 0 0 0 0 18'/><path d='M9 12l2 2 4-4'/></svg>");
+  background-size: contain;
 }
 
 /* ========================= */
@@ -769,7 +784,7 @@
  .categoriesGrid { gap: 10px; grid-template-columns: repeat(2, 1fr); /* 2 карточки равной ширины */ }
  .cardBtn { height: 90px; border-radius: 13px; }
  .textIcon { gap: 10px; font-size: 14px; }
- .iconDrill, .iconScissors, .iconSchool, .iconHousekeeper, .iconWeight, .iconKitchen, .iconCamera, .iconCourier, .iconSearch, .iconCar { width: 20px; height: 20px; }
+ .iconDrill, .iconScissors, .iconSchool, .iconHousekeeper, .iconWeight, .iconKitchen, .iconCamera, .iconCourier, .iconSearch, .iconCar, .iconInterior, .iconTourist, .iconWeb { width: 20px; height: 20px; }
  .iconTruck { width: 20px; height: 16px; }
  .hiwGrid { gap: 10px; }
  .hiwCard { border-radius: 14px; aspect-ratio: auto; width: 100%; height: 335px; }

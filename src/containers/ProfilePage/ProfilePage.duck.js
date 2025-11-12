@@ -147,23 +147,25 @@ export const queryUserListings = (userId, config, ownProfileOnly = false) => (
     ...createImageVariantConfig(`${variantPrefix}-2x`, 800, aspectRatio),
   };
 
-  const listingsPromise = ownProfileOnly
-    ? sdk.ownListings.query({
-        states: ['published'],
-        ...queryParams,
-      })
-    : sdk.listings.query({
-        author_id: userId,
-        ...queryParams,
-      });
+  const listingStates = ['published', 'closed'];
 
-  return listingsPromise
+  return sdk.listings
+    .query({
+      author_id: userId,
+      states: listingStates,
+      ...queryParams,
+    })
     .then(response => {
-      // Pick only the id and type properties from the response listings
-      const listings = response.data.data;
+      const listings = response?.data?.data || [];
       const listingRefs = listings
-        .filter(l => l => !l.attributes.deleted && l.attributes.state === 'published')
+        .filter(
+          l =>
+            !l.attributes.deleted &&
+            l.attributes.state &&
+            listingStates.includes(l.attributes.state)
+        )
         .map(({ id, type }) => ({ id, type }));
+
       dispatch(addMarketplaceEntities(response));
       dispatch(queryListingsSuccess(listingRefs));
       return response;

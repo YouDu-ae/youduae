@@ -27,14 +27,14 @@ const FooterCustom = () => {
           <NamedLink name="SearchPage" className={css.col1Item}>
             <FormattedMessage id="TopbarDesktop.searchLink" />
           </NamedLink>
-          <NamedLink name="CMSPage" params={{ pageId: 'about' }} className={css.col1Item}>
+          <NamedLink name="AboutPage" className={css.col1Item}>
             <FormattedMessage id="FooterCustom.about" />
           </NamedLink>
         </div>
 
         {/* Колонка 2 */}
         <div className={css.column2}>
-          <NamedLink name="SearchPage" className={css.col2Item}>
+          <NamedLink name="CooperationPage" className={css.col2Item}>
             <FormattedMessage id="TopbarDesktop.forSpecialists" />
           </NamedLink>
           <NamedLink name="PrivacyPolicyPage" className={css.col2Item}>

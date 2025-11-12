@@ -14,6 +14,7 @@ const pageDataLoadingAPI = getPageDataLoadingAPI();
 
 const AuthenticationPage = loadable(() => import(/* webpackChunkName: "AuthenticationPage" */ '../containers/AuthenticationPage/AuthenticationPage'));
 const CheckoutPage = loadable(() => import(/* webpackChunkName: "CheckoutPage" */ '../containers/CheckoutPage/CheckoutPage'));
+const AboutPage = loadable(() => import(/* webpackChunkName: "AboutPage" */ '../containers/AboutPage/AboutPage'));
 const CMSPage = loadable(() => import(/* webpackChunkName: "CMSPage" */ '../containers/CMSPage/CMSPage'));
 const ContactDetailsPage = loadable(() => import(/* webpackChunkName: "ContactDetailsPage" */ '../containers/ContactDetailsPage/ContactDetailsPage'));
 const EditListingPage = loadable(() => import(/* webpackChunkName: "EditListingPage" */ '../containers/EditListingPage/EditListingPage'));
@@ -40,6 +41,7 @@ const SearchMapPage = loadable(() => import(/* webpackChunkName: "SearchMapPage"
 const StripePayoutPage = loadable(() => import(/* webpackChunkName: "StripePayoutPage" */ '../containers/StripePayoutPage/StripePayoutPage'));
 const TermsOfServicePage = loadable(() => import(/* webpackChunkName: "TermsOfServicePage" */ '../containers/TermsOfServicePage/TermsOfServicePage'));
 const TransactionPage = loadable(() => import(/* webpackChunkName: "TransactionPage" */ '../containers/TransactionPage/TransactionPage'));
+const CooperationPage = loadable(() => import(/* webpackChunkName: "CooperationPage" */ '../containers/CooperationPage/CooperationPage'));
 const VerificationPage = loadable(() => import(/* webpackChunkName: "VerificationPage" */ '../containers/VerificationPage/VerificationPage'));
 const NoAccessPage = loadable(() => import(/* webpackChunkName: "NoAccessPage" */ '../containers/NoAccessPage/NoAccessPage'));
 const CategoryExecutorsPage = loadable(() => import(/* webpackChunkName: "CategoryExecutorsPage" */ '../containers/CategoryExecutorsPage/CategoryExecutorsPage'));
@@ -91,6 +93,11 @@ const routeConfiguration = (layoutConfig, accessControlConfig) => {
       path: '/category/:categoryId',
       name: 'CategoryExecutorsPage',
       component: CategoryExecutorsPage,
+    },
+    {
+      path: '/p/about',
+      name: 'AboutPage',
+      component: AboutPage,
     },
     {
       path: '/p/:pageId',
@@ -368,6 +375,11 @@ const routeConfiguration = (layoutConfig, accessControlConfig) => {
       name: 'TermsOfServicePage',
       component: TermsOfServicePage,
       loadData: pageDataLoadingAPI.TermsOfServicePage.loadData,
+    },
+    {
+      path: '/cooperation',
+      name: 'CooperationPage',
+      component: CooperationPage,
     },
     {
       path: '/privacy-policy',
