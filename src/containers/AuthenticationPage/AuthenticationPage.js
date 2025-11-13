@@ -10,7 +10,7 @@ import { useConfiguration } from '../../context/configurationContext';
 import { useRouteConfiguration } from '../../context/routeConfigurationContext';
 import { camelize } from '../../util/string';
 import { pathByRouteName } from '../../util/routes';
-import { apiBaseUrl } from '../../util/api';
+import { apiBaseUrl, assertEmailVerified } from '../../util/api';
 import { FormattedMessage, useIntl } from '../../util/reactIntl';
 import { propTypes } from '../../util/types';
 import { ensureCurrentUser } from '../../util/data';
@@ -172,6 +172,7 @@ export const AuthenticationForms = props => {
   const intl = useIntl();
   const { userFields, userTypes = [] } = config.user;
   const preselectedUserType = userTypes.find(conf => conf.userType === userType)?.userType || null;
+  const [emailVerificationError, setEmailVerificationError] = useState(null);
 
   const fromMaybe = from ? { from } : null;
   const userTypeMaybe = preselectedUserType ? { userType: preselectedUserType } : null;
@@ -222,8 +223,32 @@ export const AuthenticationForms = props => {
     },
   ];
 
-  const handleSubmitSignup = values => {
-    const { userType, email, password, fname, lname, displayName, ...rest } = values;
+  const handleSubmitSignup = async values => {
+    const { userType, email, password, fname, lname, displayName, verifiedToken, ...rest } = values;
+
+    // Verify email OTP before proceeding
+    if (!verifiedToken) {
+      setEmailVerificationError(
+        intl.formatMessage({ id: 'AuthenticationPage.emailVerificationRequired' })
+      );
+      return;
+    }
+
+    try {
+      const verificationResult = await assertEmailVerified({ verifiedToken });
+      if (!verificationResult.verified || verificationResult.email !== email) {
+        setEmailVerificationError(
+          intl.formatMessage({ id: 'AuthenticationPage.emailVerificationFailed' })
+        );
+        return;
+      }
+    } catch (error) {
+      console.error('Email verification assertion failed:', error);
+      setEmailVerificationError(
+        intl.formatMessage({ id: 'AuthenticationPage.emailVerificationFailed' })
+      );
+      return;
+    }
 
     // Sharetribe требует displayName в профиле. В hosted-конфигурации поле может быть скрыто,
     // поэтому генерируем в fallback: "FirstName LastName".
@@ -255,7 +280,7 @@ export const AuthenticationForms = props => {
       },
     };
 
-    submitSignup(params);
+    return submitSignup(params);
   };
 
   const loginErrorMessage = (
@@ -287,6 +312,8 @@ export const AuthenticationForms = props => {
       ? loginErrorMessage
       : !!signupError
       ? signupErrorMessage
+      : emailVerificationError
+      ? <div className={css.error}>{emailVerificationError}</div>
       : null;
 
   const ariaLabel = `${intl.formatMessage({

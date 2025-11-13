@@ -56,72 +56,54 @@ const SignupFormFields = props => {
 
   const { userType, email } = values || {};
 
-      // email
-      const emailRequired = validators.required(
-        intl.formatMessage({
-          id: 'SignupForm.emailRequired',
-        })
-      );
-      const emailValid = validators.emailFormatValid(
-        intl.formatMessage({
-          id: 'SignupForm.emailInvalid',
-        })
-      );
+  // Email validation
+  const emailRequired = validators.required(
+    intl.formatMessage({ id: 'SignupForm.emailRequired' })
+  );
+  const emailValid = validators.emailFormatValid(
+    intl.formatMessage({ id: 'SignupForm.emailInvalid' })
+  );
 
-      // password
-      const passwordRequiredMessage = intl.formatMessage({
-        id: 'SignupForm.passwordRequired',
-      });
-      const passwordMinLengthMessage = intl.formatMessage(
-        {
-          id: 'SignupForm.passwordTooShort',
-        },
-        {
-          minLength: validators.PASSWORD_MIN_LENGTH,
-        }
-      );
-      const passwordMaxLengthMessage = intl.formatMessage(
-        {
-          id: 'SignupForm.passwordTooLong',
-        },
-        {
-          maxLength: validators.PASSWORD_MAX_LENGTH,
-        }
-      );
-      const passwordMinLength = validators.minLength(
-        passwordMinLengthMessage,
-        validators.PASSWORD_MIN_LENGTH
-      );
-      const passwordMaxLength = validators.maxLength(
-        passwordMaxLengthMessage,
-        validators.PASSWORD_MAX_LENGTH
-      );
-      const passwordRequired = validators.requiredStringNoTrim(passwordRequiredMessage);
-      const passwordValidators = validators.composeValidators(
-        passwordRequired,
-        passwordMinLength,
-        passwordMaxLength
-      );
+  // Password validation
+  const passwordRequiredMessage = intl.formatMessage({ id: 'SignupForm.passwordRequired' });
+  const passwordMinLengthMessage = intl.formatMessage(
+    { id: 'SignupForm.passwordTooShort' },
+    { minLength: validators.PASSWORD_MIN_LENGTH }
+  );
+  const passwordMaxLengthMessage = intl.formatMessage(
+    { id: 'SignupForm.passwordTooLong' },
+    { maxLength: validators.PASSWORD_MAX_LENGTH }
+  );
+  const passwordMinLength = validators.minLength(
+    passwordMinLengthMessage,
+    validators.PASSWORD_MIN_LENGTH
+  );
+  const passwordMaxLength = validators.maxLength(
+    passwordMaxLengthMessage,
+    validators.PASSWORD_MAX_LENGTH
+  );
+  const passwordRequired = validators.requiredStringNoTrim(passwordRequiredMessage);
+  const passwordValidators = validators.composeValidators(
+    passwordRequired,
+    passwordMinLength,
+    passwordMaxLength
+  );
 
-      // Custom user fields. Since user types are not supported here,
-      // only fields with no user type id limitation are selected.
-      const userFieldProps = getPropsForCustomUserFieldInputs(userFields, intl, userType);
+  // Custom user fields
+  const userFieldProps = getPropsForCustomUserFieldInputs(userFields, intl, userType);
 
-      const noUserTypes = !userType && !(userTypes?.length > 0);
-      const userTypeConfig = userTypes.find(config => config.userType === userType);
-      const showDefaultUserFields = userType || noUserTypes;
-      const showCustomUserFields = (userType || noUserTypes) && userFieldProps?.length > 0;
+  const noUserTypes = !userType && !(userTypes?.length > 0);
+  const userTypeConfig = userTypes.find(config => config.userType === userType);
+  const showDefaultUserFields = userType || noUserTypes;
+  const showCustomUserFields = (userType || noUserTypes) && userFieldProps?.length > 0;
 
   const classes = classNames(rootClassName || css.root, className);
   const submitInProgress = inProgress;
   const submitDisabled = invalid || submitInProgress || !otpState.verified;
 
   const handleSendOtp = async () => {
-    if (!email || emailValid(email)) {
-      setOtpState(prev => ({
-        ...prev,
-        error: intl.formatMessage({ id: 'SignupForm.emailInvalid' }),
-      }));
+    if (!email || !emailValid(email)) {
+      setOtpState(prev => ({ ...prev, error: intl.formatMessage({ id: 'SignupForm.emailInvalid' }) }));
       return;
     }
 
@@ -160,10 +142,7 @@ const SignupFormFields = props => {
   const handleVerifyOtp = async () => {
     const code = values?.emailOtpCode;
     if (!code || code.length !== 6) {
-      setOtpState(prev => ({
-        ...prev,
-        error: intl.formatMessage({ id: 'SignupForm.emailOtpCodeInvalid' }),
-      }));
+      setOtpState(prev => ({ ...prev, error: intl.formatMessage({ id: 'SignupForm.emailOtpCodeInvalid' }) }));
       return;
     }
 
@@ -281,66 +260,50 @@ const SignupFormFields = props => {
             ) : null}
           </div>
 
-              <div className={css.name}>
-                <FieldTextInput
-                  className={css.firstNameRoot}
-                  type="text"
-                  id={formId ? `${formId}.fname` : 'fname'}
-                  name="fname"
-                  autoComplete="given-name"
-                  label={intl.formatMessage({
-                    id: 'SignupForm.firstNameLabel',
-                  })}
-                  placeholder={intl.formatMessage({
-                    id: 'SignupForm.firstNamePlaceholder',
-                  })}
-                  validate={validators.required(
-                    intl.formatMessage({
-                      id: 'SignupForm.firstNameRequired',
-                    })
-                  )}
-                />
-                <FieldTextInput
-                  className={css.lastNameRoot}
-                  type="text"
-                  id={formId ? `${formId}.lname` : 'lname'}
-                  name="lname"
-                  autoComplete="family-name"
-                  label={intl.formatMessage({
-                    id: 'SignupForm.lastNameLabel',
-                  })}
-                  placeholder={intl.formatMessage({
-                    id: 'SignupForm.lastNamePlaceholder',
-                  })}
-                  validate={validators.required(
-                    intl.formatMessage({
-                      id: 'SignupForm.lastNameRequired',
-                    })
-                  )}
-                />
-              </div>
+          <div className={css.name}>
+            <FieldTextInput
+              className={css.firstNameRoot}
+              type="text"
+              id={formId ? `${formId}.fname` : 'fname'}
+              name="fname"
+              autoComplete="given-name"
+              label={intl.formatMessage({ id: 'SignupForm.firstNameLabel' })}
+              placeholder={intl.formatMessage({ id: 'SignupForm.firstNamePlaceholder' })}
+              validate={validators.required(
+                intl.formatMessage({ id: 'SignupForm.firstNameRequired' })
+              )}
+            />
+            <FieldTextInput
+              className={css.lastNameRoot}
+              type="text"
+              id={formId ? `${formId}.lname` : 'lname'}
+              name="lname"
+              autoComplete="family-name"
+              label={intl.formatMessage({ id: 'SignupForm.lastNameLabel' })}
+              placeholder={intl.formatMessage({ id: 'SignupForm.lastNamePlaceholder' })}
+              validate={validators.required(
+                intl.formatMessage({ id: 'SignupForm.lastNameRequired' })
+              )}
+            />
+          </div>
 
-              <UserFieldDisplayName
-                formName="SignupForm"
-                className={css.row}
-                userTypeConfig={userTypeConfig}
-                intl={intl}
-              />
+          <UserFieldDisplayName
+            formName="SignupForm"
+            className={css.row}
+            userTypeConfig={userTypeConfig}
+            intl={intl}
+          />
 
-              <FieldTextInput
-                className={css.password}
-                type="password"
-                id={formId ? `${formId}.password` : 'password'}
-                name="password"
-                autoComplete="new-password"
-                label={intl.formatMessage({
-                  id: 'SignupForm.passwordLabel',
-                })}
-                placeholder={intl.formatMessage({
-                  id: 'SignupForm.passwordPlaceholder',
-                })}
-                validate={passwordValidators}
-              />
+          <FieldTextInput
+            className={css.password}
+            type="password"
+            id={formId ? `${formId}.password` : 'password'}
+            name="password"
+            autoComplete="new-password"
+            label={intl.formatMessage({ id: 'SignupForm.passwordLabel' })}
+            placeholder={intl.formatMessage({ id: 'SignupForm.passwordPlaceholder' })}
+            validate={passwordValidators}
+          />
 
           <UserFieldPhoneNumber
             formName="SignupForm"
@@ -355,7 +318,7 @@ const SignupFormFields = props => {
 
       {showCustomUserFields ? (
         <div className={css.customFields}>
-          {userFieldProps.map(({ key, ...fieldProps}) => (
+          {userFieldProps.map(({ key, ...fieldProps }) => (
             <CustomExtendedDataField key={key} {...fieldProps} formId={formId} />
           ))}
         </div>
@@ -385,4 +348,20 @@ const SignupForm = props => {
   return <SignupFormComponent {...props} intl={intl} />;
 };
 
+SignupForm.defaultProps = {
+  rootClassName: null,
+  className: null,
+  formId: null,
+  inProgress: false,
+};
+
+SignupForm.propTypes = {
+  rootClassName: propTypes.string,
+  className: propTypes.string,
+  formId: propTypes.string,
+  inProgress: propTypes.bool,
+  termsAndConditions: propTypes.node.isRequired,
+};
+
 export default SignupForm;
+

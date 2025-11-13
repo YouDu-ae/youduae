@@ -246,3 +246,22 @@ export const createGuestListing = listingData => {
 export const createUserWithIdp = body => {
   return post('/api/auth/create-user-with-idp', body);
 };
+
+// Email OTP verification endpoints
+export const sendEmailOtp = ({ email, locale }) => {
+  return post('/api/otp/email/send', { email, locale }, {
+    headers: { 'Content-Type': 'application/json' },
+  });
+};
+
+export const verifyEmailOtp = ({ challengeToken, code }) => {
+  return post('/api/otp/email/verify', { challengeToken, code }, {
+    headers: { 'Content-Type': 'application/json' },
+  });
+};
+
+export const assertEmailVerified = ({ verifiedToken }) => {
+  return post('/api/otp/email/assert', { verifiedToken }, {
+    headers: { 'Content-Type': 'application/json' },
+  });
+};

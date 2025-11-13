@@ -25,6 +25,7 @@ const searchExecutors = require('./api/search-executors');
 const createMyExecutorProfile = require('./api/create-my-executor-profile');
 
 const createUserWithIdp = require('./api/auth/createUserWithIdp');
+const { sendEmailOtp, verifyEmailOtp, assertEmailVerified } = require('./api/email-otp');
 
 const { authenticateFacebook, authenticateFacebookCallback } = require('./api/auth/facebook');
 const { authenticateGoogle, authenticateGoogleCallback } = require('./api/auth/google');
@@ -79,6 +80,11 @@ router.post('/create-guest-listing', createGuestListing);
 router.get('/listing-status', listingStatus);
 router.get('/search-executors', searchExecutors);
 router.post('/create-my-executor-profile', createMyExecutorProfile);
+
+// Email OTP verification endpoints
+router.post('/otp/email/send', sendEmailOtp);
+router.post('/otp/email/verify', verifyEmailOtp);
+router.post('/otp/email/assert', assertEmailVerified);
 
 // Create user with identity provider (e.g. Facebook or Google)
 // This endpoint is called to create a new user after user has confirmed
