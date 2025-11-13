@@ -19,13 +19,15 @@ const WelcomePage = props => {
   const user = ensureCurrentUser(currentUser);
   const userRoles = getCurrentUserTypeRoles(config, user);
   
-  // Determine user type based on roles
-  // provider userType (Заказчик) → roles: {customer: true, provider: false}
-  // customer userType (Исполнитель) → roles: {customer: false, provider: true}
-  const isProvider = userRoles.customer; // Can create listings
-  const isCustomer = userRoles.provider; // Can search for tasks
+  // ⚠️ ROLE MAPPING:
+  // userType 'provider' (Заказчик) → roles: {customer: true, provider: false} → создаёт задания
+  // userType 'customer' (Исполнитель) → roles: {customer: false, provider: true} → откликается на задания
+  const isProvider = userRoles.customer; // Provider userType - can create listings (Заказчик)
+  const isCustomer = userRoles.provider; // Customer userType - searches for tasks (Исполнитель)
 
-  const userName = user?.attributes?.profile?.firstName || intl.formatMessage({ id: 'WelcomePage.defaultName' });
+  // Get user's first name from profile
+  const firstName = user?.attributes?.profile?.firstName || '';
+  const userName = firstName || intl.formatMessage({ id: 'WelcomePage.defaultName' });
 
   const title = intl.formatMessage({ id: 'WelcomePage.title' });
   const schemaTitle = intl.formatMessage({ id: 'WelcomePage.schemaTitle' });
