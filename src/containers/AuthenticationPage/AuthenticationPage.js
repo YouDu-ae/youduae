@@ -224,7 +224,7 @@ export const AuthenticationForms = props => {
   ];
 
   const handleSubmitSignup = async values => {
-    const { userType, email, password, fname, lname, displayName, verifiedToken, ...rest } = values;
+    const { userType, email, password, fname, lname, displayName, verifiedToken, phoneNumber, ...rest } = values;
 
     // Verify email OTP before proceeding
     if (!verifiedToken) {
@@ -275,6 +275,7 @@ export const AuthenticationForms = props => {
         ...pickUserFieldsData(rest, 'private', userType, userFields),
       },
       protectedData: {
+        ...(phoneNumber ? { phoneNumber } : {}),
         ...pickUserFieldsData(rest, 'protected', userType, userFields),
         ...getNonUserFieldParams(rest, userFields),
       },

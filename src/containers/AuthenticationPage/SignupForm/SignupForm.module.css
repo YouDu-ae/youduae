@@ -58,23 +58,38 @@
 
 .emailOtpSendButton {
   width: 100%;
-  margin-bottom: 12px;
+  margin-bottom: 0;
+  
+  @media (--viewportMedium) {
+    margin-bottom: 12px;
+  }
 }
 
 .emailOtpInputRow {
   display: flex;
+  flex-direction: column;
   gap: 12px;
-  align-items: flex-end;
   margin-top: 12px;
+  
+  @media (--viewportMedium) {
+    flex-direction: row;
+    align-items: flex-end;
+  }
 }
 
 .emailOtpInputRow > div {
   flex: 1;
+  width: 100%;
 }
 
 .emailOtpVerifyButton {
   flex-shrink: 0;
-  min-width: 120px;
+  width: 100%;
+  
+  @media (--viewportMedium) {
+    width: auto;
+    min-width: 140px;
+  }
 }
 
 .emailOtpStatus {

@@ -136,6 +136,13 @@ export const userTypes = [
       customer: false,  // ⚠️ НЕ может создавать листинги
       provider: true,   // ✅ Предоставляет услуги
     },
+    defaultUserFields: {
+      phoneNumber: true,
+    },
+    phoneNumberSettings: {
+      displayInSignUp: true,
+      required: true,
+    },
   },
   {
     userType: 'provider',  // ← Заказчик (ЕСТЬ права создавать задания в Console)
@@ -143,6 +150,13 @@ export const userTypes = [
     roles: {
       customer: true,   // ✅ Может создавать листинги
       provider: false,  // ⚠️ НЕ предоставляет услуги
+    },
+    defaultUserFields: {
+      phoneNumber: true,
+    },
+    phoneNumberSettings: {
+      displayInSignUp: true,
+      required: true,
     },
   },
 ];
