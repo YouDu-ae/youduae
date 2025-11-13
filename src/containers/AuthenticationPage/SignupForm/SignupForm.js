@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Form as FinalForm } from 'react-final-form';
+import { Form as FinalForm, Field } from 'react-final-form';
 import arrayMutators from 'final-form-arrays';
 import classNames from 'classnames';
 
@@ -347,7 +347,14 @@ const SignupFormFields = props => {
             intl={intl}
           />
 
-          <input type="hidden" name="verifiedToken" value={otpState.verifiedToken || ''} />
+          <Field name="verifiedToken">
+            {({ input }) => {
+              if (otpState.verifiedToken && input.value !== otpState.verifiedToken) {
+                input.onChange(otpState.verifiedToken);
+              }
+              return <input type="hidden" {...input} />;
+            }}
+          </Field>
         </div>
       ) : null}
 
