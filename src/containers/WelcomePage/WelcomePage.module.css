@@ -152,8 +152,19 @@
   }
 }
 
+.primaryActionLink,
+.secondaryActionLink {
+  text-decoration: none;
+  width: 100%;
+  
+  @media (--viewportMedium) {
+    width: auto;
+  }
+}
+
 .primaryAction,
 .secondaryAction {
+  width: 100%;
   min-width: 200px;
   padding: 14px 32px;
   font-size: 16px;

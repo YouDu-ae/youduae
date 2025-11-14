@@ -1,16 +1,19 @@
 import React from 'react';
+import { compose } from 'redux';
+import { connect } from 'react-redux';
 import { useHistory } from 'react-router-dom';
 import { FormattedMessage, useIntl } from '../../util/reactIntl';
 import { useConfiguration } from '../../context/configurationContext';
 import { ensureCurrentUser } from '../../util/data';
 import { getCurrentUserTypeRoles } from '../../util/userHelpers';
+import { isScrollingDisabled } from '../../ducks/ui.duck';
 import { Page, NamedLink, LayoutSingleColumn, PrimaryButton, SecondaryButton } from '../../components';
 import TopbarContainer from '../TopbarContainer/TopbarContainer';
 import FooterContainer from '../FooterContainer/FooterContainer';
 
 import css from './WelcomePage.module.css';
 
-const WelcomePage = props => {
+export const WelcomePageComponent = props => {
   const { scrollingDisabled, currentUser } = props;
   const config = useConfiguration();
   const intl = useIntl();
@@ -27,7 +30,18 @@ const WelcomePage = props => {
 
   // Get user's first name from profile
   const firstName = user?.attributes?.profile?.firstName || '';
-  const userName = firstName || intl.formatMessage({ id: 'WelcomePage.defaultName' });
+  const displayName = user?.attributes?.profile?.displayName || '';
+  const userName = firstName || displayName.split(' ')[0] || intl.formatMessage({ id: 'WelcomePage.defaultName' });
+  
+  console.log('🔍 WelcomePage user info:', {
+    userId: user?.id?.uuid,
+    firstName,
+    displayName,
+    userName,
+    userRoles,
+    isProvider,
+    isCustomer,
+  });
 
   const title = intl.formatMessage({ id: 'WelcomePage.title' });
   const schemaTitle = intl.formatMessage({ id: 'WelcomePage.schemaTitle' });
@@ -100,18 +114,16 @@ const WelcomePage = props => {
                 </div>
 
                 <div className={css.actions}>
-                  <PrimaryButton
-                    className={css.primaryAction}
-                    onClick={() => history.push('/new-listing')}
-                  >
-                    <FormattedMessage id="WelcomePage.createFirstTask" />
-                  </PrimaryButton>
-                  <SecondaryButton
-                    className={css.secondaryAction}
-                    onClick={() => history.push('/listings')}
-                  >
-                    <FormattedMessage id="WelcomePage.viewMyTasks" />
-                  </SecondaryButton>
+                  <NamedLink name="NewListingPage" className={css.primaryActionLink}>
+                    <PrimaryButton className={css.primaryAction}>
+                      <FormattedMessage id="WelcomePage.createFirstTask" />
+                    </PrimaryButton>
+                  </NamedLink>
+                  <NamedLink name="ManageListingsPage" className={css.secondaryActionLink}>
+                    <SecondaryButton className={css.secondaryAction}>
+                      <FormattedMessage id="WelcomePage.viewMyTasks" />
+                    </SecondaryButton>
+                  </NamedLink>
                 </div>
               </div>
             ) : (
@@ -159,18 +171,16 @@ const WelcomePage = props => {
                 </div>
 
                 <div className={css.actions}>
-                  <PrimaryButton
-                    className={css.primaryAction}
-                    onClick={() => history.push('/s')}
-                  >
-                    <FormattedMessage id="WelcomePage.findTasks" />
-                  </PrimaryButton>
-                  <SecondaryButton
-                    className={css.secondaryAction}
-                    onClick={() => history.push('/profile-settings')}
-                  >
-                    <FormattedMessage id="WelcomePage.completeProfile" />
-                  </SecondaryButton>
+                  <NamedLink name="SearchPage" className={css.primaryActionLink}>
+                    <PrimaryButton className={css.primaryAction}>
+                      <FormattedMessage id="WelcomePage.findTasks" />
+                    </PrimaryButton>
+                  </NamedLink>
+                  <NamedLink name="ProfileSettingsPage" className={css.secondaryActionLink}>
+                    <SecondaryButton className={css.secondaryAction}>
+                      <FormattedMessage id="WelcomePage.completeProfile" />
+                    </SecondaryButton>
+                  </NamedLink>
                 </div>
               </div>
             )}
@@ -186,6 +196,16 @@ const WelcomePage = props => {
     </Page>
   );
 };
+
+const mapStateToProps = state => {
+  const { currentUser } = state.user;
+  return {
+    scrollingDisabled: isScrollingDisabled(state),
+    currentUser,
+  };
+};
+
+const WelcomePage = compose(connect(mapStateToProps))(WelcomePageComponent);
 
 export default WelcomePage;
 
