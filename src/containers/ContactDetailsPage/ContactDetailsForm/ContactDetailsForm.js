@@ -201,30 +201,13 @@ class ContactDetailsFormComponent extends Component {
             );
           }
 
-          // Email status info: unverified, verified and pending email (aka changed unverified email)
+          // Email status info: We use Twilio SendGrid OTP verification during signup,
+          // so we hide Sharetribe's built-in email verification warnings
           let emailVerifiedInfo = null;
 
-          if (emailVerified && !pendingEmail && !emailChanged) {
-            // Current email is verified and there's no pending unverified email
-            emailVerifiedInfo = (
-              <span className={css.emailVerified}>
-                <FormattedMessage id="ContactDetailsForm.emailVerified" />
-              </span>
-            );
-          } else if (!emailVerified && !pendingEmail) {
-            // Current email is unverified. This is the email given in sign up form
-
-            emailVerifiedInfo = (
-              <span className={css.emailUnverified}>
-                <FormattedMessage
-                  id="ContactDetailsForm.emailUnverified"
-                  values={{ resendEmailMessage }}
-                />
-              </span>
-            );
-          } else if (pendingEmail) {
+          // Only show verification status if email was changed to a new unverified one
+          if (pendingEmail) {
             // Current email has been tried to change, but the new address is not yet verified
-
             const pendingEmailStyled = <span className={css.emailStyle}>{pendingEmail}</span>;
             const pendingEmailCheckInbox = (
               <span className={css.checkInbox}>
@@ -244,6 +227,9 @@ class ContactDetailsFormComponent extends Component {
               </span>
             );
           }
+          
+          // Hide "email unverified" warning for initial signup email
+          // since we already verified it via OTP
 
           // phone
           const protectedData = profile.protectedData || {};
