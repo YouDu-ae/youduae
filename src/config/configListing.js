@@ -18,7 +18,7 @@ export const listingTypes = [
     label: 'Task (free messaging)',
     transactionType: {
       process: 'assignment-flow-v3',
-      alias: 'assignment-flow-v3/release-5', // ← Updated to release-5 with portfolio support
+      alias: 'assignment-flow-v3/release-1', // ← Version 5 with portfolio support (aliased as release-1)
       unitType: 'inquiry',
     },
     // Для inquiry процесса НЕ нужны платежи через Stripe
