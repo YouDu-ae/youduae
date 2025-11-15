@@ -513,7 +513,7 @@ export const MainContent = props => {
       {userTypeRoles.provider && publicData.portfolioItems?.length > 0 ? (
         <SectionPortfolio
           portfolioItems={publicData.portfolioItems}
-          userImages={user?.images || []}
+          user={user}
           intl={intl}
         />
       ) : null}

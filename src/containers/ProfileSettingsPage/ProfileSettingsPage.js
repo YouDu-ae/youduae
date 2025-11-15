@@ -23,7 +23,7 @@ import FooterContainer from '../../containers/FooterContainer/FooterContainer';
 import ProfileSettingsForm from './ProfileSettingsForm/ProfileSettingsForm';
 import PortfolioSection from './PortfolioSection/PortfolioSection';
 
-import { updateProfile, uploadImage } from './ProfileSettingsPage.duck';
+import { updateProfile, uploadImage, uploadPortfolio } from './ProfileSettingsPage.duck';
 import css from './ProfileSettingsPage.module.css';
 
 const onImageUploadHandler = (values, fn) => {
@@ -204,6 +204,7 @@ export const ProfileSettingsPageComponent = props => {
             <PortfolioSection
               currentUser={currentUser}
               onUpdateProfile={onUpdateProfile}
+              onUploadPortfolio={onUploadPortfolio}
               updateInProgress={updateInProgress}
             />
           )}
@@ -236,6 +237,7 @@ const mapStateToProps = state => {
 const mapDispatchToProps = dispatch => ({
   onImageUpload: data => dispatch(uploadImage(data)),
   onUpdateProfile: data => dispatch(updateProfile(data)),
+  onUploadPortfolio: data => dispatch(uploadPortfolio(data)),
 });
 
 const ProfileSettingsPage = compose(

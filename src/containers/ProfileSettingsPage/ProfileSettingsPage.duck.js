@@ -160,3 +160,95 @@ export const updateProfile = actionPayload => {
       .catch(e => dispatch(updateProfileError(storableError(e))));
   };
 };
+
+// Upload portfolio images and add item to publicData
+export const uploadPortfolio = ({ files, title, description }) => {
+  return (dispatch, getState, sdk) => {
+    dispatch(updateProfileRequest());
+
+    // Upload all images first
+    const uploadPromises = files.map(file => {
+      return sdk.images.upload(
+        { image: file },
+        {
+          expand: true,
+          'fields.image': [
+            'variants.square-small',
+            'variants.square-small2x',
+            'variants.scaled-small',
+            'variants.scaled-medium',
+            'variants.scaled-large',
+            'variants.scaled-xlarge',
+          ],
+        }
+      );
+    });
+
+    return Promise.all(uploadPromises)
+      .then(responses => {
+        // Extract image UUIDs from responses
+        const imageIds = responses.map(resp => resp.data.data.id.uuid);
+
+        // Get current user data
+        const state = getState();
+        const currentUser = state.user.currentUser;
+        const publicData = currentUser?.attributes?.profile?.publicData || {};
+        const portfolioItems = publicData.portfolioItems || [];
+
+        // Create new portfolio item
+        const newItem = {
+          id: `portfolio-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          images: imageIds,
+          title: title || 'Completed work',
+          description: description || '',
+          category: null,
+          completedAt: new Date().toISOString(),
+          transactionId: null,
+        };
+
+        const updatedPortfolio = [...portfolioItems, newItem];
+
+        // Update user profile with new portfolio item
+        return sdk.currentUser.updateProfile(
+          {
+            publicData: {
+              ...publicData,
+              portfolioItems: updatedPortfolio,
+            },
+          },
+          {
+            expand: true,
+            include: ['profileImage'],
+            'fields.image': [
+              'variants.square-small',
+              'variants.square-small2x',
+              'variants.scaled-small',
+              'variants.scaled-medium',
+              'variants.scaled-large',
+            ],
+          }
+        );
+      })
+      .then(response => {
+        dispatch(updateProfileSuccess(response));
+
+        const entities = denormalisedResponseEntities(response);
+        if (entities.length !== 1) {
+          throw new Error('Expected a resource in the sdk.currentUser.updateProfile response');
+        }
+        const currentUser = entities[0];
+
+        // Update current user in state
+        dispatch(currentUserShowSuccess(currentUser));
+        
+        console.log('✅ Portfolio uploaded successfully:', {
+          portfolioCount: currentUser.attributes.profile.publicData.portfolioItems?.length,
+        });
+      })
+      .catch(e => {
+        console.error('❌ Portfolio upload failed:', e);
+        dispatch(updateProfileError(storableError(e)));
+        throw e;
+      });
+  };
+};

@@ -51,10 +51,15 @@
   background-color: var(--colorGrey100);
 }
 
-.cardImage img {
-  position: absolute;
+.cardImageTag {
+  position: absolute !important;
   top: 0;
   left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.cardImageTag img {
   width: 100%;
   height: 100%;
   object-fit: cover;

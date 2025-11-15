@@ -5,7 +5,7 @@ import { H4, SecondaryButton, ResponsiveImage, IconClose } from '../../../compon
 import css from './PortfolioSection.module.css';
 
 const PortfolioSection = props => {
-  const { currentUser, onUpdateProfile, updateInProgress } = props;
+  const { currentUser, onUpdateProfile, onUploadPortfolio, updateInProgress } = props;
   const intl = useIntl();
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [uploadError, setUploadError] = useState(null);
@@ -14,7 +14,20 @@ const PortfolioSection = props => {
 
   const publicData = currentUser?.attributes?.profile?.publicData || {};
   const portfolioItems = publicData.portfolioItems || [];
-  const userImages = currentUser?.images || [];
+  const allUserImages = currentUser?.images || [];
+
+  // Helper to get images for a portfolio item
+  const getItemImages = item => {
+    if (!item.images || !Array.isArray(item.images)) {
+      return [];
+    }
+    return item.images
+      .map(imageId => {
+        const uuid = typeof imageId === 'string' ? imageId : imageId?.uuid;
+        return allUserImages.find(img => img?.id?.uuid === uuid);
+      })
+      .filter(Boolean);
+  };
 
   const MAX_IMAGES = 6;
   const MAX_IMAGE_SIZE = 10 * 1024 * 1024;
@@ -72,44 +85,18 @@ const PortfolioSection = props => {
       return;
     }
 
-    // Note: This is a simplified version. Full implementation would:
-    // 1. Upload images to Sharetribe using SDK
-    // 2. Get image UUIDs
-    // 3. Create portfolio item with image references
-    // 4. Update user publicData
-
-    // For MVP, we'll store file data URLs (not recommended for production)
-    const promises = selectedFiles.map(file => {
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = e => resolve(e.target.result);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
-    });
-
     try {
-      const imageDataUrls = await Promise.all(promises);
-      
-      const newItem = {
-        id: `portfolio-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        images: imageDataUrls, // In production, these would be Sharetribe image UUIDs
+      // Call the parent's upload handler which will:
+      // 1. Upload images to Sharetribe via SDK
+      // 2. Get image UUIDs
+      // 3. Update publicData with new portfolio item
+      await onUploadPortfolio({
+        files: selectedFiles,
         title: title || intl.formatMessage({ id: 'PortfolioSection.untitledWork' }),
         description: description || '',
-        category: null,
-        completedAt: new Date().toISOString(),
-      };
-
-      const updatedPortfolio = [...portfolioItems, newItem];
-
-      await onUpdateProfile({
-        publicData: {
-          ...publicData,
-          portfolioItems: updatedPortfolio,
-        },
       });
 
-      // Reset form
+      // Reset form on success
       setSelectedFiles([]);
       setTitle('');
       setDescription('');
@@ -136,33 +123,43 @@ const PortfolioSection = props => {
             <FormattedMessage id="PortfolioSection.yourWorks" values={{ count: portfolioItems.length }} />
           </h3>
           <div className={css.portfolioGrid}>
-            {portfolioItems.map(item => (
-              <div key={item.id} className={css.portfolioCard}>
-                {item.images && item.images[0] && (
-                  <div className={css.cardImage}>
-                    <img src={item.images[0]} alt={item.title} />
-                    {item.images.length > 1 && (
-                      <span className={css.imageCount}>+{item.images.length - 1}</span>
-                    )}
+            {portfolioItems.map(item => {
+              const images = getItemImages(item);
+              const firstImage = images[0];
+              
+              return (
+                <div key={item.id} className={css.portfolioCard}>
+                  {firstImage && (
+                    <div className={css.cardImage}>
+                      <ResponsiveImage
+                        rootClassName={css.cardImageTag}
+                        alt={item.title}
+                        image={firstImage}
+                        variants={['scaled-small', 'scaled-medium']}
+                      />
+                      {images.length > 1 && (
+                        <span className={css.imageCount}>+{images.length - 1}</span>
+                      )}
+                    </div>
+                  )}
+                  <div className={css.cardContent}>
+                    <h4 className={css.cardTitle}>{item.title}</h4>
+                    {item.description && <p className={css.cardDescription}>{item.description}</p>}
+                    <p className={css.cardDate}>
+                      {new Date(item.completedAt).toLocaleDateString(intl.locale)}
+                    </p>
                   </div>
-                )}
-                <div className={css.cardContent}>
-                  <h4 className={css.cardTitle}>{item.title}</h4>
-                  {item.description && <p className={css.cardDescription}>{item.description}</p>}
-                  <p className={css.cardDate}>
-                    {new Date(item.completedAt).toLocaleDateString(intl.locale)}
-                  </p>
+                  <button
+                    type="button"
+                    className={css.removeButton}
+                    onClick={() => handleRemovePortfolioItem(item.id)}
+                    disabled={updateInProgress}
+                  >
+                    <IconClose rootClassName={css.removeIcon} />
+                  </button>
                 </div>
-                <button
-                  type="button"
-                  className={css.removeButton}
-                  onClick={() => handleRemovePortfolioItem(item.id)}
-                  disabled={updateInProgress}
-                >
-                  <IconClose rootClassName={css.removeIcon} />
-                </button>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}

@@ -122,7 +122,7 @@ const PortfolioModal = ({ isOpen, onClose, item, images }) => {
 };
 
 const SectionPortfolio = props => {
-  const { portfolioItems = [], userImages = [], intl } = props;
+  const { portfolioItems = [], user, intl } = props;
   const [modalState, setModalState] = useState({ isOpen: false, item: null, images: null });
 
   if (!portfolioItems || portfolioItems.length === 0) {
@@ -137,15 +137,24 @@ const SectionPortfolio = props => {
     setModalState({ isOpen: false, item: null, images: null });
   };
 
-  // Map image UUIDs to actual image entities
+  // Get all images from Redux state (included in user entity)
+  const allUserImages = user?.images || [];
+
+  // Map image UUIDs from portfolio items to actual image entities
   const getImagesForItem = item => {
     if (!item.images || !Array.isArray(item.images)) {
       return [];
     }
+    
     return item.images
       .map(imageId => {
-        const imageUuid = typeof imageId === 'string' ? imageId : imageId?.uuid;
-        return userImages.find(img => img?.id?.uuid === imageUuid);
+        const imageUuid = typeof imageId === 'string' ? imageId : imageId?.uuid || imageId?.id?.uuid;
+        // Find image in user's images array
+        const foundImage = allUserImages.find(img => {
+          const imgUuid = img?.id?.uuid || img?.uuid;
+          return imgUuid === imageUuid;
+        });
+        return foundImage;
       })
       .filter(Boolean);
   };
