@@ -23,6 +23,7 @@ const createGuestListing = require('./api/create-guest-listing');
 const listingStatus = require('./api/listing-status');
 const searchExecutors = require('./api/search-executors');
 const createMyExecutorProfile = require('./api/create-my-executor-profile');
+const addPortfolioItem = require('./api/add-portfolio-item');
 
 const createUserWithIdp = require('./api/auth/createUserWithIdp');
 const { sendEmailOtp, verifyEmailOtp, assertEmailVerified } = require('./api/email-otp');
@@ -80,6 +81,7 @@ router.post('/create-guest-listing', createGuestListing);
 router.get('/listing-status', listingStatus);
 router.get('/search-executors', searchExecutors);
 router.post('/create-my-executor-profile', createMyExecutorProfile);
+router.post('/add-portfolio-item', addPortfolioItem);
 
 // Email OTP verification endpoints
 router.post('/otp/email/send', sendEmailOtp);

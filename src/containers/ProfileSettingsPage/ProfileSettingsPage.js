@@ -21,6 +21,7 @@ import TopbarContainer from '../../containers/TopbarContainer/TopbarContainer';
 import FooterContainer from '../../containers/FooterContainer/FooterContainer';
 
 import ProfileSettingsForm from './ProfileSettingsForm/ProfileSettingsForm';
+import PortfolioSection from './PortfolioSection/PortfolioSection';
 
 import { updateProfile, uploadImage } from './ProfileSettingsPage.duck';
 import css from './ProfileSettingsPage.module.css';
@@ -197,6 +198,15 @@ export const ProfileSettingsPageComponent = props => {
             <ViewProfileLink userUUID={user?.id?.uuid} isUnauthorizedUser={isUnauthorizedUser} />
           </div>
           {profileSettingsForm}
+          
+          {/* Portfolio section - only for Customer (specialists) */}
+          {userType === 'customer' && (
+            <PortfolioSection
+              currentUser={currentUser}
+              onUpdateProfile={onUpdateProfile}
+              updateInProgress={updateInProgress}
+            />
+          )}
         </div>
       </LayoutSingleColumn>
     </Page>

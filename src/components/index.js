@@ -122,6 +122,7 @@ export { default as UserNav } from './UserNav/UserNav';
 // These components include other components //
 ///////////////////////////////////////////////
 
+export { default as AddPortfolioModal } from './AddPortfolioModal/AddPortfolioModal';
 export { default as Avatar, AvatarSmall, AvatarMedium, AvatarLarge } from './Avatar/Avatar';
 export { default as CustomExtendedDataField } from './CustomExtendedDataField/CustomExtendedDataField';
 export { default as OrderBreakdown } from './OrderBreakdown/OrderBreakdown';
