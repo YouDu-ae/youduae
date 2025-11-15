@@ -52,6 +52,7 @@ import ActivityFeed from './ActivityFeed/ActivityFeed';
 import DisputeModal from './DisputeModal/DisputeModal';
 import ReviewModal from './ReviewModal/ReviewModal';
 import TransactionPanel from './TransactionPanel/TransactionPanel';
+import AddPortfolioSection from './AddPortfolioSection/AddPortfolioSection';
 
 import {
   makeTransition,
@@ -62,6 +63,7 @@ import {
   fetchTransactionLineItems,
 } from './TransactionPage.duck';
 import { fetchCurrentUserNotifications } from '../../ducks/user.duck';
+import { uploadPortfolio } from '../ProfileSettingsPage/ProfileSettingsPage.duck';
 import css from './TransactionPage.module.css';
 import { getCurrentUserTypeRoles, hasPermissionToViewData } from '../../util/userHelpers.js';
 import { trackJobCompleted } from '../../analytics/plausibleEvents';
@@ -346,6 +348,11 @@ export const TransactionPageComponent = props => {
       });
   };
 
+  // Add portfolio after task completion (Customer only)
+  const onAddPortfolioHandler = portfolioData => {
+    return onAddPortfolio(portfolioData);
+  };
+
   // Open dispute modal
   const onOpenDisputeModal = () => {
     setDisputeModalOpen(true);
@@ -592,19 +599,30 @@ const confirmCompleteTask = async () => {
       hasViewingRights={hasViewingRights}
       showListingImage={showListingImage}
       activityFeed={
-        <ActivityFeed
-          messages={messages}
-          transaction={transaction}
-          stateData={stateData}
-          intl={intl}
-          currentUser={currentUser}
-          hasOlderMessages={
-            totalMessagePages > oldestMessagePageFetched && !fetchMessagesInProgress
-          }
-          onOpenReviewModal={onOpenReviewModal}
-          onShowOlderMessages={() => onShowMoreMessages(transaction.id, config)}
-          fetchMessagesInProgress={fetchMessagesInProgress}
-        />
+        <>
+          <ActivityFeed
+            messages={messages}
+            transaction={transaction}
+            stateData={stateData}
+            intl={intl}
+            currentUser={currentUser}
+            hasOlderMessages={
+              totalMessagePages > oldestMessagePageFetched && !fetchMessagesInProgress
+            }
+            onOpenReviewModal={onOpenReviewModal}
+            onShowOlderMessages={() => onShowMoreMessages(transaction.id, config)}
+            fetchMessagesInProgress={fetchMessagesInProgress}
+          />
+          {/* Portfolio upload section for Customer after completion */}
+          {transactionRole === CUSTOMER && stateData.processState === 'completed' && (
+            <AddPortfolioSection
+              onAddPortfolio={onAddPortfolioHandler}
+              inProgress={updateInProgress}
+              transactionId={transaction.id}
+              listingCategory={listing?.attributes?.publicData?.category}
+            />
+          )}
+        </>
       }
       isInquiryProcess={processName === INQUIRY_PROCESS_NAME}
       config={config}
@@ -772,6 +790,7 @@ const mapStateToProps = state => {
     lineItems, // for OrderPanel
     fetchLineItemsInProgress, // for OrderPanel
     fetchLineItemsError, // for OrderPanel
+    updateInProgress: state.ProfileSettingsPage?.updateInProgress || false,
   };
 };
 
@@ -792,6 +811,7 @@ const mapDispatchToProps = dispatch => {
     onFetchTimeSlots: (listingId, start, end, timeZone, options) =>
       dispatch(fetchTimeSlots(listingId, start, end, timeZone, options)), // for OrderPanel
     onUpdateNotificationCount: () => dispatch(fetchCurrentUserNotifications()),
+    onAddPortfolio: portfolioData => dispatch(uploadPortfolio(portfolioData)),
   };
 };
 

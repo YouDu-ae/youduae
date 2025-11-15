@@ -162,48 +162,49 @@ export const updateProfile = actionPayload => {
 };
 
 // Upload portfolio images and add item to publicData
-export const uploadPortfolio = ({ files, title, description }) => {
+export const uploadPortfolio = ({ files, title, description, category, transactionId, imageIds }) => {
   return (dispatch, getState, sdk) => {
     dispatch(updateProfileRequest());
 
-    // Upload all images first
-    const uploadPromises = files.map(file => {
-      return sdk.images.upload(
-        { image: file },
-        {
-          expand: true,
-          'fields.image': [
-            'variants.square-small',
-            'variants.square-small2x',
-            'variants.scaled-small',
-            'variants.scaled-medium',
-            'variants.scaled-large',
-            'variants.scaled-xlarge',
-          ],
-        }
-      );
-    });
+    // If imageIds are already provided, skip upload
+    const uploadPromise = imageIds
+      ? Promise.resolve(imageIds)
+      : Promise.all(
+          files.map(file =>
+            sdk.images.upload(
+              { image: file },
+              {
+                expand: true,
+                'fields.image': [
+                  'variants.square-small',
+                  'variants.square-small2x',
+                  'variants.scaled-small',
+                  'variants.scaled-medium',
+                  'variants.scaled-large',
+                  'variants.scaled-xlarge',
+                ],
+              }
+            )
+          )
+        ).then(responses => responses.map(resp => resp.data.data.id.uuid));
 
-    return Promise.all(uploadPromises)
-      .then(responses => {
-        // Extract image UUIDs from responses
-        const imageIds = responses.map(resp => resp.data.data.id.uuid);
-
+    return uploadPromise
+      .then(uploadedImageIds => {
         // Get current user data
         const state = getState();
         const currentUser = state.user.currentUser;
         const publicData = currentUser?.attributes?.profile?.publicData || {};
-        const portfolioItems = publicData.portfolioItems || [];
+        const portfolioItems = publicData.portfolioItems || {};
 
         // Create new portfolio item
         const newItem = {
           id: `portfolio-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-          images: imageIds,
+          images: uploadedImageIds,
           title: title || 'Completed work',
           description: description || '',
-          category: null,
+          category: category || null,
           completedAt: new Date().toISOString(),
-          transactionId: null,
+          transactionId: transactionId || null,
         };
 
         const updatedPortfolio = [...portfolioItems, newItem];
@@ -243,6 +244,7 @@ export const uploadPortfolio = ({ files, title, description }) => {
         
         console.log('✅ Portfolio uploaded successfully:', {
           portfolioCount: currentUser.attributes.profile.publicData.portfolioItems?.length,
+          fromTransaction: !!transactionId,
         });
       })
       .catch(e => {
