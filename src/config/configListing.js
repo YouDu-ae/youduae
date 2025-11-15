@@ -14,7 +14,7 @@ import {
 // === Локальные дефолты: один тип листинга, связанный с нашим процессом
 export const listingTypes = [
   {
-    listingType: 'inquiry-listing', // Changed from 'free-listing' to match Console
+    listingType: 'free-listing', // Existing listing type from Console
     label: 'Task (free messaging)',
     transactionType: {
       process: 'assignment-flow-v3',
