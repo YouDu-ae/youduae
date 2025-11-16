@@ -261,6 +261,12 @@ export const AuthenticationForms = props => {
       .trim();
     const displayNameValue = normalizedDisplayName || fallbackDisplayName;
 
+    // Преобразуем subcategories объект в JSON-строку для хранения
+    const restWithSerializedSubcategories = { ...rest };
+    if (rest.subcategories && typeof rest.subcategories === 'object') {
+      restWithSerializedSubcategories.subcategories = JSON.stringify(rest.subcategories);
+    }
+
     const params = {
       email,
       password,
@@ -269,15 +275,15 @@ export const AuthenticationForms = props => {
       ...(displayNameValue ? { displayName: displayNameValue } : {}),
       publicData: {
         userType,
-        ...pickUserFieldsData(rest, 'public', userType, userFields),
+        ...pickUserFieldsData(restWithSerializedSubcategories, 'public', userType, userFields),
       },
       privateData: {
-        ...pickUserFieldsData(rest, 'private', userType, userFields),
+        ...pickUserFieldsData(restWithSerializedSubcategories, 'private', userType, userFields),
       },
       protectedData: {
         ...(phoneNumber ? { phoneNumber } : {}),
-        ...pickUserFieldsData(rest, 'protected', userType, userFields),
-        ...getNonUserFieldParams(rest, userFields),
+        ...pickUserFieldsData(restWithSerializedSubcategories, 'protected', userType, userFields),
+        ...getNonUserFieldParams(restWithSerializedSubcategories, userFields),
       },
     };
 

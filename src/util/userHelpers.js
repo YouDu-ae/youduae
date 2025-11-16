@@ -82,7 +82,18 @@ export const initialValuesForUserFields = (data, targetScope, targetUserType, us
       !userTypeConfig?.limitToUserTypeIds || userTypeConfig?.userTypeIds?.includes(targetUserType);
 
     if (isKnownSchemaType && isTargetScope && isTargetUserType) {
-      const fieldValue = getFieldValue(data, key);
+      let fieldValue = getFieldValue(data, key);
+      
+      // Десериализуем subcategories из JSON-строки обратно в объект
+      if (key === 'subcategories' && typeof fieldValue === 'string') {
+        try {
+          fieldValue = JSON.parse(fieldValue);
+        } catch (e) {
+          console.warn('Failed to parse subcategories JSON:', e);
+          fieldValue = {};
+        }
+      }
+      
       return { ...fields, [namespacedKey]: fieldValue };
     }
     return fields;

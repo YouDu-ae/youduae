@@ -95,7 +95,18 @@ const CategoryExecutorsPage = () => {
   // Фильтруем исполнителей по выбранной подкатегории
   const filteredExecutors = selectedSubcategory
     ? executors.filter(executor => {
-        const subcategories = executor.attributes?.profile?.publicData?.subcategories;
+        let subcategories = executor.attributes?.profile?.publicData?.subcategories;
+        
+        // Десериализуем subcategories, если это JSON-строка
+        if (typeof subcategories === 'string') {
+          try {
+            subcategories = JSON.parse(subcategories);
+          } catch (e) {
+            console.warn('Failed to parse subcategories:', e);
+            return false;
+          }
+        }
+        
         if (!subcategories || !subcategories[categoryId]) {
           return false;
         }

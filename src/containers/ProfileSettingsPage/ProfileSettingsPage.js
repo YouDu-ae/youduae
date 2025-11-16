@@ -96,19 +96,25 @@ export const ProfileSettingsPageComponent = props => {
     // Ensure that the optional bio is a string
     const bio = rawBio || '';
 
+    // Преобразуем subcategories объект в JSON-строку для хранения
+    const restWithSerializedSubcategories = { ...rest };
+    if (rest.subcategories && typeof rest.subcategories === 'object') {
+      restWithSerializedSubcategories.subcategories = JSON.stringify(rest.subcategories);
+    }
+
     const profile = {
       firstName: firstName.trim(),
       lastName: lastName.trim(),
       ...displayNameMaybe,
       bio,
       publicData: {
-        ...pickUserFieldsData(rest, 'public', userType, userFields),
+        ...pickUserFieldsData(restWithSerializedSubcategories, 'public', userType, userFields),
       },
       protectedData: {
-        ...pickUserFieldsData(rest, 'protected', userType, userFields),
+        ...pickUserFieldsData(restWithSerializedSubcategories, 'protected', userType, userFields),
       },
       privateData: {
-        ...pickUserFieldsData(rest, 'private', userType, userFields),
+        ...pickUserFieldsData(restWithSerializedSubcategories, 'private', userType, userFields),
       },
     };
     const uploadedImage = props.image;

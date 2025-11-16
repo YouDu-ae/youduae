@@ -76,11 +76,11 @@ export const userFields = [
       userTypeIds: ['customer'], // ⚠️ Исполнитель = customer (НЕТ прав создавать листинги в Console)
     },
   },
-  // ========== ПОДКАТЕГОРИИ (subcategories) - JSON объект ==========
+  // ========== ПОДКАТЕГОРИИ (subcategories) - хранится как текст (JSON string) ==========
   {
     key: 'subcategories',
     scope: 'public',
-    schemaType: 'json',
+    schemaType: 'text',
     showConfig: {
       label: 'ServiceCategory.subcategoriesTitle',
       displayInProfile: false, // Не отображаем напрямую, показываем через категории
