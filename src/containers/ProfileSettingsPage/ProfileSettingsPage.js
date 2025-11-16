@@ -149,6 +149,17 @@ export const ProfileSettingsPageComponent = props => {
   // ProfileSettingsForm decides if it's allowed to show the input field.
   const displayNameMaybe = isDisplayNameIncluded && displayName ? { displayName } : {};
 
+  // Десериализуем subcategories для формы
+  let subcategoriesForForm = publicData?.subcategories;
+  if (typeof subcategoriesForForm === 'string') {
+    try {
+      subcategoriesForForm = JSON.parse(subcategoriesForForm);
+    } catch (e) {
+      console.warn('Failed to parse subcategories in ProfileSettings:', e);
+      subcategoriesForForm = {};
+    }
+  }
+
   const profileSettingsForm = user.id ? (
     <ProfileSettingsForm
       className={css.form}
@@ -162,6 +173,9 @@ export const ProfileSettingsPageComponent = props => {
         ...initialValuesForUserFields(publicData, 'public', userType, userFields),
         ...initialValuesForUserFields(protectedData, 'protected', userType, userFields),
         ...initialValuesForUserFields(privateData, 'private', userType, userFields),
+        // Добавляем serviceCategories и subcategories БЕЗ префикса для ServiceCategorySelector
+        serviceCategories: publicData?.serviceCategories || [],
+        subcategories: subcategoriesForForm || {},
       }}
       profileImage={profileImage}
       onImageUpload={e => onImageUploadHandler(e, onImageUpload)}
