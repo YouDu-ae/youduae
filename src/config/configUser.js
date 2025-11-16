@@ -44,17 +44,17 @@ export const userFields = [
     scope: 'public',
     schemaType: 'multi-enum',
     enumOptions: [
-      { option: 'construction', label: 'ServiceCategory.construction' },
-      { option: 'beauty', label: 'ServiceCategory.beauty' },
-      { option: 'tutoring', label: 'ServiceCategory.tutoring' },
-      { option: 'cleaning', label: 'ServiceCategory.cleaning' },
-      { option: 'legal', label: 'ServiceCategory.legal' },
-      { option: 'appliances', label: 'ServiceCategory.appliances' },
-      { option: 'media', label: 'ServiceCategory.media' },
-      { option: 'courier', label: 'ServiceCategory.courier' },
-      { option: 'moving', label: 'ServiceCategory.moving' },
-      { option: 'tech-repair', label: 'ServiceCategory.techRepair' },
-      { option: 'auto', label: 'ServiceCategory.auto' },
+      { option: 'repairs_main', label: 'ServiceCategory.construction' },
+      { option: 'Beauty_health', label: 'ServiceCategory.beauty' },
+      { option: 'training', label: 'ServiceCategory.tutors' },
+      { option: 'Help_home', label: 'ServiceCategory.cleaning' },
+      { option: 'Legal_assistance', label: 'ServiceCategory.legal' },
+      { option: 'Installation_mashines', label: 'ServiceCategory.appliances' },
+      { option: 'Photo', label: 'ServiceCategory.photo' },
+      { option: 'Delivery', label: 'ServiceCategory.courier' },
+      { option: 'Cargo_transportation', label: 'ServiceCategory.transport' },
+      { option: 'Repair_digital', label: 'ServiceCategory.electronics' },
+      { option: 'Automotive_services', label: 'ServiceCategory.auto' },
       { option: 'Interior_designer', label: 'ServiceCategory.interior' },
       { option: 'Tourist_services', label: 'ServiceCategory.tourist' },
       { option: 'Web_design', label: 'ServiceCategory.web' },
@@ -74,6 +74,25 @@ export const userFields = [
     userTypeConfig: {
       limitToUserTypeIds: true,
       userTypeIds: ['customer'], // ⚠️ Исполнитель = customer (НЕТ прав создавать листинги в Console)
+    },
+  },
+  // ========== ПОДКАТЕГОРИИ (subcategories) - JSON объект ==========
+  {
+    key: 'subcategories',
+    scope: 'public',
+    schemaType: 'json',
+    showConfig: {
+      label: 'ServiceCategory.subcategoriesTitle',
+      displayInProfile: false, // Не отображаем напрямую, показываем через категории
+    },
+    saveConfig: {
+      label: 'ServiceCategory.subcategories',
+      displayInSignUp: false, // Скрыто, управляется через ServiceCategorySelector
+      isRequired: false,
+    },
+    userTypeConfig: {
+      limitToUserTypeIds: true,
+      userTypeIds: ['customer'],
     },
   },
   {
