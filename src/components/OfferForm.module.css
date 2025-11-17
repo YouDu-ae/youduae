@@ -1,0 +1,203 @@
+/* OfferForm - Красивая форма отклика для мобильной и десктоп версии */
+
+.root {
+  margin-top: 24px;
+  padding: 20px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.title {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--colorBlack);
+  margin: 0 0 16px 0;
+  letter-spacing: -0.02em;
+}
+
+.inputGroup {
+  margin-bottom: 20px;
+}
+
+.label {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 8px;
+}
+
+.required {
+  color: var(--failColor);
+  margin-left: 4px;
+}
+
+.priceInputContainer {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.currencySymbol {
+  position: absolute;
+  left: 16px;
+  font-size: 18px;
+  font-weight: 600;
+  color: #666;
+  pointer-events: none;
+}
+
+.priceInput {
+  width: 100%;
+  padding: 14px 16px 14px 48px;
+  font-size: 18px;
+  font-weight: 600;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  outline: none;
+}
+
+.priceInput:focus {
+  border-color: #ffc934;
+  box-shadow: 0 0 0 3px rgba(255, 201, 52, 0.1);
+}
+
+.priceInput::placeholder {
+  color: #999;
+  font-weight: 400;
+}
+
+.commentTextarea {
+  width: 100%;
+  min-height: 100px;
+  padding: 14px 16px;
+  font-size: 15px;
+  line-height: 1.5;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  resize: vertical;
+  transition: all 0.2s ease;
+  outline: none;
+  font-family: inherit;
+}
+
+.commentTextarea:focus {
+  border-color: #ffc934;
+  box-shadow: 0 0 0 3px rgba(255, 201, 52, 0.1);
+}
+
+.commentTextarea::placeholder {
+  color: #999;
+}
+
+.submitButton {
+  width: 100%;
+  padding: 16px 24px;
+  font-size: 16px;
+  font-weight: 700;
+  color: white;
+  background: #ffc934;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(255, 201, 52, 0.3);
+}
+
+.submitButton:hover:not(:disabled) {
+  background: #ffb700;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 201, 52, 0.4);
+}
+
+.submitButton:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.submitButton:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.successMessage {
+  padding: 16px;
+  background: #f0fdf4;
+  border: 2px solid #22c55e;
+  border-radius: 8px;
+  color: #166534;
+  font-weight: 600;
+  text-align: center;
+}
+
+.errorMessage {
+  padding: 16px;
+  background: #fef2f2;
+  border: 2px solid #ef4444;
+  border-radius: 8px;
+  color: #991b1b;
+  font-weight: 600;
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+.blockMessage {
+  padding: 16px;
+  background: #FFF3CD;
+  border: 2px solid #ffc934;
+  border-radius: 8px;
+}
+
+.blockMessageTitle {
+  font-weight: 700;
+  color: #856404;
+  margin: 0 0 8px 0;
+}
+
+.blockMessageText {
+  margin: 0;
+  color: #856404;
+  line-height: 1.5;
+}
+
+.loadingSpinner {
+  text-align: center;
+  padding: 20px;
+  color: #666;
+}
+
+/* Адаптив для мобильных */
+@media (max-width: 767px) {
+  .root {
+    padding: 16px;
+    border-radius: 8px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+  }
+
+  .title {
+    font-size: 18px;
+  }
+
+  .priceInput {
+    font-size: 16px;
+    padding: 12px 14px 12px 44px;
+  }
+
+  .currencySymbol {
+    left: 14px;
+    font-size: 16px;
+  }
+
+  .commentTextarea {
+    min-height: 80px;
+    font-size: 14px;
+  }
+
+  .submitButton {
+    padding: 14px 20px;
+    font-size: 15px;
+  }
+}
+

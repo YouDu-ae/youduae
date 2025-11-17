@@ -451,6 +451,15 @@ const isOnlyCustomer = !userRoles.customer && userRoles.provider; // Испол�
                 </H3>
               )}
             </div>
+            
+            {/* Цена для мобильной версии */}
+            {price && (
+              <div className={css.mobilePriceContainer}>
+                <div className={css.mobilePriceLabel}>Цена:</div>
+                <div className={css.mobilePriceValue}>{formattedPrice}</div>
+              </div>
+            )}
+            
             <SectionTextMaybe text={description} showAsIngress />
 
             <CustomListingFields

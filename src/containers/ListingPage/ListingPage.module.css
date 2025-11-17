@@ -415,7 +415,7 @@ margin-bottom: -5px;
 }
 
 .productOrderPanel {
-  display: block; /* ✅ Показываем на мобильных для отображения цены */
+  display: none;
 
   @media (min-width: 1023px) {
     display: block;
@@ -910,3 +910,36 @@ padding: 0 20px;
 
 
 
+
+/* ================================================
+   Mobile Price Display
+   ================================================ */
+
+.mobilePriceContainer {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  background: linear-gradient(135deg, #fff8e6 0%, #fffbf0 100%);
+  border-left: 4px solid #ffc934;
+  border-radius: 8px;
+  margin: 16px 0 24px 0;
+
+  @media (min-width: 1023px) {
+    display: none; /* Скрываем на десктопе - там есть OrderPanel */
+  }
+}
+
+.mobilePriceLabel {
+  font-size: 14px;
+  font-weight: 500;
+  color: #666;
+  letter-spacing: 0.02em;
+}
+
+.mobilePriceValue {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--colorBlack);
+  letter-spacing: -0.02em;
+}

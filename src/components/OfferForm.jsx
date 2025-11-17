@@ -4,6 +4,7 @@ import PropTypes from 'prop-types';
 import { initiatePrivileged, checkMyOffer } from '../util/api';
 import { NamedLink } from '../components';
 import { trackOfferSubmitted } from '../analytics/plausibleEvents';
+import css from './OfferForm.module.css';
 
 /**
  * Форма отклика на листинг.
@@ -153,13 +154,13 @@ export default function OfferForm({
     const isAuthenticated = !!currentUser;
     
     return (
-      <div style={{ padding: 16, backgroundColor: '#FFF3CD', border: '1px solid #FFEAA7', borderRadius: 4 }}>
-        <strong style={{ color: '#856404' }}>
+      <div className={css.blockMessage}>
+        <div className={css.blockMessageTitle}>
           {isAuthenticated 
             ? 'Вы не можете откликнуться на это задание' 
             : 'Авторизуйтесь для отклика на задание'}
-        </strong>
-        <p style={{ marginTop: 8, marginBottom: 0, color: '#856404' }}>
+        </div>
+        <p className={css.blockMessageText}>
           {isAuthenticated 
             ? 'Вы являетесь заказчиком (Provider). Только исполнители (Customer) могут откликаться на задания. Вы можете создавать свои задания в разделе "Мои задания".'
             : 'Вы не авторизованы и не можете откликнуться на задание. Только авторизованные пользователи (Специалисты) могут откликаться и предложить свою цену или принять текущую.'}
@@ -170,7 +171,7 @@ export default function OfferForm({
 
   // Показываем индикатор загрузки при проверке
   if (checking) {
-    return <div>Проверка...</div>;
+    return <div className={css.loadingSpinner}>Проверка...</div>;
   }
 
   // Если пользователь уже отправил отклик, показываем сообщение
@@ -178,9 +179,9 @@ export default function OfferForm({
     // Отклик отклонён
     if (offerStatus === 'declined') {
       return (
-        <div style={{ padding: 16, backgroundColor: '#fee2e2', border: '1px solid #ef4444', borderRadius: 4 }}>
-          <strong style={{ color: '#991b1b' }}>Отклик отклонён</strong>
-          <p style={{ marginTop: 8, marginBottom: 0, color: '#7f1d1d' }}>
+        <div className={css.errorMessage}>
+          <strong>Отклик отклонён</strong>
+          <p style={{ marginTop: 8, marginBottom: 0 }}>
             К сожалению, заказчик отклонил ваш отклик на это задание. Вы можете найти другие задания в разделе "Найти задания".
           </p>
         </div>
@@ -190,9 +191,9 @@ export default function OfferForm({
     // Отклик принят
     if (offerStatus === 'accepted') {
       return (
-        <div style={{ padding: 16, backgroundColor: '#d1fae5', border: '1px solid #10b981', borderRadius: 4 }}>
-          <strong style={{ color: '#065f46' }}>Ваш отклик принят! 🎉</strong>
-          <p style={{ marginTop: 8, marginBottom: 8, color: '#064e3b' }}>
+        <div className={css.successMessage}>
+          <strong>Ваш отклик принят! 🎉</strong>
+          <p style={{ marginTop: 8, marginBottom: 8 }}>
             Поздравляем! Заказчик выбрал вас для выполнения этого задания.
           </p>
           {transactionId && (
@@ -205,8 +206,8 @@ export default function OfferForm({
                 backgroundColor: '#10b981',
                 color: 'white',
                 textDecoration: 'none',
-                borderRadius: 4,
-                fontWeight: 500,
+                borderRadius: 8,
+                fontWeight: 600,
                 cursor: 'pointer',
               }}
             >
@@ -259,38 +260,55 @@ export default function OfferForm({
   }
 
   return (
-    <form onSubmit={onSubmit}>
-      <label style={{ display: 'block', marginBottom: 8 }}>
-        Цена (AED)
-        <input
-          type="number"
-          min="1"
-          step="1"
-          value={price}
-          onChange={e => setPrice(e.target.value)}
-          style={{ width: '100%', padding: 8, marginTop: 4 }}
-          placeholder="Например, 250"
-        />
-      </label>
+    <div className={css.root}>
+      <h3 className={css.title}>Отправить отклик</h3>
+      
+      <form onSubmit={onSubmit}>
+        <div className={css.inputGroup}>
+          <label className={css.label}>
+            Ваша цена (AED)
+            <span className={css.required}>*</span>
+          </label>
+          <div className={css.priceInputContainer}>
+            <span className={css.currencySymbol}>د.إ</span>
+            <input
+              type="number"
+              min="1"
+              step="1"
+              value={price}
+              onChange={e => setPrice(e.target.value)}
+              className={css.priceInput}
+              placeholder="Например, 250"
+              required
+            />
+          </div>
+        </div>
 
-      <label style={{ display: 'block', marginBottom: 8 }}>
-        Комментарий
-        <textarea
-          value={comment}
-          onChange={e => setComment(e.target.value)}
-          style={{ width: '100%', padding: 8, marginTop: 4 }}
-          rows={4}
-          placeholder="Кратко: сроки, условия, что входит"
-        />
-      </label>
+        <div className={css.inputGroup}>
+          <label className={css.label}>
+            Комментарий
+          </label>
+          <textarea
+            value={comment}
+            onChange={e => setComment(e.target.value)}
+            className={css.commentTextarea}
+            rows={4}
+            placeholder="Кратко опишите: сроки выполнения, условия, что входит в работу..."
+          />
+        </div>
 
-      {err && <div style={{ color: 'crimson', marginBottom: 8 }}>{err}</div>}
-      {ok && <div style={{ color: 'green', marginBottom: 8 }}>Отклик отправлен!</div>}
+        {err && <div className={css.errorMessage}>{err}</div>}
+        {ok && <div className={css.successMessage}>Отклик отправлен!</div>}
 
-      <button type="submit" disabled={submitting} style={{ padding: '10px 16px' }}>
-        {submitting ? 'Отправка…' : 'Отправить отклик'}
-      </button>
-    </form>
+        <button 
+          type="submit" 
+          disabled={submitting} 
+          className={css.submitButton}
+        >
+          {submitting ? 'Отправка…' : 'Отправить отклик'}
+        </button>
+      </form>
+    </div>
   );
 }
 
