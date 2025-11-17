@@ -100,21 +100,25 @@ export const ProfileSettingsPageComponent = props => {
     console.log('🔍 [ProfileSettings SAVE] rest.subcategories:', rest.subcategories);
     console.log('🔍 [ProfileSettings SAVE] Type:', typeof rest.subcategories);
 
-    // Преобразуем subcategories объект в JSON-строку для хранения
-    const restWithSerializedSubcategories = { ...rest };
-    if (rest.subcategories && typeof rest.subcategories === 'object') {
-      const subcategoriesJSON = JSON.stringify(rest.subcategories);
-      console.log('🔍 [ProfileSettings SAVE] Serialized:', subcategoriesJSON);
+    // Сначала получаем данные через pickUserFieldsData (БЕЗ сериализации)
+    const publicDataFields = pickUserFieldsData(rest, 'public', userType, userFields);
+    const protectedDataFields = pickUserFieldsData(rest, 'protected', userType, userFields);
+    const privateDataFields = pickUserFieldsData(rest, 'private', userType, userFields);
+
+    console.log('🔍 [ProfileSettings SAVE] publicDataFields (before serialization):', publicDataFields);
+
+    // ЗАТЕМ сериализуем subcategories в JSON-строку (если это объект)
+    if (publicDataFields.subcategories && typeof publicDataFields.subcategories === 'object') {
+      const subcategoriesJSON = JSON.stringify(publicDataFields.subcategories);
+      console.log('🔍 [ProfileSettings SAVE] Serialized subcategories:', subcategoriesJSON);
       // Проверяем что это не пустой объект "{}"
-      restWithSerializedSubcategories.subcategories = subcategoriesJSON !== '{}' ? subcategoriesJSON : null;
-    } else if (rest.subcategories === '' || rest.subcategories === undefined) {
-      // Если subcategories пустая строка или undefined - сохраняем null
-      console.warn('⚠️ [ProfileSettings SAVE] subcategories is empty/undefined, saving null');
-      restWithSerializedSubcategories.subcategories = null;
+      publicDataFields.subcategories = subcategoriesJSON !== '{}' ? subcategoriesJSON : null;
+    } else if (publicDataFields.subcategories === '' || publicDataFields.subcategories === undefined) {
+      console.warn('⚠️ [ProfileSettings SAVE] subcategories is empty, saving null');
+      publicDataFields.subcategories = null;
     }
 
-    const publicDataFields = pickUserFieldsData(restWithSerializedSubcategories, 'public', userType, userFields);
-    console.log('🔍 [ProfileSettings SAVE] publicDataFields:', publicDataFields);
+    console.log('🚀 [ProfileSettings SAVE] Final publicData:', publicDataFields);
 
     const profile = {
       firstName: firstName.trim(),
@@ -125,10 +129,10 @@ export const ProfileSettingsPageComponent = props => {
         ...publicDataFields,
       },
       protectedData: {
-        ...pickUserFieldsData(restWithSerializedSubcategories, 'protected', userType, userFields),
+        ...protectedDataFields,
       },
       privateData: {
-        ...pickUserFieldsData(restWithSerializedSubcategories, 'private', userType, userFields),
+        ...privateDataFields,
       },
     };
     const uploadedImage = props.image;
