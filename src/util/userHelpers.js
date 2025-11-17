@@ -48,14 +48,18 @@ export const pickUserFieldsData = (data, targetScope, targetUserType, userFieldC
       !userTypeConfig.limitToUserTypeIds || userTypeConfig.userTypeIds.includes(targetUserType);
 
     if (isKnownSchemaType && isTargetScope && isTargetUserType) {
-      // Пробуем сначала с namespace (pub_serviceCategories), потом без (serviceCategories)
-      let fieldValue = getFieldValue(data, namespacedKey);
+      // ВАЖНО: Сначала проверяем значение БЕЗ namespace (свежее из формы),
+      // и только потом с namespace (старое из initialValues)
+      let fieldValue = getFieldValue(data, key);
       if (fieldValue == null && namespacedKey !== key) {
-        fieldValue = getFieldValue(data, key);
+        fieldValue = getFieldValue(data, namespacedKey);
       }
       
       if (key === 'subcategories') {
-        console.log(`🔍 [pickUserFieldsData] ${key}:`, fieldValue);
+        console.log(`🔍 [pickUserFieldsData] Checking key: "${key}"`);
+        console.log(`🔍 [pickUserFieldsData] Value from key "${key}":`, getFieldValue(data, key));
+        console.log(`🔍 [pickUserFieldsData] Value from namespacedKey "${namespacedKey}":`, getFieldValue(data, namespacedKey));
+        console.log(`🔍 [pickUserFieldsData] Final fieldValue:`, fieldValue);
         console.log(`🔍 [pickUserFieldsData] Type:`, typeof fieldValue);
       }
       
