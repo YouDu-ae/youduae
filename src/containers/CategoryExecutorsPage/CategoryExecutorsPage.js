@@ -95,19 +95,20 @@ const CategoryExecutorsPage = () => {
   // Фильтруем исполнителей по выбранной подкатегории
   const filteredExecutors = selectedSubcategory
     ? executors.filter(executor => {
-        let subcategories = executor.attributes?.profile?.publicData?.subcategories;
+        // ВАЖНО: API возвращает структуру { publicData: {...} }, а не { attributes: { profile: { publicData: {...} } } }
+        let subcategories = executor.publicData?.subcategories;
         
-        console.log('🔍 [CategoryFilter] Executor:', executor.attributes?.profile?.displayName);
+        console.log('🔍 [CategoryFilter] Executor:', executor.displayName);
         console.log('🔍 [CategoryFilter] Raw subcategories:', subcategories);
         console.log('🔍 [CategoryFilter] Type:', typeof subcategories);
         
         // Десериализуем subcategories, если это JSON-строка
-        if (typeof subcategories === 'string') {
+        if (typeof subcategories === 'string' && subcategories.trim() !== '') {
           try {
             subcategories = JSON.parse(subcategories);
             console.log('✅ [CategoryFilter] Parsed subcategories:', subcategories);
           } catch (e) {
-            console.warn('Failed to parse subcategories:', e);
+            console.warn('⚠️ Failed to parse subcategories:', e);
             return false;
           }
         }
@@ -116,12 +117,12 @@ const CategoryExecutorsPage = () => {
         console.log('🔍 [CategoryFilter] subcategories[categoryId]:', subcategories?.[categoryId]);
         
         if (!subcategories || !subcategories[categoryId]) {
-          console.warn('⚠️ [CategoryFilter] No subcategories for this category');
+          console.warn(`⚠️ [CategoryFilter] ${executor.displayName} has no subcategories for this category`);
           return false;
         }
         
         const hasSubcategory = subcategories[categoryId].includes(selectedSubcategory);
-        console.log(`🔍 [CategoryFilter] Has ${selectedSubcategory}?`, hasSubcategory);
+        console.log(`🔍 [CategoryFilter] ${executor.displayName} has ${selectedSubcategory}?`, hasSubcategory);
         
         return hasSubcategory;
       })
