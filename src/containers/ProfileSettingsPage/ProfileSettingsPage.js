@@ -96,11 +96,25 @@ export const ProfileSettingsPageComponent = props => {
     // Ensure that the optional bio is a string
     const bio = rawBio || '';
 
+    // DEBUG
+    console.log('🔍 [ProfileSettings SAVE] rest.subcategories:', rest.subcategories);
+    console.log('🔍 [ProfileSettings SAVE] Type:', typeof rest.subcategories);
+
     // Преобразуем subcategories объект в JSON-строку для хранения
     const restWithSerializedSubcategories = { ...rest };
     if (rest.subcategories && typeof rest.subcategories === 'object') {
-      restWithSerializedSubcategories.subcategories = JSON.stringify(rest.subcategories);
+      const subcategoriesJSON = JSON.stringify(rest.subcategories);
+      console.log('🔍 [ProfileSettings SAVE] Serialized:', subcategoriesJSON);
+      // Проверяем что это не пустой объект "{}"
+      restWithSerializedSubcategories.subcategories = subcategoriesJSON !== '{}' ? subcategoriesJSON : null;
+    } else if (rest.subcategories === '' || rest.subcategories === undefined) {
+      // Если subcategories пустая строка или undefined - сохраняем null
+      console.warn('⚠️ [ProfileSettings SAVE] subcategories is empty/undefined, saving null');
+      restWithSerializedSubcategories.subcategories = null;
     }
+
+    const publicDataFields = pickUserFieldsData(restWithSerializedSubcategories, 'public', userType, userFields);
+    console.log('🔍 [ProfileSettings SAVE] publicDataFields:', publicDataFields);
 
     const profile = {
       firstName: firstName.trim(),
@@ -108,7 +122,7 @@ export const ProfileSettingsPageComponent = props => {
       ...displayNameMaybe,
       bio,
       publicData: {
-        ...pickUserFieldsData(restWithSerializedSubcategories, 'public', userType, userFields),
+        ...publicDataFields,
       },
       protectedData: {
         ...pickUserFieldsData(restWithSerializedSubcategories, 'protected', userType, userFields),

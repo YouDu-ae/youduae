@@ -27,7 +27,7 @@ const SectionServiceCategories = props => {
   console.log('🔍 [SectionServiceCategories] subcategories type:', typeof subcategories);
 
   // Десериализуем subcategories, если это строка
-  if (typeof subcategories === 'string') {
+  if (typeof subcategories === 'string' && subcategories.trim() !== '') {
     try {
       subcategories = JSON.parse(subcategories);
       console.log('✅ [SectionServiceCategories] Parsed subcategories:', subcategories);
@@ -35,6 +35,9 @@ const SectionServiceCategories = props => {
       console.warn('Failed to parse subcategories in profile:', e);
       subcategories = {};
     }
+  } else if (subcategories === '' || subcategories === null || subcategories === undefined) {
+    console.log('⚠️ [SectionServiceCategories] subcategories is empty/null');
+    subcategories = {};
   }
 
   if (!Array.isArray(serviceCategories) || serviceCategories.length === 0) {
