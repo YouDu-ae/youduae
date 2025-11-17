@@ -52,9 +52,11 @@ export const pickUserFieldsData = (data, targetScope, targetUserType, userFieldC
       let fieldValue = getFieldValue(data, namespacedKey);
       if (fieldValue == null && namespacedKey !== key) {
         fieldValue = getFieldValue(data, key);
-        if (key === 'serviceCategories' || key === 'subcategories') {
-          console.log(`✅ [pickUserFieldsData] Found ${key} without namespace prefix:`, fieldValue);
-        }
+      }
+      
+      if (key === 'subcategories') {
+        console.log(`🔍 [pickUserFieldsData] ${key}:`, fieldValue);
+        console.log(`🔍 [pickUserFieldsData] Type:`, typeof fieldValue);
       }
       
       return { ...fields, [key]: fieldValue };
