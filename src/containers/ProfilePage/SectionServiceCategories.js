@@ -20,10 +20,17 @@ const SectionServiceCategories = props => {
   const serviceCategories = publicData.serviceCategories || [];
   let subcategories = publicData.subcategories;
 
+  // DEBUG
+  console.log('🔍 [SectionServiceCategories] publicData:', publicData);
+  console.log('🔍 [SectionServiceCategories] serviceCategories:', serviceCategories);
+  console.log('🔍 [SectionServiceCategories] subcategories (raw):', subcategories);
+  console.log('🔍 [SectionServiceCategories] subcategories type:', typeof subcategories);
+
   // Десериализуем subcategories, если это строка
   if (typeof subcategories === 'string') {
     try {
       subcategories = JSON.parse(subcategories);
+      console.log('✅ [SectionServiceCategories] Parsed subcategories:', subcategories);
     } catch (e) {
       console.warn('Failed to parse subcategories in profile:', e);
       subcategories = {};

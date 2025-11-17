@@ -97,20 +97,33 @@ const CategoryExecutorsPage = () => {
     ? executors.filter(executor => {
         let subcategories = executor.attributes?.profile?.publicData?.subcategories;
         
+        console.log('🔍 [CategoryFilter] Executor:', executor.attributes?.profile?.displayName);
+        console.log('🔍 [CategoryFilter] Raw subcategories:', subcategories);
+        console.log('🔍 [CategoryFilter] Type:', typeof subcategories);
+        
         // Десериализуем subcategories, если это JSON-строка
         if (typeof subcategories === 'string') {
           try {
             subcategories = JSON.parse(subcategories);
+            console.log('✅ [CategoryFilter] Parsed subcategories:', subcategories);
           } catch (e) {
             console.warn('Failed to parse subcategories:', e);
             return false;
           }
         }
         
+        console.log('🔍 [CategoryFilter] Looking for categoryId:', categoryId);
+        console.log('🔍 [CategoryFilter] subcategories[categoryId]:', subcategories?.[categoryId]);
+        
         if (!subcategories || !subcategories[categoryId]) {
+          console.warn('⚠️ [CategoryFilter] No subcategories for this category');
           return false;
         }
-        return subcategories[categoryId].includes(selectedSubcategory);
+        
+        const hasSubcategory = subcategories[categoryId].includes(selectedSubcategory);
+        console.log(`🔍 [CategoryFilter] Has ${selectedSubcategory}?`, hasSubcategory);
+        
+        return hasSubcategory;
       })
     : executors;
 
