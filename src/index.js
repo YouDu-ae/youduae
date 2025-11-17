@@ -136,6 +136,7 @@ if (typeof window !== 'undefined') {
     clientId: appSettings.sdk.clientId,
     secure: appSettings.usingSSL,
     typeHandlers: apiUtils.typeHandlers,
+    tokenStore: sharetribeSdk.tokenStore.browserCookieStore(), // ✅ КРИТИЧЕСКИЙ ФИКС: добавляем tokenStore для хранения токена авторизации
     ...baseUrl,
     ...assetCdnBaseUrl,
   });
