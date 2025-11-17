@@ -87,6 +87,9 @@ export const ProfileSettingsPageComponent = props => {
   const { userFields, userTypes = [] } = config.user;
 
   const handleSubmit = (values, userType) => {
+    // DEBUG: Проверяем ВСЕ значения формы
+    console.log('🔍 [ProfileSettings SAVE] ALL values:', values);
+    
     const { firstName, lastName, displayName, bio: rawBio, ...rest } = values;
 
     const displayNameMaybe = displayName
@@ -97,7 +100,9 @@ export const ProfileSettingsPageComponent = props => {
     const bio = rawBio || '';
 
     // DEBUG
+    console.log('🔍 [ProfileSettings SAVE] rest (after destructuring):', rest);
     console.log('🔍 [ProfileSettings SAVE] rest.subcategories:', rest.subcategories);
+    console.log('🔍 [ProfileSettings SAVE] rest.pub_subcategories:', rest.pub_subcategories);
     console.log('🔍 [ProfileSettings SAVE] Type:', typeof rest.subcategories);
 
     // Сначала получаем данные через pickUserFieldsData (БЕЗ сериализации)
