@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useLocation } from 'react-router-dom';
+import { useParams, useLocation, useHistory } from 'react-router-dom';
 import { FormattedMessage } from '../../util/reactIntl';
 import { Page, LayoutSingleColumn, NamedLink, Avatar, VerificationBadge, SubcategoryFilter } from '../../components';
 import TopbarContainer from '../TopbarContainer/TopbarContainer';
@@ -17,6 +17,7 @@ import css from './CategoryExecutorsPage.module.css';
 const CategoryExecutorsPage = () => {
   const { categoryId } = useParams();
   const location = useLocation();
+  const history = useHistory();
   const [executors, setExecutors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -161,9 +162,13 @@ const CategoryExecutorsPage = () => {
         <div className={css.root}>
           {/* Заголовок с навигацией */}
           <div className={css.header}>
-            <NamedLink name="LandingPage" className={css.backLink}>
+            <button 
+              onClick={() => history.goBack()} 
+              className={css.backLink}
+              type="button"
+            >
               ← Назад к категориям
-            </NamedLink>
+            </button>
             <h1 className={css.title}>
               Исполнители: {categoryLabel}
               {selectedSubcategory && ` / ${getSubcategoryLabel(categoryId, selectedSubcategory, 'ru')}`}

@@ -16,6 +16,13 @@
   text-decoration: none;
   font-size: 14px;
   transition: color 0.2s ease;
+  
+  /* Убираем стандартные стили кнопки */
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-family: inherit;
 }
 
 .backLink:hover {
