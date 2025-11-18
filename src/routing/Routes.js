@@ -48,13 +48,30 @@ const callLoadData = props => {
   }
 };
 
-const setPageScrollPosition = (location, delayed) => {
+// Хранилище для позиций скролла
+const scrollPositions = {};
+
+const setPageScrollPosition = (location, delayed, action) => {
+  const locationKey = location.pathname + location.search;
+  
   if (!location.hash) {
-    // No hash, scroll to top
-    window.scroll({
-      top: 0,
-      left: 0,
-    });
+    // Проверяем, это возврат назад (POP) или обычная навигация (PUSH)
+    if (action === 'POP' && scrollPositions[locationKey] !== undefined) {
+      // Восстанавливаем сохраненную позицию при возврате назад
+      window.setTimeout(() => {
+        window.scroll({
+          top: scrollPositions[locationKey],
+          left: 0,
+          behavior: 'auto', // Без анимации для мгновенного восстановления
+        });
+      }, 0);
+    } else {
+      // Обычная навигация - скроллим наверх
+      window.scroll({
+        top: 0,
+        left: 0,
+      });
+    }
   } else {
     const el = document.querySelector(location.hash);
     if (el) {
@@ -86,8 +103,19 @@ const setPageScrollPosition = (location, delayed) => {
   }
 };
 
-const handleLocationChanged = (dispatch, location, routeConfiguration, delayed) => {
-  setPageScrollPosition(location, delayed);
+const handleLocationChanged = (dispatch, location, routeConfiguration, delayed, prevLocation) => {
+  // Сохраняем позицию скролла текущей страницы перед уходом
+  if (prevLocation) {
+    const prevKey = prevLocation.pathname + prevLocation.search;
+    scrollPositions[prevKey] = window.scrollY || window.pageYOffset;
+  }
+  
+  // Определяем тип навигации (приблизительно)
+  // Если есть сохраненная позиция для новой локации, это скорее всего возврат назад
+  const newKey = location.pathname + location.search;
+  const action = scrollPositions[newKey] !== undefined ? 'POP' : 'PUSH';
+  
+  setPageScrollPosition(location, delayed, action);
   const path = canonicalRoutePath(routeConfiguration, location);
   dispatch(locationChanged(location, path));
 };
@@ -122,7 +150,7 @@ class RouteComponentRenderer extends Component {
     this.delayed = null;
     // Calling loadData on initial rendering (on client side).
     callLoadData(this.props);
-    handleLocationChanged(dispatch, location, routeConfiguration, this.delayed);
+    handleLocationChanged(dispatch, location, routeConfiguration, this.delayed, null);
   }
 
   componentDidUpdate(prevProps) {
@@ -134,7 +162,8 @@ class RouteComponentRenderer extends Component {
       // This makes it possible to use loadData as default client side data loading technique.
       // However it is better to fetch data before location change to avoid "Loading data" state.
       callLoadData(this.props);
-      handleLocationChanged(dispatch, location, routeConfiguration, this.delayed);
+      // Передаем prevLocation для сохранения позиции скролла
+      handleLocationChanged(dispatch, location, routeConfiguration, this.delayed, prevProps.location);
     }
   }
 

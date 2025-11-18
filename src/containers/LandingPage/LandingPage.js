@@ -13,15 +13,16 @@ const LandingPage = () => {
 
   const handleSearchClick = (e) => {
     e.preventDefault();
-    // Redirect to GuestListingWizard with title as query parameter
+    // ВСЕГДА редирект на GuestListingWizard (форма создания задания)
+    // Передаем title если есть, иначе просто открываем форму
     if (taskTitle && taskTitle.trim()) {
       history.push({
         pathname: '/l/new',
         search: `?title=${encodeURIComponent(taskTitle.trim())}`,
       });
     } else {
-      // If no title, just redirect to search page
-      history.push('/s');
+      // Даже без title открываем форму создания задания
+      history.push('/l/new');
     }
   };
 
