@@ -28,7 +28,7 @@ import { LoggingAnalyticsHandler, GoogleAnalyticsHandler } from './analytics/han
 import configureStore from './store';
 
 // Utils
-import { createInstance, types as sdkTypes, tokenStore } from './util/sdkLoader';
+import { createInstance, types as sdkTypes } from './util/sdkLoader';
 import { mergeConfig } from './util/configHelpers';
 import { matchPathname } from './util/routes';
 import * as apiUtils from './util/api';
@@ -136,7 +136,8 @@ if (typeof window !== 'undefined') {
     clientId: appSettings.sdk.clientId,
     secure: appSettings.usingSSL,
     typeHandlers: apiUtils.typeHandlers,
-    tokenStore: tokenStore.browserCookieStore(), // ✅ КРИТИЧЕСКИЙ ФИКС: добавляем tokenStore для хранения токена авторизации
+    // NOTE: tokenStore по умолчанию использует browserCookieStore на клиенте,
+    // поэтому явно указывать его не нужно. Sharetribe SDK сам определит правильный store.
     ...baseUrl,
     ...assetCdnBaseUrl,
   });
