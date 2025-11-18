@@ -57,14 +57,39 @@ const setPageScrollPosition = (location, delayed, action) => {
   if (!location.hash) {
     // Проверяем, это возврат назад (POP) или обычная навигация (PUSH)
     if (action === 'POP' && scrollPositions[locationKey] !== undefined) {
+      const savedPosition = scrollPositions[locationKey];
+      
       // Восстанавливаем сохраненную позицию при возврате назад
-      window.setTimeout(() => {
-        window.scroll({
-          top: scrollPositions[locationKey],
-          left: 0,
-          behavior: 'auto', // Без анимации для мгновенного восстановления
+      // Используем requestAnimationFrame для более надежного восстановления
+      // особенно на мобильных устройствах
+      const restoreScroll = () => {
+        window.requestAnimationFrame(() => {
+          window.scroll({
+            top: savedPosition,
+            left: 0,
+            behavior: 'auto', // Без анимации для мгновенного восстановления
+          });
+          
+          // Дополнительная проверка через небольшую задержку для мобильных
+          // (иногда контент рендерится медленнее)
+          window.setTimeout(() => {
+            if (Math.abs(window.scrollY - savedPosition) > 10) {
+              window.scroll({
+                top: savedPosition,
+                left: 0,
+                behavior: 'auto',
+              });
+            }
+          }, 50);
         });
-      }, 0);
+      };
+      
+      // Если документ еще не готов, ждем
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', restoreScroll);
+      } else {
+        restoreScroll();
+      }
     } else {
       // Обычная навигация - скроллим наверх
       window.scroll({
