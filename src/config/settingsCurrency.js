@@ -194,6 +194,8 @@ export const currencyFormatting = (currency, options) => {
     );
   }
 
+  // Для AED (и других валют) показываем дробную часть только если она не равна нулю
+  // Для валют без subunit (JPY, KRW и т.д.) всегда без дробной части
   return subUnitDivisors[currency] === 1
     ? {
         style: 'currency',
@@ -209,7 +211,9 @@ export const currencyFormatting = (currency, options) => {
         currency,
         currencyDisplay: 'symbol',
         useGrouping: true,
-        minimumFractionDigits: 2,
+        // Показываем минимум 0 знаков после запятой (скрываем ",00" для целых чисел)
+        // Максимум 2 знака (для дробных цен типа 750,50 AED)
+        minimumFractionDigits: 0,
         maximumFractionDigits: 2,
       };
 };

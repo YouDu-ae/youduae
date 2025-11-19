@@ -312,10 +312,14 @@ const OrderPanel = props => {
         try {
           const { getUserReviewsStats } = await import('../../util/api');
           const response = await getUserReviewsStats(author.id.uuid);
-          setAuthorStats(response.data || response);
+          const stats = response.data || response;
+          console.log('📊 [OrderPanel] Author stats loaded:', stats);
+          setAuthorStats(stats);
         } catch (error) {
-          console.error('Failed to load author stats:', error);
+          console.error('❌ [OrderPanel] Failed to load author stats:', error);
         }
+      } else {
+        console.log('⚠️ [OrderPanel] No author UUID found');
       }
     };
 
@@ -500,6 +504,12 @@ const OrderPanel = props => {
                 </span>
               )}
             </div>
+            {(() => {
+              console.log('⭐ [OrderPanel Render] authorStats:', authorStats);
+              console.log('⭐ [OrderPanel Render] averageRating:', authorStats?.averageRating);
+              console.log('⭐ [OrderPanel Render] Should show rating:', !!(authorStats && authorStats.averageRating > 0));
+              return null;
+            })()}
             {authorStats && authorStats.averageRating > 0 && (
               <div className={css.authorRating}>
                 <StarRating rating={parseFloat(authorStats.averageRating)} />
