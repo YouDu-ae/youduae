@@ -20,6 +20,25 @@
   pointer-events: auto; /* Включаем события на контейнере */
 }
 
+/* === NOTIFICATION BADGE === */
+.notificationBadge {
+  margin-left: 8px;
+}
+
+/* Badge в основной навигации (десктоп) */
+.notificationBadgeInNav {
+  margin-left: 8px;
+  vertical-align: middle;
+  position: relative;
+  top: -2px;
+}
+
+/* Badge в бургер-меню (мобильная версия) */
+.notificationBadgeInBurger {
+  margin-left: 8px;
+  vertical-align: middle;
+}
+
 /* === ЛЕВАЯ СЕКЦИЯ (только логотип) === */
 
 .leftSection {

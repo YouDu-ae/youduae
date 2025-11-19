@@ -1,6 +1,5 @@
 import { storableError } from '../../util/errors';
 import { parse, getValidInboxSort } from '../../util/urlHelpers';
-import { getAllTransitionsForEveryProcess } from '../../transactions/transaction';
 import { addMarketplaceEntities } from '../../ducks/marketplaceData.duck';
 import { transitions as assignmentTransitions } from '../../transactions/transactionProcessAssignment';
 
@@ -93,8 +92,8 @@ const getTransitionsBySubtab = (subtab) => {
         assignmentTransitions.EXPIRE_PROVIDER_REVIEW_PERIOD,
       ];
     default:
-      // По умолчанию возвращаем все transitions
-      return getAllTransitionsForEveryProcess();
+      // По умолчанию возвращаем transitions для assignment-flow-v3
+      return Object.values(assignmentTransitions);
   }
 };
 
@@ -120,9 +119,10 @@ export const loadData = (params, search) => (dispatch, getState, sdk) => {
   const { page = 1, sort, subtab } = parse(search);
 
   // Определяем transitions для фильтрации на основе subtab
+  // Используем только transitions для assignment-flow-v3
   const transitionsToFilter = subtab 
     ? getTransitionsBySubtab(subtab)
-    : getAllTransitionsForEveryProcess();
+    : Object.values(assignmentTransitions);
 
   const apiQueryParams = {
     only: onlyFilter,

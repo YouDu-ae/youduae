@@ -4,7 +4,7 @@ import * as log from '../util/log';
 import { LISTING_STATE_DRAFT } from '../util/types';
 import { storableError } from '../util/errors';
 import { isUserAuthorized } from '../util/userHelpers';
-import { getTransitionsNeedingProviderAttention } from '../transactions/transaction';
+import { getTransitionsNeedingProviderAttention, getTransitionsNeedingCustomerAttention } from '../transactions/transaction';
 import { hasUnreadUpdates } from '../util/transactionNotifications';
 
 import { authInfo } from './auth.duck';
@@ -110,12 +110,11 @@ export default function reducer(state = initialState, action = {}) {
     case FETCH_CURRENT_USER_NOTIFICATIONS_REQUEST:
       return { ...state, currentUserNotificationCountError: null };
     case FETCH_CURRENT_USER_NOTIFICATIONS_SUCCESS:
-      // Фильтруем только непрочитанные транзакции
-      const unreadTransactions = payload.transactions.filter(tx => {
-        const currentUserId = state.currentUser?.id?.uuid;
-        return hasUnreadUpdates(tx, currentUserId);
-      });
-      return { ...state, currentUserNotificationCount: unreadTransactions.length };
+      // payload.transactions уже отфильтрованы в fetchCurrentUserNotifications()
+      // Просто считаем их количество
+      const notificationCount = payload.transactions?.length || 0;
+      console.log('🔔 [Reducer] Setting notification count:', notificationCount);
+      return { ...state, currentUserNotificationCount: notificationCount };
     case FETCH_CURRENT_USER_NOTIFICATIONS_ERROR:
       console.error(payload); // eslint-disable-line
       return { ...state, currentUserNotificationCountError: payload };
@@ -302,27 +301,63 @@ export const fetchCurrentUserHasOrders = () => (dispatch, getState, sdk) => {
 const NOTIFICATION_PAGE_SIZE = 100;
 
 export const fetchCurrentUserNotifications = () => (dispatch, getState, sdk) => {
-  const transitionsNeedingAttention = getTransitionsNeedingProviderAttention();
-  if (transitionsNeedingAttention.length === 0) {
-    // Don't update state, if there's no need to draw user's attention after last transitions.
+  const { currentUser } = getState().user;
+  if (!currentUser?.id) {
+    console.log('🔔 [Notifications] No currentUser');
     return;
   }
 
-  const apiQueryParams = {
+  const currentUserId = currentUser.id.uuid;
+
+  // Get transitions for both Provider and Customer
+  const providerTransitions = getTransitionsNeedingProviderAttention();
+  const customerTransitions = getTransitionsNeedingCustomerAttention();
+  const allTransitions = [...new Set([...providerTransitions, ...customerTransitions])];
+
+  if (allTransitions.length === 0) {
+    return;
+  }
+
+  // Query for Provider (sales - задания где пользователь исполнитель/provider)
+  const providerQueryParams = {
     only: 'sale',
-    last_transitions: transitionsNeedingAttention,
+    last_transitions: allTransitions,
+    page: 1,
+    perPage: NOTIFICATION_PAGE_SIZE,
+  };
+
+  // Query for Customer (orders - задания где пользователь заказчик/customer)
+  const customerQueryParams = {
+    only: 'order',
+    last_transitions: allTransitions,
     page: 1,
     perPage: NOTIFICATION_PAGE_SIZE,
   };
 
   dispatch(fetchCurrentUserNotificationsRequest());
-  sdk.transactions
-    .query(apiQueryParams)
-    .then(response => {
-      const transactions = response.data.data;
-      dispatch(fetchCurrentUserNotificationsSuccess(transactions));
+
+  // Fetch both sales and orders in parallel
+  Promise.all([
+    sdk.transactions.query(providerQueryParams),
+    sdk.transactions.query(customerQueryParams),
+  ])
+    .then(([salesResponse, ordersResponse]) => {
+      const salesTransactions = salesResponse.data.data || [];
+      const ordersTransactions = ordersResponse.data.data || [];
+      
+      // Combine and filter transactions:
+      // Считаем ТОЛЬКО транзакции с непрочитанными сообщениями
+      const allTransactions = [...salesTransactions, ...ordersTransactions];
+      
+      const transactionsWithUnreadMessages = allTransactions.filter(tx => {
+        return hasUnreadUpdates(tx, currentUserId);
+      });
+
+      dispatch(fetchCurrentUserNotificationsSuccess(transactionsWithUnreadMessages));
     })
-    .catch(e => dispatch(fetchCurrentUserNotificationsError(storableError(e))));
+    .catch(e => {
+      dispatch(fetchCurrentUserNotificationsError(storableError(e)));
+    });
 };
 
 /**

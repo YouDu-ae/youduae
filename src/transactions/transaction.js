@@ -349,6 +349,24 @@ export const getTransitionsNeedingProviderAttention = () => {
 };
 
 /**
+ * Get transitions that need customer's attention for every supported process
+ * (e.g. new inquiries on their listings, being accepted as executor)
+ */
+export const getTransitionsNeedingCustomerAttention = () => {
+  return PROCESSES.reduce((accTransitions, processInfo) => {
+    const statesNeedingCustomerAttention = processInfo.process.statesNeedingCustomerAttention || [];
+    const process = processInfo.process;
+    const processTransitions = statesNeedingCustomerAttention.reduce(
+      (pickedTransitions, stateName) => {
+        return [...pickedTransitions, ...getTransitionsToState(process, stateName)];
+      },
+      []
+    );
+    return [...new Set([...accTransitions, ...processTransitions])];
+  }, []);
+};
+
+/**
  * Actors
  *
  * There are 4 different actors that might initiate transitions:

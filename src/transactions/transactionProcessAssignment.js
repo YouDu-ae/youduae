@@ -168,7 +168,12 @@ export const isRefunded = transition => {
 };
 
 // States where provider needs to take action
+// Provider должен завершить работу после того как его приняли
 export const statesNeedingProviderAttention = [states.ACCEPTED];
+
+// States where customer needs to take action
+// Customer должен увидеть новые отклики (inquiries) и когда его выбрали (accepted)
+export const statesNeedingCustomerAttention = [states.INQUIRY, states.ACCEPTED];
 
 // Get transitions that lead to specific state(s)
 export const getTransitionsToStates = stateNames => {

@@ -8,6 +8,7 @@ import {
   MenuItem,
   Avatar,
   LanguageSwitcher,
+  NotificationBadge,
 } from '../../components';
 import { useRouteConfiguration } from '../../context/routeConfigurationContext';
 import { useConfiguration } from '../../context/configurationContext';
@@ -17,7 +18,8 @@ import { getCurrentUserTypeRoles } from '../../util/userHelpers';
 import css from './TopbarCustom.module.css';
 
 const TopbarCustom = props => {
-  const { isAuthenticated, currentUser, onLogout } = props;
+  const { isAuthenticated, currentUser, onLogout, notificationCount = 0 } = props;
+  
   const history = useHistory();
   const routeConfiguration = useRouteConfiguration();
   const config = useConfiguration();
@@ -99,6 +101,9 @@ const TopbarCustom = props => {
                 className={css.menuLink}
               >
                 <FormattedMessage id="TopbarDesktop.inbox" defaultMessage="Сообщения" />
+                {notificationCount > 0 && (
+                  <NotificationBadge className={css.notificationBadge} count={notificationCount} />
+                )}
               </NamedLink>
             </MenuItem>
             {isProvider && (
@@ -219,6 +224,9 @@ const TopbarCustom = props => {
       <li>
         <NamedLink name="InboxPage" params={{ tab: 'orders' }} className={css.burgerLink} onClick={closeBurger}>
           <FormattedMessage id="TopbarDesktop.inbox" />
+          {notificationCount > 0 && (
+            <NotificationBadge className={css.notificationBadgeInBurger} count={notificationCount} />
+          )}
         </NamedLink>
       </li>
       <li>
@@ -264,6 +272,9 @@ const TopbarCustom = props => {
       <li>
         <NamedLink name="InboxPage" params={{ tab: 'sales' }} className={css.burgerLink} onClick={closeBurger}>
           <FormattedMessage id="TopbarDesktop.inbox" />
+          {notificationCount > 0 && (
+            <NotificationBadge className={css.notificationBadgeInBurger} count={notificationCount} />
+          )}
         </NamedLink>
       </li>
       <li>
@@ -320,6 +331,9 @@ const TopbarCustom = props => {
                 </NamedLink>
                 <NamedLink name="InboxPage" params={{ tab: 'sales' }} className={css.navLinkUnified}>
                   <FormattedMessage id="TopbarDesktop.inbox" />
+                  {notificationCount > 0 && (
+                    <NotificationBadge className={css.notificationBadgeInNav} count={notificationCount} />
+                  )}
                 </NamedLink>
               </>
             ) : (
@@ -333,6 +347,9 @@ const TopbarCustom = props => {
                 </NamedLink>
                 <NamedLink name="InboxPage" params={{ tab: 'orders' }} className={css.navLinkUnified}>
                   <FormattedMessage id="TopbarDesktop.inbox" />
+                  {notificationCount > 0 && (
+                    <NotificationBadge className={css.notificationBadgeInNav} count={notificationCount} />
+                  )}
                 </NamedLink>
               </>
             )}

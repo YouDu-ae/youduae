@@ -34,6 +34,7 @@ import {
 
 import { getMarketplaceEntities } from '../../ducks/marketplaceData.duck';
 import { isScrollingDisabled } from '../../ducks/ui.duck';
+import { fetchCurrentUserNotifications } from '../../ducks/user.duck';
 import {
   H2,
   Avatar,
@@ -176,11 +177,8 @@ export const InboxItem = props => {
   const isOtherUserVerified = otherUser?.attributes?.profile?.publicData?.isVerified || false;
 
   // Проверяем, есть ли непрочитанные обновления
-  // Показываем красную точку только если:
-  // 1. Транзакция имеет "sale notification" флаг (требует внимания)
-  // 2. И транзакция еще не была просмотрена или обновилась после последнего просмотра
   const currentUserId = currentUser?.id?.uuid;
-  const isUnread = isSaleNotification && hasUnreadUpdates(tx, currentUserId);
+  const isUnread = hasUnreadUpdates(tx, currentUserId);
   
   const rowNotificationDot = isUnread ? <div className={css.notificationDot} /> : null;
 
@@ -278,11 +276,12 @@ export const InboxPageComponent = props => {
     currentUser
   );
 
-  console.log('🔍 InboxPage - User roles:', {
-    isCustomerUserType,
-    isProviderUserType,
-    currentTab: tab,
-  });
+  // Обновляем счетчик уведомлений каждый раз когда открывается InboxPage
+  React.useEffect(() => {
+    if (props.onUpdateNotificationCount) {
+      props.onUpdateNotificationCount();
+    }
+  }, [location.pathname, props.onUpdateNotificationCount]);
 
   const isOrders = tab === 'orders';
   const hasNoResults = !fetchInProgress && transactions.length === 0 && !fetchOrdersOrSalesError;
@@ -465,6 +464,10 @@ const mapStateToProps = state => {
   };
 };
 
-const InboxPage = compose(connect(mapStateToProps))(InboxPageComponent);
+const mapDispatchToProps = dispatch => ({
+  onUpdateNotificationCount: () => dispatch(fetchCurrentUserNotifications()),
+});
+
+const InboxPage = compose(connect(mapStateToProps, mapDispatchToProps))(InboxPageComponent);
 
 export default InboxPage;
