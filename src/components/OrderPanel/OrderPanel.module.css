@@ -103,12 +103,14 @@
   flex-direction: column;
   gap: 8px;
   flex: 1;
+  min-width: 0; /* Позволяет flex элементу сжиматься */
 }
 
 .authorNameRow {
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-wrap: wrap; /* Позволяет элементам переноситься на новую строку */
 }
 
 .providerNamePlain {
@@ -144,14 +146,21 @@
 }
 
 .authorRating {
-  display: flex;
+  display: flex !important; /* Принудительно показываем на всех экранах */
   align-items: center;
   gap: 8px;
+  flex-wrap: wrap;
+  
+  @media (max-width: 768px) {
+    /* Дополнительные стили для мобильных */
+    margin-top: 4px;
+  }
 }
 
 .ratingText {
   font-size: 14px;
   color: var(--colorGrey700);
+  white-space: nowrap; /* Текст не переносится */
 }
 
 .orderHeading {
