@@ -1,0 +1,1208 @@
+/* ========================= */
+/*        КАРКАС             */
+/* ========================= */
+
+.shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  margin-top: -90px; /* как на LandingPage */
+}
+
+.page {
+  position: relative;
+  flex: 1 0 auto;
+  
+  background: #fff;
+  overflow: visible;
+  margin: 0;
+  padding: 0;
+}
+
+.container {
+  max-width: 1200px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 0 0 50px;
+  position: relative;
+}
+
+/* ========================= */
+/*           HERO            */
+/* ========================= */
+
+.hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+
+  /* вместо абсолютных координат – отступ сверху */
+  padding-top: 192px;
+  padding-bottom: 40px;
+}
+
+.heroTitle {
+  max-width: 723px;
+  width: 100%;
+
+  font-family: 'Inter', sans-serif;
+  font-style: normal;
+  font-weight: 700;
+  font-size: 55px;
+  line-height: 100%;
+  text-align: center;
+  letter-spacing: -0.03em;
+  color: #000000;
+  margin: 0;
+}
+
+.heroSubtitle {
+  max-width: 723px;
+  width: 100%;
+
+  font-family: 'Inter', sans-serif;
+  font-style: normal;
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 19px;
+  text-align: center;
+  letter-spacing: -0.03em;
+  color: #000000;
+  margin: 0;
+}
+
+/* кнопка "Стать специалистом" */
+.heroBtn {
+  margin-top: 30px ;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 250px;
+  height: 60px;
+  background: #ffc934;
+  border-radius: 20px;
+  border: none;
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 16px;
+  line-height: 19px;
+  letter-spacing: -0.03em;
+  color: #000;
+  text-decoration: none;
+  cursor: pointer;
+  transition: 0.2s;
+  box-shadow: 0 4px 3px rgba(0, 0, 0, 0.1);
+}
+
+.heroBtn:hover {
+  background: #000;
+  color: #fff;
+  text-decoration: none;
+}
+
+
+/* серая плашка под hero (bg-main) */
+.bgMain {
+  max-width: 1200px;
+  height: 432px;
+  background-image: url('./bg-main.png');
+  border-radius: 20px;
+
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+/* ===== ADVANTAGES ===== */
+
+.advantages {
+  margin-top: 45px;
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap; /* чтобы на планшете/мобилке карточки переносились */
+}
+
+.advCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px 20px;
+  gap: 10px;
+
+  width: 282px;
+  min-height: 120px;
+
+  background: #F7F7F7;
+  border-radius: 20px;
+
+  flex: none;
+  flex-grow: 0;
+}
+
+.advText {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 0px;
+
+  width: 100%;
+  min-height: 91px;
+  text-align: center;
+}
+
+.advTitle {
+  width: 100%;
+  margin: 0;
+
+  font-family: 'Inter', sans-serif;
+  font-style: normal;
+  font-weight: 700;
+  font-size: 20px;
+  line-height: 120%; /* 24px */
+  text-align: center;
+  letter-spacing: -0.03em;
+  color: #000000;
+}
+
+.advDesc {
+  margin: 0;
+  max-width: 282px;
+
+  font-family: 'Inter', sans-serif;
+  font-style: normal;
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 19px;
+  text-align: center;
+  letter-spacing: -0.03em;
+  color: #000000;
+}
+
+
+/* ==== HOW IT WORKS ==== */
+
+.howSection {
+  margin-top: 120px;
+  width: 100%;
+}
+
+.howTitle {
+  font-family: 'Inter', sans-serif;
+  font-size: 45px;
+  font-weight: 700;
+  line-height: 120%;
+  letter-spacing: -0.03em;
+  color: #000;
+  margin: 0;
+  padding-bottom: 10px;
+}
+
+.howSubtitle {
+  font-family: 'Inter', sans-serif;
+  font-size: 16px;
+  font-weight: 400;
+  letter-spacing: -0.03em;
+  color: #000;
+   line-height: 19px;
+  margin: 0 0 55px 0;
+}
+
+/* Главный контейнер — 2 колонки */
+.howContent {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  gap: 60px;
+  align-items: flex-start;
+}
+
+/* СПРАВА — изображение */
+.howImage {
+  width: 588px;
+  height: 628px;
+  background-image: url('./howitworks.png');
+  border-radius: 20px;
+
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  
+}
+
+/* Слева — шаги */
+.howSteps {
+  display: flex;
+  flex-direction: column;
+  align-items: center; /* <-- центрирует шаги и кнопку */
+  gap: 0;
+  width: 100%;
+}
+
+.step {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+  
+}
+
+.stepCircle {
+  width: 63px;
+  height: 63px;
+  background: #EEF7FA;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.stepNumber {
+  width: 47px;
+  height: 47px;
+  background: #C4E1EE;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+font-family: 'Inter', sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.stepText {
+  max-width: 500px;
+  margin-top: -18px;
+
+}
+
+.stepTitle {
+    font-family: 'Inter', sans-serif;
+  font-size: 20px;
+  font-weight: 700;
+   line-height: 100%;
+  letter-spacing: -0.03em;
+  margin-bottom: -20px;
+  color: #000;
+}
+
+.stepDesc {
+    font-family: 'Inter', sans-serif;
+  font-size: 16px;
+  letter-spacing: -0.03em;
+  font-weight: 400;
+  line-height: 1.2;
+  color: #000;
+}
+
+/* Кнопка */
+.howBtn {
+  margin-top: 69px ;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 250px;
+  height: 60px;
+  background: #ffc934;
+  border-radius: 20px;
+  border: none;
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 16px;
+  line-height: 19px;
+  letter-spacing: -0.03em;
+  color: #000;
+  text-decoration: none;
+  cursor: pointer;
+  transition: 0.2s;
+  box-shadow: 0 4px 3px rgba(0, 0, 0, 0.1);
+}
+
+.howBtn:hover {
+  background: #000;
+  color: #fff;
+  text-decoration: none;
+}
+
+.step {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+  margin-top: -10px;
+}
+
+/* колонка слева: кружок + пунктир */
+.stepLeft {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 0px;
+}
+
+/* пунктирная линия */
+.stepLine {
+  width: 1px;
+  height: 84px;          /* можно подправить под макет */
+  border-left: 1px dashed #95CBE5;
+  margin-top: 0px;       /* небольшой отступ от круга */
+  
+}
+
+/* у последнего шага линию убираем */
+.stepLast .stepLine {
+  display: none;
+}
+
+
+
+
+/* ==== VERIFY ==== */
+/* Секция верификации */
+.verifySection {
+  margin-top: 100px;
+  text-align: left;
+}
+
+/* Заголовок */
+.verifyTitle {
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 45px;
+  line-height: 54px;
+  letter-spacing: -0.03em;
+  color: #000;
+  margin: 0 0 0px 0;
+  text-align: center;
+  padding-bottom: 10px;
+}
+
+/* Подзаголовок */
+.verifySubtitle {
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 19px;
+  letter-spacing: -0.03em;
+  color: #000;
+  margin: 0 0 45px 0;
+  text-align: center;
+}
+
+/* ОДНА карточка */
+.verifyRow {
+  width: 792px;
+  height: 126px;
+  margin: 0px auto 20px auto;             /* центрируем по экрану */
+  padding-right: 0px;                  /* как в макете: текст + картинка */
+  background: #f7f7f7;
+  border-radius: 20px;
+
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: left;
+  gap: 60px;
+
+}
+
+/* Текст слева */
+.verifyText {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+
+  padding: 20px 0 20px 20px;
+  gap: 0px;
+
+  width: 447px;   /* по макету */
+  height: 126px;
+}
+
+.verifyTextTitle {
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 16px;
+  line-height: 120%;
+  letter-spacing: -0.03em;
+  color: #000;
+  margin: 0;
+}
+
+.verifyTextDesc {
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 19px;
+  letter-spacing: -0.03em;
+  color: #000;
+  margin: 0;
+}
+
+/* ПРАВАЯ картинка — отдельный блок фиксированного размера */
+.verifyPic1,
+.verifyPic2 {
+  width: 282px;
+  height: 126px;
+  border-radius: 20px;
+  flex: none;
+  flex-grow: 0;
+ 
+
+  background-size: cover;        /* заполняет блок, не растягивая пропорции */
+  background-position: center;   /* центрируем внутри */
+  background-repeat: no-repeat;
+}
+
+/* Файлы лежат в этой же папке, как в howItWorks */
+.verifyPic1 {
+  background-image: url('./bg-verify.png');
+}
+
+.verifyPic2 {
+  background-image: url('./bg-documents.png');
+}
+
+
+
+
+/* Серый фон на всю ширину, как illustrationBack */
+.coverBg {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 2482px;          /* можно подправить под фактическую высоту страницы */
+  width: 100vw;
+  height: 384px;
+  background: #f7f7f7;
+  z-index: 1;
+}
+
+/* Обёртка секции с карточкой — внутри контейнера */
+.actionSection {
+  margin-top: 215px;    /* отступ сверху от предыдущего блока */
+  display: flex;
+  justify-content: center;
+  position: relative;
+  z-index: 2;           /* поверх coverBg */
+}
+
+/* Карточка */
+.actionBox {
+  width: 792px;
+  height: 208px;
+  background: #f7f7f7;
+  border-radius: 63px;
+  box-shadow: 0px 10.5px 26.3px rgba(0, 0, 0, 0.1);
+
+  padding: 25px 25px;
+  display: flex;
+  align-items: center;
+}
+
+/* Внутренний контент: логотип + текст + кнопка */
+.actionContent {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 30px;
+  width: 100%;
+}
+
+/* Картинка-логотип */
+.actionLogo {
+  width: 158px;
+  height: 158px;
+  background: url('./Logo.png') center/cover no-repeat;
+  border-radius: 40px;
+  filter: drop-shadow(0px 10.5px 18.5px rgba(0, 0, 0, 0.1));
+  flex-shrink: 0;
+}
+
+/* Правая колонка */
+.actionRight {
+  display: flex;
+  flex-direction: column;
+  gap: 27px;
+}
+
+/* Заголовок + подзаголовок */
+.actionTitleBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 0px;
+ margin-top: -10px;
+}
+
+.actionTitle {
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 45px;
+  line-height: 120%;
+  letter-spacing: -0.03em;
+  color: #000;
+  margin: 0;
+  padding-bottom: 10px;
+}
+
+.actionSubtitle {
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 100%;
+  letter-spacing: -0.03em;
+  color: #000;
+  margin: 0;
+}
+
+/* Кнопка */
+.actionBtn {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+margin-top: -7px;
+  width: 250px;
+  height: 60px;
+
+  background: #000;
+  color: #fff;
+  border-radius: 20px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 16px;
+  line-height: 19px;
+  letter-spacing: -0.03em;
+  text-decoration: none;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.actionBtn:hover {
+  background: #ffc934;
+  color: #000;
+  text-decoration: none;
+}
+
+
+
+
+/* ===== REVIEWS ===== */
+
+.reviewsSection {
+  margin-top: 190px;
+}
+
+.reviewsTitle {
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 45px;
+  line-height: 54px;
+  letter-spacing: -0.03em;
+  color: #000;
+  text-align: center;
+  margin: 0 0 30px 0;
+}
+
+/* две колонки: фото + текст */
+.reviewsContent {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 45px;
+}
+
+/* левая карточка с фото */
+.reviewImage {
+  position: relative;
+  width: 486px;
+  height: 270px;
+  border-radius: 20px;
+  background: url('./review1.png') center/cover no-repeat;
+  overflow: hidden;
+}
+
+/* белый бейдж 5.0 */
+.reviewBadge {
+  position: absolute;
+  top: 5px;
+  left: 5px;
+  width: 103px;
+  height: 60px;
+  background: #fff;
+  border-radius: 15px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+}
+
+.reviewBadgeStar {
+  width: 30px;
+  height: 30px;
+  background: #ffc934;
+  border-radius: 0.6px;
+  flex-shrink: 0;
+  clip-path: polygon(50% 0%,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%);
+}
+
+.reviewBadgeValue {
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 20px;
+  line-height: 120%;
+  letter-spacing: -0.03em;
+  color: #000;
+}
+
+/* правая колонка */
+.reviewRight {
+  max-width: 588px;
+}
+
+.reviewText {
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
+  font-size: 30px;
+  line-height: 120%;
+  letter-spacing: -0.03em;
+  color: #000;
+  margin: -10px 0 45px 0;
+}
+
+/* пунктирная линия */
+.reviewDivider {
+  width: 100%;
+  border-bottom: 1px dashed #95cbe5;
+  margin-bottom: 20px;
+}
+
+/* автор */
+.reviewAuthor {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+/* внешний круг */
+.reviewAvatarOuter {
+  width: 63px;
+  height: 63px;
+  border-radius: 33px;
+  background: #eef7fa;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* внутренняя аватарка */
+.reviewAvatarInner {
+  width: 47px;
+  height: 47px;
+  border-radius: 25px;
+  background: url('./avatar1.png') center/cover no-repeat;
+}
+
+.reviewAuthorInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.reviewAuthorName {
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 16px;
+  line-height: 19px;
+  letter-spacing: -0.03em;
+  color: #000;
+}
+
+/* рейтинг + текст */
+.reviewRatingRow {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.reviewRatingStar {
+  width: 15px;
+  height: 15px;
+  background: #ffc934;
+  border-radius: 0.5px;
+  flex-shrink: 0;
+  clip-path: polygon(50% 0%,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%);
+}
+
+.reviewRatingText {
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 19px;
+  letter-spacing: -0.03em;
+  color: #909090;
+}
+
+
+/* ===== SECOND REVIEW (ALT, mirrored) ===== */
+
+.reviewSectionAlt {
+  margin-top: 120px;
+}
+
+/* две колонки, но зеркально */
+.reviewsContentAlt {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 45px;
+}
+
+/* текстовая колонка слева */
+.reviewRightAlt {
+  max-width: 588px;
+}
+
+.reviewTextAlt {
+  font-family: 'Inter', sans-serif;
+  font-size: 30px;
+  line-height: 120%;
+  letter-spacing: -0.03em;
+  font-weight: 400;
+  color: #000;
+  margin: -10px 0 45px 0;
+}
+
+/* пунктир */
+.reviewDividerAlt {
+  width: 100%;
+  border-bottom: 1px dashed #95cbe5;
+  margin-bottom: 20px;
+}
+
+/* автор */
+.reviewAuthorAlt {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.reviewAvatarOuterAlt {
+  width: 63px;
+  height: 63px;
+  border-radius: 33px;
+  background: #eef7fa;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.reviewAvatarInnerAlt {
+  width: 47px;
+  height: 47px;
+  border-radius: 25px;
+  background: url('./avatar2.png') center/cover no-repeat;
+}
+
+.reviewAuthorInfoAlt {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.reviewAuthorNameAlt {
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 16px;
+  line-height: 19px;
+  letter-spacing: -0.03em;
+  color: #000;
+}
+
+.reviewRatingRowAlt {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.reviewRatingStarAlt {
+  width: 15px;
+  height: 15px;
+  background: #ffc934;
+  border-radius: 0.5px;
+  clip-path: polygon(50% 0%,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%);
+}
+
+.reviewRatingTextAlt {
+  font-size: 16px;
+  line-height: 19px;
+  color: #909090;
+  letter-spacing: -0.03em;
+}
+
+/* фото справа */
+.reviewImageAlt {
+  position: relative;
+  width: 486px;
+  height: 270px;
+  border-radius: 20px;
+  background: url('./review2.png') center/cover no-repeat;
+  overflow: hidden;
+}
+
+/* бейдж */
+.reviewBadgeAlt {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+
+  width: 103px;
+  height: 60px;
+  background: #fff;
+  border-radius: 15px;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 7px;
+}
+
+.reviewBadgeStarAlt {
+  width: 30px;
+  height: 30px;
+  background: #ffc934;
+  border-radius: 0.6px;
+  clip-path: polygon(50% 0%,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%);
+}
+
+.reviewBadgeValueAlt {
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 20px;
+  color: #000;
+}
+
+
+
+/* ===== REVIEW 3 — фото слева, текст справа ===== */
+
+.reviewsSection3 {
+  margin-top: 120px;
+}
+
+.reviewImage3 {
+  position: relative;
+  width: 486px;
+  height: 270px;
+  border-radius: 20px;
+  background: url('./review3.png') center/cover no-repeat;
+  overflow: hidden;
+
+  
+  
+}
+
+.reviewAvatarInner3 {
+  width: 47px;
+  height: 47px;
+  border-radius: 25px;
+  background: url('./avatar3.png') center/cover no-repeat;
+}
+
+/* все остальное — готово, используется как в первом блоке */
+
+
+
+/* ===== FAQ ===== */
+/* ===== FAQ СЕКЦИЯ ===== */
+
+.faqSection {
+  margin-top: 100px;
+  margin-bottom: 80px;
+  width: 100%;
+}
+
+/* Заголовок "Частые вопросы" слева, как в макете */
+.faqHeading {
+  margin: 0 0 20px 0;
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 45px;
+  line-height: 54px;
+  letter-spacing: -0.03em;
+  color: #000;
+}
+
+/* Обёртка для списка (чтобы можно было управлять отступами) */
+.faqList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Один пункт аккордеона */
+.faqItem {
+background: none;
+  box-shadow: none;
+  border-radius: 0;
+  overflow: visible;     /* чтобы ответ мог вылезать наружу */
+ 
+}
+
+/* Кнопка с вопросом */
+.faqQuestion {
+  width: 100%;
+  height: 60px;
+  padding: 20px 20px 20px 20px; /* справа место под иконку */
+  border: none;
+ background: #f7f7f7;
+  box-shadow: 0 4px 4px rgba(0, 0, 0, 0.1);
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+
+  
+}
+
+/* Текст вопроса */
+.faqTitle {
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 19px;
+  letter-spacing: -0.03em;
+  color: #000;
+  text-align: left;
+}
+
+/* Круглая иконка с крестиком */
+.faqIcon {
+  position: relative;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: #c4e1ee;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;   /* не даём ей уменьшаться */
+  flex: 0 0 auto;
+
+  /* чтобы плавно крутился крестик */
+  transition: transform 0.25s ease;
+}
+
+/* Горизонтальная палочка */
+.faqIcon::before,
+.faqIcon::after {
+  content: '';
+  position: absolute;
+  width: 14px;
+  height: 2px;
+  border-radius: 1px;
+  background: #000;
+}
+
+/* Вертикальная палочка (плюсик) */
+.faqIcon::after {
+  transform: rotate(90deg);
+}
+
+/* При открытии просто КРУТИМ крестик, ничего не прячем */
+.faqIconOpen {
+  transform: rotate(45deg);
+}
+
+/* Ответ (закрытое состояние) */
+.faqAnswer {
+  font-family: 'Inter', sans-serif;
+  font-size: 16px;
+  line-height: 19px;
+  letter-spacing: -0.03em;
+  color: #000;
+
+  padding: 0 20px;        /* боковые отступы сразу */
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  transform: translateY(-4px);
+
+  /* плавное появление */
+  transition:
+  
+    opacity 0.1s ease-in-out,
+    transform 0.25s ease-in-out,
+    padding-top 0.4s ease,
+    padding-bottom 0.4s ease;
+}
+
+/* Открытое состояние */
+.faqAnswerOpen {
+  max-height: 300px;      /* если ответы будут длиннее — можно увеличить */
+  opacity: 1;
+
+  padding-top: 30px;
+  padding-bottom: 15px;
+ 
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+    
+ 
+
+  
+
+
+
+
+
+/* ========================= */
+/*          АДАПТИВЫ         */
+/* ========================= */
+
+@media (max-width: 1279px) {
+.heroTitle { font-size: 45px; line-height: 1; }
+.bgMain { margin-left: 20px; margin-right: 20px;}
+.advantages { justify-content: center; padding: 0 20px; gap: 10px; }
+.advCard { width: calc(50% - 5px); }
+.howSection { padding: 0 20px; }
+.howBtn { margin-top: 55px;}
+.coverBg { top: 2602px; }
+.verifySection { padding: 0 20px; }
+.verifyRow { margin: 0px auto 10px auto; }
+.actionSection { padding: 0 20px; }
+.faqSection {  padding: 0 20px; }
+.reviewsSection, .reviewsSection3, .reviewSectionAlt { padding: 0 20px; }
+.reviewTextAlt, .reviewText { font-size: 28px; margin: -10px 0 25px 0;}
+
+}
+
+
+
+
+
+
+@media (max-width: 1023px) {
+.heroTitle { font-size: 45px; line-height: 1; }
+.heroBtn, .howBtn, .actionBtn {font-size: 14px; line-height: 17px; height: 50px; border-radius: 13px; }
+.bgMain { border-radius: 13px;}
+.advantages { gap: 10px; }
+.advCard { border-radius: 13px; }
+.advTitle, .stepTitle { font-size: 16px; line-height: 19px; }
+.heroSubtitle, .howSubtitle, .advDesc, .verifySubtitle, .stepDesc, .verifyTextDesc, .actionSubtitle, .faqTitle, .reviewRatingTextAlt, .reviewRatingText, .reviewAuthorName, .reviewAuthorNameAlt, .faqAnswer { font-size: 14px; line-height: 17px; }
+.advText { gap: 0px;}
+.howSection { margin-top: 95px; }
+.howBtn { margin-top: 30px; }
+.howContent { flex-direction: column; align-items: center; }
+.howTitle, .howSubtitle { justify-content: center; text-align: center; align-items: center; }
+.howTitle, .verifyTitle, .actionTitle, .faqHeading, .reviewsTitle  { font-size: 35px; line-height: 42px; }
+.howImage { margin-top: -20px; margin-left: 20px; margin-right: 20px; height: 500px; border-radius: 13px;}
+.coverBg { top: 2992px; }
+.verifySection { margin-top: 95px; }
+.verifyRow { width: 100%; gap: 10px; border-radius: 13px; }
+.actionSection { margin-top: 205px; }
+.actionBox { width: 655px; }
+.verifyPic1, .verifyPic2 { border-radius: 13px; }
+.reviewsSection { margin-top: 180px; }
+.reviewSectionAlt { margin-top: 90px; }
+.reviewsSection3 { margin-top: 90px; }
+.reviewTextAlt, .reviewText { font-size: 20px; margin: -10px 0 25px 0;  }
+.reviewBadgeAlt, .reviewBadge { height: 50px; border-radius: 13px;}
+.reviewImage3, .reviewImage, .reviewImageAlt { border-radius: 13px; }
+.reviewsContent, .reviewsContentAlt { flex-direction: column; align-items: center; }
+.reviewImage, .reviewRight, .reviewImage3, .reviewRightAlt, .reviewImageAlt  { width: 100%; max-width: 588px; }
+.reviewImageAlt { order: 1; }
+.reviewRightAlt { order: 2; }
+.faqSection { margin-top: 80px; margin-bottom: 70px; }
+.faqHeading { text-align: center; }
+}
+
+
+
+
+
+
+@media (max-width: 767px) { 
+.hero { padding-top: 140px; }
+.heroTitle { font-size: 30px; line-height: 1; }
+.advantages { padding: 0 20px; }
+.advCard { width: 100%; }
+.advText { gap: 10px;}
+.stepTitle { margin-bottom: 10px; }
+.howSection { margin-top: 85px; }
+.howImage {margin-top: -10px; display: flex; width: 100%;}
+.howTitle, .verifyTitle, .actionTitle, .faqHeading, .reviewsTitle  { font-size: 25px; line-height: 30px; }
+.verifySection { margin-top: 85px; }
+.verifyRow { width: 100%; height: auto; flex-direction: column; align-items: stretch; gap: 5px; }
+.verifyText { width: 100%; height: auto; padding: 20px 20px 20px 20px; gap: 10px; }
+.verifyPic1, .verifyPic2 { width: 100%; height: 200px; }
+.actionSection { margin-top: 110px; }
+.actionLogo { width: 100px; height: 100px; border-radius: 20px; }
+.actionBox { width: 100%; height: 300px; border-radius: 13px; padding: 15px 15px;}
+.actionContent { flex-direction: column; align-items: center; }
+.actionRight { align-items: center; }
+.faqQuestion { gap: 10px; }
+.coverBg { display: none; }
+.reviewsSection { margin-top: 85px; }
+.reviewSectionAlt { margin-top: 80px; }
+.reviewsSection3 { margin-top: 80px; }
+
+}
+
+
+
+
+
+
+@media (max-width: 480px) {
+
+}

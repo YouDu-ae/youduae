@@ -42,7 +42,7 @@
 /* Иллюстрация справа от формы */
 .contentContainer::after {
   @media (--viewportMedium) {
-    display: flex;
+    display: static;
     content: '';
     flex-shrink: 0;
     width: 400px;
