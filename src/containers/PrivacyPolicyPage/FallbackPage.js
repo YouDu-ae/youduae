@@ -2,6 +2,7 @@ import React from 'react';
 import loadable from '@loadable/component';
 import { useIntl } from '../../util/reactIntl';
 
+
 const PageBuilder = loadable(() =>
   import(/* webpackChunkName: "PageBuilder" */ '../PageBuilder/PageBuilder')
 );
