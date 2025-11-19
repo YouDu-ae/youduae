@@ -63,7 +63,7 @@ const toggle = i => {
               Выбирайте задания поблизости, предлагайте цену, получайте оплату
             </p>
 
-            <NamedLink name="PrivacyPolicyPage" className={css.heroBtn}>
+            <NamedLink name="SignupForUserTypePage" params={{ userType: 'customer' }} className={css.heroBtn}>
               Стать специалистом
             </NamedLink>
           </section>
@@ -178,7 +178,7 @@ const toggle = i => {
           </div>
         </div>
 
-        <NamedLink name="PrivacyPolicyPage" className={css.howBtn}>
+        <NamedLink name="SignupForUserTypePage" params={{ userType: 'customer' }} className={css.howBtn}>
           Регистрация специалиста
         </NamedLink>
       </div>
@@ -241,7 +241,7 @@ const toggle = i => {
                   </p>
                 </div>
 
-                <NamedLink name="PrivacyPolicyPage" className={css.actionBtn}>
+                <NamedLink name="SignupForUserTypePage" params={{ userType: 'customer' }} className={css.actionBtn}>
                   Стать специалистом
                 </NamedLink>
               </div>
