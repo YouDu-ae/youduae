@@ -79,7 +79,7 @@
 
   display: flex;
   flex-direction: row;
-  align-items: center;
+  align-items: flex-start;
 
   @media (--viewportMedium) {
     width: 100%;
@@ -94,11 +94,26 @@
   @media (--viewportLarge) {
     display: flex;
     margin-right: 10px;
+    flex-shrink: 0;
   }
+}
+
+.authorInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+}
+
+.authorNameRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .providerNamePlain {
   display: inline;
+  font-weight: 600;
 
   @media (--viewportLarge) {
     display: none;
@@ -107,10 +122,36 @@
 
 .providerNameLinked {
   display: none;
+  font-weight: 600;
 
   @media (--viewportLarge) {
     display: inline;
   }
+}
+
+.verifiedBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  background-color: #4A90E2;
+  color: white;
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: bold;
+  flex-shrink: 0;
+}
+
+.authorRating {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ratingText {
+  font-size: 14px;
+  color: var(--colorGrey700);
 }
 
 .orderHeading {

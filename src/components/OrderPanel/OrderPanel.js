@@ -35,7 +35,7 @@ import {
   resolveLatestProcessName,
 } from '../../transactions/transaction';
 
-import { ModalInMobile, PrimaryButton, AvatarSmall, H1, H2 } from '../../components';
+import { ModalInMobile, PrimaryButton, AvatarSmall, H1, H2, StarRating } from '../../components';
 import PriceVariantPicker from './PriceVariantPicker/PriceVariantPicker';
 
 import css from './OrderPanel.module.css';
@@ -265,6 +265,7 @@ const hasValidPriceVariants = priceVariants => {
  */
 const OrderPanel = props => {
   const [mounted, setMounted] = useState(false);
+  const [authorStats, setAuthorStats] = useState(null);
   const intl = useIntl();
   const location = useLocation();
   const history = useHistory();
@@ -273,6 +274,7 @@ const OrderPanel = props => {
   useEffect(() => {
     setMounted(true);
   }, []);
+
   const {
     rootClassName,
     className,
@@ -302,6 +304,23 @@ const OrderPanel = props => {
     showListingImage,
     currentUser,
   } = props;
+
+  // Загружаем статистику отзывов для автора листинга
+  useEffect(() => {
+    const loadAuthorStats = async () => {
+      if (author?.id?.uuid) {
+        try {
+          const { getUserReviewsStats } = await import('../../util/api');
+          const response = await getUserReviewsStats(author.id.uuid);
+          setAuthorStats(response.data || response);
+        } catch (error) {
+          console.error('Failed to load author stats:', error);
+        }
+      }
+    };
+
+    loadAuthorStats();
+  }, [author?.id?.uuid]);
 
   const publicData = listing?.attributes?.publicData || {};
   const { listingType, unitType, transactionProcessAlias = '', priceVariants, startTimeInterval } =
@@ -467,12 +486,29 @@ const OrderPanel = props => {
 
         <div className={css.author}>
           <AvatarSmall user={author} className={css.providerAvatar} />
-          <span className={css.providerNameLinked}>
-            <FormattedMessage id="OrderPanel.author" values={{ name: authorLink }} />
-          </span>
-          <span className={css.providerNamePlain}>
-            <FormattedMessage id="OrderPanel.author" values={{ name: authorDisplayName }} />
-          </span>
+          <div className={css.authorInfo}>
+            <div className={css.authorNameRow}>
+              <span className={css.providerNameLinked}>
+                <FormattedMessage id="OrderPanel.author" values={{ name: authorLink }} />
+              </span>
+              <span className={css.providerNamePlain}>
+                <FormattedMessage id="OrderPanel.author" values={{ name: authorDisplayName }} />
+              </span>
+              {author?.attributes?.profile?.publicData?.isVerified && (
+                <span className={css.verifiedBadge} title="Verified Provider">
+                  ✓
+                </span>
+              )}
+            </div>
+            {authorStats && authorStats.averageRating > 0 && (
+              <div className={css.authorRating}>
+                <StarRating rating={parseFloat(authorStats.averageRating)} />
+                <span className={css.ratingText}>
+                  {parseFloat(authorStats.averageRating).toFixed(1)} ({authorStats.reviewCount})
+                </span>
+              </div>
+            )}
+          </div>
         </div>
 
         {showPriceMissing ? (
