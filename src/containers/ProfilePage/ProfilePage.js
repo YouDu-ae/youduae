@@ -587,17 +587,34 @@ export const MainContent = props => {
             />
           </H4>
           <div className={css.completedTasksList}>
-            {completedTransactions.map(work => (
-              <div key={work.transactionId} className={css.completedTaskItem}>
-                <div className={css.taskIcon}>✓</div>
-                <div className={css.taskInfo}>
-                  <h4 className={css.taskTitle}>{work.listingTitle}</h4>
-                  <p className={css.taskDate}>
-                    {new Date(work.completedAt).toLocaleDateString(intl.locale)}
-                  </p>
+            {completedTransactions.map(work => {
+              const hasPrice = work.price && work.price > 0;
+              const formattedPrice = hasPrice
+                ? new Intl.NumberFormat(intl.locale, {
+                    style: 'currency',
+                    currency: work.currency || 'AED',
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 0,
+                  }).format(work.price)
+                : null;
+
+              return (
+                <div key={work.transactionId} className={css.completedTaskItem}>
+                  <div className={css.taskIcon}>✓</div>
+                  <div className={css.taskInfo}>
+                    <h4 className={css.taskTitle}>{work.listingTitle}</h4>
+                    <div className={css.taskMeta}>
+                      <p className={css.taskDate}>
+                        {new Date(work.completedAt).toLocaleDateString(intl.locale)}
+                      </p>
+                      {hasPrice && (
+                        <p className={css.taskPrice}>{formattedPrice}</p>
+                      )}
+                    </div>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       ) : !loadingTransactions ? (

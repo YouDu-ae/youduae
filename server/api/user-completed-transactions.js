@@ -91,6 +91,11 @@ module.exports = (req, res) => {
           ? included.find(item => item.id.uuid === listingRef.id.uuid && item.type === 'listing')
           : null;
 
+        // Extract price from protectedData (for inquiry process)
+        const protectedData = tx.attributes.protectedData || {};
+        const offerPrice = protectedData.offer?.price;
+        const offerCurrency = protectedData.offer?.currency || 'AED';
+
         return {
           transactionId: tx.id.uuid,
           listingId: listing?.id?.uuid,
@@ -98,6 +103,8 @@ module.exports = (req, res) => {
           category: listing?.attributes?.publicData?.category,
           completedAt: tx.attributes.lastTransitionedAt || tx.attributes.createdAt,
           state: tx.attributes.lastTransition,
+          price: offerPrice,
+          currency: offerCurrency,
         };
       });
 

@@ -1,11 +1,34 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { NamedLink } from '../../components';
 import TopbarContainer from '../../containers/TopbarContainer/TopbarContainer';
 import FooterCustom from '../FooterCustom/FooterCustom';
+import { getPlatformStats } from '../../util/api';
 
 import css from './CooperationPage.module.css';
 
 const CooperationPage = () => {
+  const [stats, setStats] = useState({ totalCompletedTasks: 0, totalSumAED: 0 });
+  const [statsLoading, setStatsLoading] = useState(true);
+
+  useEffect(() => {
+    getPlatformStats()
+      .then(response => {
+        const receivedStats = response.data;
+        
+        const finalStats = {
+          totalCompletedTasks: receivedStats.totalCompletedTasks || 0,
+          totalSumAED: receivedStats.totalSumAED || 0,
+        };
+        
+        setStats(finalStats);
+        setStatsLoading(false);
+      })
+      .catch(err => {
+        console.error('Failed to load platform stats:', err);
+        setStats({ totalCompletedTasks: 0, totalSumAED: 0 });
+        setStatsLoading(false);
+      });
+  }, []);
 
   const faqData = [
   {
@@ -239,6 +262,28 @@ const toggle = i => {
                   <p className={css.actionSubtitle}>
                     Экономьте на рекламе, получайте клиентов
                   </p>
+                  
+                  {/* Platform Statistics */}
+                  {!statsLoading && (
+                    <div className={css.statsBlock}>
+                      <div className={css.statItem}>
+                        <div className={css.statValue}>
+                          {stats.totalCompletedTasks.toLocaleString('ru-RU')}
+                        </div>
+                        <div className={css.statLabel}>выполненных заданий</div>
+                      </div>
+                      <div className={css.statDivider} />
+                      <div className={css.statItem}>
+                        <div className={css.statValue}>
+                          {stats.totalSumAED.toLocaleString('ru-RU', { 
+                            minimumFractionDigits: 0, 
+                            maximumFractionDigits: 0 
+                          })} AED
+                        </div>
+                        <div className={css.statLabel}>общая сумма заданий</div>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <NamedLink name="SignupForUserTypePage" params={{ userType: 'customer' }} className={css.actionBtn}>

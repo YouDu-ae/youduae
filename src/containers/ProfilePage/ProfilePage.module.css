@@ -610,10 +610,27 @@
   -webkit-box-orient: vertical;
 }
 
+.taskMeta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
 .taskDate {
   margin: 0;
   font-size: 13px;
   color: var(--colorGrey500);
+}
+
+.taskPrice {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #4CAF50;
+  padding: 2px 8px;
+  background-color: rgba(76, 175, 80, 0.1);
+  border-radius: 4px;
 }
 
 /* ================================================

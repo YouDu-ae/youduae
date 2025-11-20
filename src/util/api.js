@@ -282,3 +282,10 @@ export const getUserCompletedTransactions = userId => {
   });
 };
 
+// Get platform-wide statistics (total completed tasks and total sum in AED)
+export const getPlatformStats = () => {
+  return get('/api/platform-stats', {
+    headers: { 'Content-Type': 'application/json' },
+  });
+};
+

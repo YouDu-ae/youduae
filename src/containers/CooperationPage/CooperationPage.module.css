@@ -558,6 +558,44 @@ font-family: 'Inter', sans-serif;
   margin: 0;
 }
 
+/* Platform Statistics */
+.statsBlock {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin-top: 20px;
+}
+
+.statItem {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.statValue {
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 32px;
+  line-height: 120%;
+  letter-spacing: -0.03em;
+  color: #ffc934;
+}
+
+.statLabel {
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 120%;
+  letter-spacing: -0.03em;
+  color: #666;
+}
+
+.statDivider {
+  width: 2px;
+  height: 50px;
+  background: #ddd;
+}
+
 /* Кнопка */
 .actionBtn {
   display: inline-flex;
@@ -1187,9 +1225,15 @@ background: none;
 .verifyPic1, .verifyPic2 { width: 100%; height: 200px; }
 .actionSection { margin-top: 110px; }
 .actionLogo { width: 100px; height: 100px; border-radius: 20px; }
-.actionBox { width: 100%; height: 300px; border-radius: 13px; padding: 15px 15px;}
+.actionBox { width: 100%; height: auto; border-radius: 13px; padding: 15px 15px;}
 .actionContent { flex-direction: column; align-items: center; }
 .actionRight { align-items: center; }
+.actionTitleBlock { align-items: center; text-align: center; }
+.statsBlock { flex-direction: column; gap: 15px; align-items: center; margin-top: 15px; }
+.statItem { align-items: center; text-align: center; }
+.statValue { font-size: 24px; }
+.statLabel { font-size: 12px; }
+.statDivider { width: 50px; height: 2px; }
 .faqQuestion { gap: 10px; }
 .coverBg { display: none; }
 .reviewsSection { margin-top: 85px; }
