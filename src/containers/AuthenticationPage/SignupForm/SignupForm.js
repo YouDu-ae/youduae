@@ -403,15 +403,15 @@ const SignupFormFields = props => {
               label={intl.formatMessage({ id: 'SignupForm.emailOtpCodeLabel' })}
               placeholder={intl.formatMessage({ id: 'SignupForm.emailOtpCodePlaceholder' })}
             />
-            {/* Кнопка "Отправить повторно" */}
-            <SecondaryButton
+            {/* Кнопка "Отправить повторно" - как текстовая ссылка */}
+            <button
               type="button"
               className={css.resendOtpButton}
               disabled={otpState.sending}
               onClick={handleSendOtp}
             >
               <FormattedMessage id="SignupForm.emailOtpResendButton" />
-            </SecondaryButton>
+            </button>
           </div>
         )}
 
