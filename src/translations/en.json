@@ -117,6 +117,7 @@
   "ConfirmSignupForm.lastNameLabel": "Last name",
   "ConfirmSignupForm.lastNamePlaceholder": "Doe",
   "ConfirmSignupForm.lastNameRequired": "You need to add a last name.",
+  "ConfirmSignupForm.loadingAuthInfo": "Loading registration data...",
   "ConfirmSignupForm.phoneNumberLabel": "Phone number",
   "ConfirmSignupForm.phoneNumberPlaceholder": "Enter your phone number.",
   "ConfirmSignupForm.phoneNumberRequired": "You need to add a phone number.",

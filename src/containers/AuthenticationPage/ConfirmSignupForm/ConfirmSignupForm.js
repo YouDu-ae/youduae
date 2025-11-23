@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Form as FinalForm } from 'react-final-form';
 import arrayMutators from 'final-form-arrays';
 import classNames from 'classnames';
@@ -71,11 +71,36 @@ const ConfirmSignupFormComponent = props => (
 
       // If authInfo is not available we should not show the ConfirmForm
       if (!authInfo) {
-        return;
+        return (
+          <div className={css.loadingContainer}>
+            <p className={css.loadingText}>
+              <FormattedMessage id="ConfirmSignupForm.loadingAuthInfo" />
+            </p>
+          </div>
+        );
       }
 
       // Initial values from idp provider
       const { email, firstName, lastName } = authInfo;
+
+      // Auto-submit form if all required data is available from Google OAuth
+      useEffect(() => {
+        // Check if we have all necessary data from Google
+        const hasAllRequiredData = email && firstName && lastName && userType;
+        // Check if phone number field is required (it's not in our config)
+        const phoneNumberRequired = userFieldProps.some(
+          field => field.key === 'phoneNumber' && field.required
+        );
+        
+        // If we have all data and phone is not required, auto-submit
+        if (hasAllRequiredData && !phoneNumberRequired && !submitInProgress) {
+          console.log('✅ Auto-submitting confirm form with Google data');
+          // Delay to allow form to initialize
+          setTimeout(() => {
+            handleSubmit();
+          }, 500);
+        }
+      }, [email, firstName, lastName, userType]);
 
       return (
         <Form className={classes} onSubmit={handleSubmit}>

@@ -47,3 +47,17 @@
     margin-top: 32px;
   }
 }
+
+.loadingContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 200px;
+  padding: 24px;
+}
+
+.loadingText {
+  font-size: 16px;
+  color: var(--colorGrey700);
+  text-align: center;
+}
