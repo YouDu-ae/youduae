@@ -284,51 +284,6 @@ const SignupFormFields = props => {
             validate={validators.composeValidators(emailRequired, emailValid)}
           />
 
-          {/* Поле для ввода кода - показывается только после отправки OTP */}
-          {otpState.sent && !otpState.verified && (
-            <div className={css.otpCodeFieldContainer}>
-              <FieldTextInput
-                type="text"
-                id={formId ? `${formId}.emailOtpCode` : 'emailOtpCode'}
-                name="emailOtpCode"
-                autoComplete="off"
-                inputMode="numeric"
-                maxLength={6}
-                label={intl.formatMessage({ id: 'SignupForm.emailOtpCodeLabel' })}
-                placeholder={intl.formatMessage({ id: 'SignupForm.emailOtpCodePlaceholder' })}
-              />
-              {/* Кнопка "Отправить повторно" */}
-              <SecondaryButton
-                type="button"
-                className={css.resendOtpButton}
-                disabled={otpState.sending}
-                onClick={handleSendOtp}
-              >
-                <FormattedMessage id="SignupForm.emailOtpResendButton" />
-              </SecondaryButton>
-            </div>
-          )}
-
-          {/* Галочка после успешной верификации */}
-          {otpState.verified && (
-            <div className={classNames(css.emailOtpStatus, css.emailOtpStatusSuccess)}>
-              <span className={css.verifiedIcon}>✓</span>
-              <FormattedMessage id="SignupForm.emailOtpVerifiedStatus" />
-            </div>
-          )}
-
-          {/* Сообщения об ошибках или информации */}
-          {otpState.error && (
-            <div className={classNames(css.emailOtpStatus, css.emailOtpStatusError)}>
-              {otpState.error}
-            </div>
-          )}
-          {otpState.info && (
-            <div className={classNames(css.emailOtpStatus, css.emailOtpStatusInfo)}>
-              {otpState.info}
-            </div>
-          )}
-
               <div className={css.name}>
                 <FieldTextInput
                   className={css.firstNameRoot}
@@ -434,6 +389,52 @@ const SignupFormFields = props => {
 
       <div className={css.bottomWrapper}>
         {termsAndConditions}
+        
+        {/* Блок OTP - перемещён сюда, чтобы быть над кнопкой */}
+        {otpState.sent && !otpState.verified && (
+          <div className={css.otpCodeFieldContainer}>
+            <FieldTextInput
+              type="text"
+              id={formId ? `${formId}.emailOtpCode` : 'emailOtpCode'}
+              name="emailOtpCode"
+              autoComplete="off"
+              inputMode="numeric"
+              maxLength={6}
+              label={intl.formatMessage({ id: 'SignupForm.emailOtpCodeLabel' })}
+              placeholder={intl.formatMessage({ id: 'SignupForm.emailOtpCodePlaceholder' })}
+            />
+            {/* Кнопка "Отправить повторно" */}
+            <SecondaryButton
+              type="button"
+              className={css.resendOtpButton}
+              disabled={otpState.sending}
+              onClick={handleSendOtp}
+            >
+              <FormattedMessage id="SignupForm.emailOtpResendButton" />
+            </SecondaryButton>
+          </div>
+        )}
+
+        {/* Галочка после успешной верификации */}
+        {otpState.verified && (
+          <div className={classNames(css.emailOtpStatus, css.emailOtpStatusSuccess)}>
+            <span className={css.verifiedIcon}>✓</span>
+            <FormattedMessage id="SignupForm.emailOtpVerifiedStatus" />
+          </div>
+        )}
+
+        {/* Сообщения об ошибках или информации */}
+        {otpState.error && (
+          <div className={classNames(css.emailOtpStatus, css.emailOtpStatusError)}>
+            {otpState.error}
+          </div>
+        )}
+        {otpState.info && (
+          <div className={classNames(css.emailOtpStatus, css.emailOtpStatusInfo)}>
+            {otpState.info}
+          </div>
+        )}
+        
         {/* Универсальная кнопка с тремя состояниями */}
         <PrimaryButton 
           type="button"
