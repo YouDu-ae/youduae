@@ -83,10 +83,14 @@ const ConfirmSignupFormComponent = props => (
       // Initial values from idp provider
       const { email, firstName, lastName } = authInfo;
 
+      // ⚠️ ВАЖНО: Для Google OAuth автоматически выбираем Provider
+      // (Customer не могут регистрироваться через Google)
+      const autoSelectedUserType = userType || 'provider';
+
       // Auto-submit form if all required data is available from Google OAuth
       useEffect(() => {
         // Check if we have all necessary data from Google
-        const hasAllRequiredData = email && firstName && lastName && userType;
+        const hasAllRequiredData = email && firstName && lastName;
         // Check if phone number field is required (it's not in our config)
         const phoneNumberRequired = userFieldProps.some(
           field => field.key === 'phoneNumber' && field.required
@@ -94,22 +98,36 @@ const ConfirmSignupFormComponent = props => (
         
         // If we have all data and phone is not required, auto-submit
         if (hasAllRequiredData && !phoneNumberRequired && !submitInProgress) {
-          console.log('✅ Auto-submitting confirm form with Google data');
-          // Delay to allow form to initialize
+          console.log('✅ Auto-submitting confirm form with Google data for Provider');
+          // Delay to allow form to initialize, then submit with provider userType
           setTimeout(() => {
-            handleSubmit();
-          }, 500);
+            const formValues = {
+              email,
+              firstName,
+              lastName,
+              userType: autoSelectedUserType, // ← Явно указываем provider
+            };
+            handleSubmit(formValues);
+          }, 800); // Увеличен таймер для надежности
         }
-      }, [email, firstName, lastName, userType]);
+      }, [email, firstName, lastName, autoSelectedUserType]);
 
       return (
         <Form className={classes} onSubmit={handleSubmit}>
-          <FieldSelectUserType
-            name="userType"
-            userTypes={userTypes}
-            hasExistingUserType={!!preselectedUserType}
-            intl={intl}
-          />
+          {/* Скрываем выбор типа пользователя для Google OAuth (автоматически Provider) */}
+          {!preselectedUserType && (
+            <FieldSelectUserType
+              name="userType"
+              userTypes={userTypes}
+              hasExistingUserType={false}
+              intl={intl}
+            />
+          )}
+          
+          {/* Скрытое поле для автоматического выбора Provider при Google OAuth */}
+          {preselectedUserType && (
+            <input type="hidden" name="userType" value={autoSelectedUserType} />
+          )}
 
           {showDefaultUserFields ? (
             <div className={css.defaultUserFields}>

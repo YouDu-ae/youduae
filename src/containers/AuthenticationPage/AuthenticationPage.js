@@ -63,7 +63,13 @@ export const SocialLoginButtonsMaybe = props => {
   const routeConfiguration = useRouteConfiguration();
   const intl = useIntl();
   const { isLogin, showFacebookLogin, showGoogleLogin, from, userType } = props;
-  const showSocialLogins = showFacebookLogin || showGoogleLogin;
+  
+  // ⚠️ ВАЖНО: Google OAuth доступен ТОЛЬКО для Provider (заказчики)
+  // Customer (специалисты) НЕ могут регистрироваться через Google
+  const isCustomer = userType === 'customer';
+  const shouldHideSocialLogins = isCustomer && !isLogin; // Скрываем для регистрации Customer
+  
+  const showSocialLogins = (showFacebookLogin || showGoogleLogin) && !shouldHideSocialLogins;
 
   const getDataForSSORoutes = () => {
     const baseUrl = apiBaseUrl();
