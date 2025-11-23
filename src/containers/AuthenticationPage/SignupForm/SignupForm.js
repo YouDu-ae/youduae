@@ -117,6 +117,62 @@ const SignupFormFields = props => {
   const submitInProgress = inProgress;
   const submitDisabled = invalid || submitInProgress || !otpState.verified;
 
+  // Определяем состояние главной кнопки
+  const getButtonState = () => {
+    if (!otpState.sent && !otpState.verified) {
+      return 'sendOtp'; // Шаг 1: Отправить код
+    }
+    if (otpState.sent && !otpState.verified) {
+      return 'verifyOtp'; // Шаг 2: Проверить код
+    }
+    return 'submit'; // Шаг 3: Зарегистрироваться
+  };
+
+  const buttonState = getButtonState();
+
+  // Обработчик универсальной кнопки
+  const handleMainButtonClick = async (e) => {
+    e.preventDefault();
+    
+    if (buttonState === 'sendOtp') {
+      await handleSendOtp();
+    } else if (buttonState === 'verifyOtp') {
+      await handleVerifyOtp();
+    } else if (buttonState === 'submit') {
+      handleSubmit(e);
+    }
+  };
+
+  // Проверяем, можно ли нажать кнопку
+  const isMainButtonDisabled = () => {
+    if (buttonState === 'sendOtp') {
+      return !email || emailValid(email) || otpState.sending;
+    }
+    if (buttonState === 'verifyOtp') {
+      const code = values?.emailOtpCode;
+      return !code || code.length !== 6 || otpState.verifying;
+    }
+    return submitDisabled;
+  };
+
+  // Проверяем, показывать ли прогресс
+  const isMainButtonInProgress = () => {
+    if (buttonState === 'sendOtp') return otpState.sending;
+    if (buttonState === 'verifyOtp') return otpState.verifying;
+    return submitInProgress;
+  };
+
+  // Текст кнопки
+  const getButtonText = () => {
+    if (buttonState === 'sendOtp') {
+      return intl.formatMessage({ id: 'SignupForm.sendVerificationCode' });
+    }
+    if (buttonState === 'verifyOtp') {
+      return intl.formatMessage({ id: 'SignupForm.verifyCode' });
+    }
+    return intl.formatMessage({ id: 'SignupForm.signUp' });
+  };
+
   const handleSendOtp = async () => {
     if (!email || emailValid(email)) {
       setOtpState(prev => ({
@@ -228,57 +284,50 @@ const SignupFormFields = props => {
             validate={validators.composeValidators(emailRequired, emailValid)}
           />
 
-          <div className={css.emailOtpContainer}>
-            <SecondaryButton
-              type="button"
-              className={css.emailOtpSendButton}
-              disabled={otpState.sending || otpState.verified || !email}
-              inProgress={otpState.sending}
-              onClick={handleSendOtp}
-            >
-              <FormattedMessage
-                id={otpState.sent ? 'SignupForm.emailOtpResendButton' : 'SignupForm.emailOtpSendButton'}
+          {/* Поле для ввода кода - показывается только после отправки OTP */}
+          {otpState.sent && !otpState.verified && (
+            <div className={css.otpCodeFieldContainer}>
+              <FieldTextInput
+                type="text"
+                id={formId ? `${formId}.emailOtpCode` : 'emailOtpCode'}
+                name="emailOtpCode"
+                autoComplete="off"
+                inputMode="numeric"
+                maxLength={6}
+                label={intl.formatMessage({ id: 'SignupForm.emailOtpCodeLabel' })}
+                placeholder={intl.formatMessage({ id: 'SignupForm.emailOtpCodePlaceholder' })}
               />
-            </SecondaryButton>
+              {/* Кнопка "Отправить повторно" */}
+              <SecondaryButton
+                type="button"
+                className={css.resendOtpButton}
+                disabled={otpState.sending}
+                onClick={handleSendOtp}
+              >
+                <FormattedMessage id="SignupForm.emailOtpResendButton" />
+              </SecondaryButton>
+            </div>
+          )}
 
-            {otpState.sent && !otpState.verified ? (
-              <div className={css.emailOtpInputRow}>
-                <FieldTextInput
-                  type="text"
-                  id={formId ? `${formId}.emailOtpCode` : 'emailOtpCode'}
-                  name="emailOtpCode"
-                  autoComplete="off"
-                  maxLength={6}
-                  label={intl.formatMessage({ id: 'SignupForm.emailOtpCodeLabel' })}
-                  placeholder={intl.formatMessage({ id: 'SignupForm.emailOtpCodePlaceholder' })}
-                />
-                <SecondaryButton
-                  type="button"
-                  className={css.emailOtpVerifyButton}
-                  disabled={otpState.verifying}
-                  inProgress={otpState.verifying}
-                  onClick={handleVerifyOtp}
-                >
-                  <FormattedMessage id="SignupForm.emailOtpVerifyButton" />
-                </SecondaryButton>
-              </div>
-            ) : otpState.verified ? (
-              <div className={classNames(css.emailOtpStatus, css.emailOtpStatusSuccess)}>
-                <FormattedMessage id="SignupForm.emailOtpVerifiedStatus" />
-              </div>
-            ) : null}
+          {/* Галочка после успешной верификации */}
+          {otpState.verified && (
+            <div className={classNames(css.emailOtpStatus, css.emailOtpStatusSuccess)}>
+              <span className={css.verifiedIcon}>✓</span>
+              <FormattedMessage id="SignupForm.emailOtpVerifiedStatus" />
+            </div>
+          )}
 
-            {otpState.error ? (
-              <div className={classNames(css.emailOtpStatus, css.emailOtpStatusError)}>
-                {otpState.error}
-              </div>
-            ) : null}
-            {otpState.info ? (
-              <div className={classNames(css.emailOtpStatus, css.emailOtpStatusInfo)}>
-                {otpState.info}
-              </div>
-            ) : null}
-          </div>
+          {/* Сообщения об ошибках или информации */}
+          {otpState.error && (
+            <div className={classNames(css.emailOtpStatus, css.emailOtpStatusError)}>
+              {otpState.error}
+            </div>
+          )}
+          {otpState.info && (
+            <div className={classNames(css.emailOtpStatus, css.emailOtpStatusInfo)}>
+              {otpState.info}
+            </div>
+          )}
 
               <div className={css.name}>
                 <FieldTextInput
@@ -385,8 +434,14 @@ const SignupFormFields = props => {
 
       <div className={css.bottomWrapper}>
         {termsAndConditions}
-        <PrimaryButton type="submit" inProgress={submitInProgress} disabled={submitDisabled}>
-          <FormattedMessage id="SignupForm.signUp" />
+        {/* Универсальная кнопка с тремя состояниями */}
+        <PrimaryButton 
+          type="button"
+          onClick={handleMainButtonClick}
+          inProgress={isMainButtonInProgress()} 
+          disabled={isMainButtonDisabled()}
+        >
+          {getButtonText()}
         </PrimaryButton>
       </div>
     </Form>

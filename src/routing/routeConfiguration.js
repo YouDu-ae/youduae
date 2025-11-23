@@ -42,6 +42,7 @@ const StripePayoutPage = loadable(() => import(/* webpackChunkName: "StripePayou
 const TermsOfServicePage = loadable(() => import(/* webpackChunkName: "TermsOfServicePage" */ '../containers/TermsOfServicePage/TermsOfServicePage'));
 const TransactionPage = loadable(() => import(/* webpackChunkName: "TransactionPage" */ '../containers/TransactionPage/TransactionPage'));
 const CooperationPage = loadable(() => import(/* webpackChunkName: "CooperationPage" */ '../containers/CooperationPage/CooperationPage'));
+const CooperationSignupPage = loadable(() => import(/* webpackChunkName: "CooperationSignupPage" */ '../containers/CooperationSignupPage/CooperationSignupPage'));
 const VerificationPage = loadable(() => import(/* webpackChunkName: "VerificationPage" */ '../containers/VerificationPage/VerificationPage'));
 const NoAccessPage = loadable(() => import(/* webpackChunkName: "NoAccessPage" */ '../containers/NoAccessPage/NoAccessPage'));
 const CategoryExecutorsPage = loadable(() => import(/* webpackChunkName: "CategoryExecutorsPage" */ '../containers/CategoryExecutorsPage/CategoryExecutorsPage'));
@@ -381,6 +382,11 @@ const routeConfiguration = (layoutConfig, accessControlConfig) => {
       path: '/cooperation',
       name: 'CooperationPage',
       component: CooperationPage,
+    },
+    {
+      path: '/cooperation/signup/customer',
+      name: 'CooperationSignupPage',
+      component: CooperationSignupPage,
     },
     {
       path: '/welcome',

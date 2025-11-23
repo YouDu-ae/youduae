@@ -167,6 +167,7 @@ export const AuthenticationForms = props => {
     authInProgress,
     submitSignup,
     termsAndConditions,
+    hideAuthTabs = false,
   } = props;
   const config = useConfiguration();
   const intl = useIntl();
@@ -198,26 +199,13 @@ export const AuthenticationForms = props => {
     {
       text: (
         <Heading as={isSignupProvider ? 'h1' : 'h2'} rootClassName={css.tab}>
-          <FormattedMessage id="AuthenticationPage.signupCustomerLinkText" />
+          <FormattedMessage id="AuthenticationPage.signupProviderLinkText" />
         </Heading>
       ),
       selected: isSignupProvider,
       linkProps: {
         name: 'SignupForUserTypePage',
         params: { userType: 'provider' },
-        to: fromState,
-      },
-    },
-    {
-      text: (
-        <Heading as={isSignupCustomer ? 'h1' : 'h2'} rootClassName={css.tab}>
-          <FormattedMessage id="AuthenticationPage.signupProviderLinkText" />
-        </Heading>
-      ),
-      selected: isSignupCustomer,
-      linkProps: {
-        name: 'SignupForUserTypePage',
-        params: { userType: 'customer' },
         to: fromState,
       },
     },
@@ -342,7 +330,7 @@ export const AuthenticationForms = props => {
 
   return (
     <div className={css.content}>
-      <LinkTabNavHorizontal className={css.tabs} tabs={tabs} ariaLabel={ariaLabel} />
+      {!hideAuthTabs && <LinkTabNavHorizontal className={css.tabs} tabs={tabs} ariaLabel={ariaLabel} />}
       {loginOrSignupError}
 
       {isLogin ? (
@@ -489,6 +477,7 @@ export const AuthenticationOrConfirmInfoForm = props => {
     signupError,
     confirmError,
     termsAndConditions,
+    hideAuthTabs = false,
   } = props;
   const isConfirm = tab === 'confirm';
   const isLogin = tab === 'login';
@@ -516,6 +505,7 @@ export const AuthenticationOrConfirmInfoForm = props => {
       authInProgress={authInProgress}
       submitSignup={submitSignup}
       termsAndConditions={termsAndConditions}
+      hideAuthTabs={hideAuthTabs}
     ></AuthenticationForms>
   );
 };
@@ -631,6 +621,8 @@ export const AuthenticationPageComponent = props => {
     tosAssetsData,
     tosFetchInProgress,
     tosFetchError,
+    hideAuthTabs = false,
+    userType: userTypeFromProps = null,
   } = props;
 
   // History API has potentially state tied to this route
@@ -643,7 +635,7 @@ export const AuthenticationPageComponent = props => {
   const isConfirm = tab === 'confirm';
   const userTypeInPushState = location.state?.userType || null;
   const userTypeInAuthInfo = isConfirm && authInfo?.userType ? authInfo?.userType : null;
-  const userType = pathParams?.userType || userTypeInPushState || userTypeInAuthInfo || null;
+  const userType = userTypeFromProps || pathParams?.userType || userTypeInPushState || userTypeInAuthInfo || null;
 
   const { userTypes = [] } = config.user;
   const preselectedUserType = userTypes.find(conf => conf.userType === userType)?.userType || null;
@@ -676,16 +668,6 @@ export const AuthenticationPageComponent = props => {
     [css.hideOnMobile]: showEmailVerification,
   });
 
-  console.log('🔍 AuthenticationPage - Redirect check:', {
-    isAuthenticated,
-    currentUserLoaded,
-    emailVerified: user.attributes?.emailVerified,
-    showEmailVerification,
-    urlIntent,
-    localStorageIntent,
-    hasCreateListingIntent,
-    from,
-  });
 
   const shouldRedirectToFrom = isAuthenticated && from;
   // PRIORITY: Guest listing creation has priority over email verification
@@ -819,6 +801,7 @@ export const AuthenticationPageComponent = props => {
               idpAuthError={authError}
               signupError={signupError}
               confirmError={confirmError}
+              hideAuthTabs={hideAuthTabs}
               termsAndConditions={
                 <TermsAndConditions
                   onOpenTermsOfService={() => setTosModalOpen(true)}
