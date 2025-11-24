@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React from 'react';
 import { Form as FinalForm } from 'react-final-form';
 import arrayMutators from 'final-form-arrays';
 import classNames from 'classnames';
@@ -98,44 +98,8 @@ const ConfirmSignupFormComponent = props => {
       // (Customer не могут регистрироваться через Google)
       const autoSelectedUserType = preselectedUserType || userType || 'provider';
 
-      // Флаг для предотвращения повторного сабмита
-      const hasSubmittedRef = useRef(false);
-
-      // Auto-submit form if all required data is available from Google OAuth
-      useEffect(() => {
-        // Проверяем, не отправляли ли уже форму
-        if (hasSubmittedRef.current) {
-          return;
-        }
-
-        // Check if we have all necessary data from Google
-        const hasAllRequiredData = email && firstName && lastName;
-        // Check if phone number field is required (it's not in our config)
-        const phoneNumberRequired = userFieldProps.some(
-          field => field.key === 'phoneNumber' && field.required
-        );
-        
-        // If we have all data and phone is not required, auto-submit
-        if (hasAllRequiredData && !phoneNumberRequired && !submitInProgress && form) {
-          console.log('✅ Auto-submitting confirm form with Google data for Provider');
-          // Устанавливаем флаг, что уже начали сабмит
-          hasSubmittedRef.current = true;
-          
-          // Delay to allow form to initialize
-          setTimeout(() => {
-            // Устанавливаем значения через Final Form API
-            form.change('userType', autoSelectedUserType);
-            form.change('email', email);
-            form.change('firstName', firstName);
-            form.change('lastName', lastName);
-            
-            // Программно отправляем форму
-            setTimeout(() => {
-              form.submit();
-            }, 300); // Даём время на обновление формы
-          }, 500);
-        }
-      }, [email, firstName, lastName, autoSelectedUserType, form, submitInProgress, userFieldProps]);
+      // ⚠️ УБРАЛИ АВТОСАБМИТ — пользователь нажмёт кнопку вручную
+      // Данные из Google уже предзаполнены через initialValues
 
       return (
         <Form className={classes} onSubmit={handleSubmit}>
