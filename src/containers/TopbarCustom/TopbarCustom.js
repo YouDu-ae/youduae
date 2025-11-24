@@ -211,16 +211,18 @@ const TopbarCustom = props => {
           <FormattedMessage id="TopbarDesktop.findTasks" />
         </NamedLink>
       </li>
-      <li>
-        <NamedLink
-          name="ProfilePage"
-          params={{ id: currentUser?.id?.uuid }}
-          className={css.burgerLink}
-          onClick={closeBurger}
-        >
-          <FormattedMessage id="TopbarDesktop.myReviews" />
-        </NamedLink>
-      </li>
+      {currentUser?.id?.uuid && (
+        <li>
+          <NamedLink
+            name="ProfilePage"
+            params={{ id: currentUser.id.uuid }}
+            className={css.burgerLink}
+            onClick={closeBurger}
+          >
+            <FormattedMessage id="TopbarDesktop.myReviews" />
+          </NamedLink>
+        </li>
+      )}
       <li>
         <NamedLink name="InboxPage" params={{ tab: 'orders' }} className={css.burgerLink} onClick={closeBurger}>
           <FormattedMessage id="TopbarDesktop.inbox" />
@@ -229,16 +231,18 @@ const TopbarCustom = props => {
           )}
         </NamedLink>
       </li>
-      <li>
-        <NamedLink
-          name="ProfilePage"
-          params={{ id: currentUser?.id?.uuid }}
-          className={css.burgerLink}
-          onClick={closeBurger}
-        >
-          <FormattedMessage id="TopbarDesktop.profileSettingsLink" />
-        </NamedLink>
-      </li>
+      {currentUser?.id?.uuid && (
+        <li>
+          <NamedLink
+            name="ProfilePage"
+            params={{ id: currentUser.id.uuid }}
+            className={css.burgerLink}
+            onClick={closeBurger}
+          >
+            <FormattedMessage id="TopbarDesktop.profileSettingsLink" />
+          </NamedLink>
+        </li>
+      )}
       <li>
         <NamedLink name="ContactDetailsPage" className={css.burgerLink} onClick={closeBurger}>
           <FormattedMessage id="TopbarDesktop.accountSettingsLink" />
@@ -277,16 +281,18 @@ const TopbarCustom = props => {
           )}
         </NamedLink>
       </li>
-      <li>
-        <NamedLink
-          name="ProfilePage"
-          params={{ id: currentUser?.id?.uuid }}
-          className={css.burgerLink}
-          onClick={closeBurger}
-        >
-          <FormattedMessage id="TopbarDesktop.profileSettingsLink" />
-        </NamedLink>
-      </li>
+      {currentUser?.id?.uuid && (
+        <li>
+          <NamedLink
+            name="ProfilePage"
+            params={{ id: currentUser.id.uuid }}
+            className={css.burgerLink}
+            onClick={closeBurger}
+          >
+            <FormattedMessage id="TopbarDesktop.profileSettingsLink" />
+          </NamedLink>
+        </li>
+      )}
       <li>
         <NamedLink name="ContactDetailsPage" className={css.burgerLink} onClick={closeBurger}>
           <FormattedMessage id="TopbarDesktop.accountSettingsLink" />
@@ -342,9 +348,11 @@ const TopbarCustom = props => {
                 <NamedLink name="SearchPage" className={css.navLinkUnified}>
                   <FormattedMessage id="TopbarDesktop.findTasks" />
                 </NamedLink>
-                <NamedLink name="ProfilePage" params={{ id: currentUser?.id?.uuid }} className={css.navLinkUnified}>
-                  <FormattedMessage id="TopbarDesktop.myReviews" />
-                </NamedLink>
+                {currentUser?.id?.uuid && (
+                  <NamedLink name="ProfilePage" params={{ id: currentUser.id.uuid }} className={css.navLinkUnified}>
+                    <FormattedMessage id="TopbarDesktop.myReviews" />
+                  </NamedLink>
+                )}
                 <NamedLink name="InboxPage" params={{ tab: 'orders' }} className={css.navLinkUnified}>
                   <FormattedMessage id="TopbarDesktop.inbox" />
                   {notificationCount > 0 && (
