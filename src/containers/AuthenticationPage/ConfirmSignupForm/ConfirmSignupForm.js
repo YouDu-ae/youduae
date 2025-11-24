@@ -19,17 +19,28 @@ import css from './ConfirmSignupForm.module.css';
 const getSoleUserTypeMaybe = userTypes =>
   Array.isArray(userTypes) && userTypes.length === 1 ? userTypes[0].userType : null;
 
-const ConfirmSignupFormComponent = props => (
-  <FinalForm
-    {...props}
-    mutators={{ ...arrayMutators }}
-    initialValues={{ userType: props.preselectedUserType || getSoleUserTypeMaybe(props.userTypes) }}
-    render={formRenderProps => {
+const ConfirmSignupFormComponent = props => {
+  // Для Google OAuth автоматически выбираем Provider
+  const autoUserType = props.preselectedUserType || getSoleUserTypeMaybe(props.userTypes) || 'provider';
+  
+  return (
+    <FinalForm
+      {...props}
+      mutators={{ ...arrayMutators }}
+      initialValues={{ 
+        userType: autoUserType,
+        // Предзаполняем данные из Google OAuth, если они есть
+        email: props.authInfo?.email || '',
+        firstName: props.authInfo?.firstName || '',
+        lastName: props.authInfo?.lastName || '',
+      }}
+      render={formRenderProps => {
       const {
         rootClassName,
         className,
         formId,
         handleSubmit,
+        form, // ← Добавляем form API для программного управления
         inProgress,
         invalid,
         intl,
@@ -85,7 +96,7 @@ const ConfirmSignupFormComponent = props => (
 
       // ⚠️ ВАЖНО: Для Google OAuth автоматически выбираем Provider
       // (Customer не могут регистрироваться через Google)
-      const autoSelectedUserType = userType || 'provider';
+      const autoSelectedUserType = preselectedUserType || userType || 'provider';
 
       // Auto-submit form if all required data is available from Google OAuth
       useEffect(() => {
@@ -97,20 +108,23 @@ const ConfirmSignupFormComponent = props => (
         );
         
         // If we have all data and phone is not required, auto-submit
-        if (hasAllRequiredData && !phoneNumberRequired && !submitInProgress) {
+        if (hasAllRequiredData && !phoneNumberRequired && !submitInProgress && form) {
           console.log('✅ Auto-submitting confirm form with Google data for Provider');
-          // Delay to allow form to initialize, then submit with provider userType
+          // Delay to allow form to initialize
           setTimeout(() => {
-            const formValues = {
-              email,
-              firstName,
-              lastName,
-              userType: autoSelectedUserType, // ← Явно указываем provider
-            };
-            handleSubmit(formValues);
-          }, 800); // Увеличен таймер для надежности
+            // Устанавливаем значения через Final Form API
+            form.change('userType', autoSelectedUserType);
+            form.change('email', email);
+            form.change('firstName', firstName);
+            form.change('lastName', lastName);
+            
+            // Программно отправляем форму
+            setTimeout(() => {
+              form.submit();
+            }, 300); // Даём время на обновление формы
+          }, 500);
         }
-      }, [email, firstName, lastName, autoSelectedUserType]);
+      }, [email, firstName, lastName, autoSelectedUserType, form, submitInProgress, userFieldProps]);
 
       return (
         <Form className={classes} onSubmit={handleSubmit}>
@@ -219,7 +233,8 @@ const ConfirmSignupFormComponent = props => (
       );
     }}
   />
-);
+  );
+};
 
 /**
  * A component that renders the confirm signup form, which is used with SSO authentication.
