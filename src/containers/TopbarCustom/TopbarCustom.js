@@ -116,18 +116,20 @@ const TopbarCustom = props => {
                 </NamedLink>
               </MenuItem>
             )}
-            <MenuItem key="profile">
-              <NamedLink
-                name="ProfilePage"
-                params={{ id: currentUser.id.uuid }}
-                className={css.menuLink}
-              >
-                <FormattedMessage
-                  id="TopbarDesktop.profileSettingsLink"
-                  defaultMessage="Настройки профиля"
-                />
-              </NamedLink>
-            </MenuItem>
+            {currentUser?.id?.uuid && (
+              <MenuItem key="profile">
+                <NamedLink
+                  name="ProfilePage"
+                  params={{ id: currentUser.id.uuid }}
+                  className={css.menuLink}
+                >
+                  <FormattedMessage
+                    id="TopbarDesktop.profileSettingsLink"
+                    defaultMessage="Настройки профиля"
+                  />
+                </NamedLink>
+              </MenuItem>
+            )}
             <MenuItem key="account">
               <NamedLink name="ContactDetailsPage" className={css.menuLink}>
                 <FormattedMessage
