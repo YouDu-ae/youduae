@@ -89,20 +89,29 @@ module.exports = (req, res) => {
             console.error('❌ Error fetching reviews for user:', user.id.uuid, err.message);
           }
 
-          // Получаем выполненные задания (транзакции где пользователь - исполнитель)
+          // Получаем выполненные задания (транзакции где пользователь - исполнитель/customer)
+          // В YouDu: Provider = создатель задания, Customer = исполнитель
           try {
             const transactionsResponse = await integrationSdk.transactions.query({
-              providerId: user.id.uuid,
-              lastTransitions: [
-                'transition/complete',
-                'transition/review-1-by-customer',
-                'transition/review-2-by-customer',
-                'transition/review-1-by-provider',
-                'transition/review-2-by-provider',
-              ],
+              customerId: user.id.uuid,
               perPage: 100,
             });
-            completedTasksCount = transactionsResponse.data.data.length;
+            
+            // Фильтруем завершённые транзакции
+            const completedTransitions = [
+              'transition/complete',
+              'transition/review-1-by-customer',
+              'transition/review-2-by-customer',
+              'transition/review-1-by-provider',
+              'transition/review-2-by-provider',
+            ];
+            
+            const allTx = transactionsResponse.data.data || [];
+            completedTasksCount = allTx.filter(tx => 
+              completedTransitions.includes(tx.attributes.lastTransition)
+            ).length;
+            
+            console.log(`📋 User ${user.attributes.profile.displayName}: ${allTx.length} total tx, ${completedTasksCount} completed`);
           } catch (err) {
             console.error('❌ Error fetching transactions for user:', user.id.uuid, err.message);
           }
