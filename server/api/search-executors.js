@@ -120,6 +120,7 @@ module.exports = (req, res) => {
             id: user.id.uuid,
             displayName: user.attributes.profile.displayName,
             abbreviatedName: user.attributes.profile.abbreviatedName,
+            bio: user.attributes.profile.bio || '',
             publicData: user.attributes.profile.publicData || {},
             metadata: user.attributes.profile.metadata || {},
             isVerified: user.attributes.profile.metadata?.isVerified === true,
