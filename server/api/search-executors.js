@@ -59,71 +59,69 @@ module.exports = (req, res) => {
 
         console.log(`✅ Filtered: ${filteredUsers.length} executors for "${category}"`);
 
-        // Для каждого пользователя получаем отзывы (через Marketplace SDK)
-        const userPromises = filteredUsers.map(user => {
-          return marketplaceSdk.reviews
-          .query({
-            subjectId: user.id.uuid,
-            state: 'public',
-            perPage: 100,
-          })
-          .then(reviewsResponse => {
+        // Для каждого пользователя получаем отзывы и выполненные задания
+        const userPromises = filteredUsers.map(async user => {
+          // Находим фото профиля
+          const profileImage = included.find(
+            item =>
+              item.type === 'image' &&
+              item.id.uuid === user.relationships?.profileImage?.data?.id?.uuid
+          );
+
+          let reviewCount = 0;
+          let averageRating = 0;
+          let completedTasksCount = 0;
+
+          // Получаем отзывы
+          try {
+            const reviewsResponse = await marketplaceSdk.reviews.query({
+              subjectId: user.id.uuid,
+              state: 'public',
+              perPage: 100,
+            });
             const reviews = reviewsResponse.data.data;
-            
-            // Вычисляем статистику
-            const reviewCount = reviews.length;
+            reviewCount = reviews.length;
             const totalRating = reviews.reduce((sum, review) => {
               return sum + (review.attributes.rating || 0);
             }, 0);
-            const averageRating = reviewCount > 0 ? totalRating / reviewCount : 0;
+            averageRating = reviewCount > 0 ? totalRating / reviewCount : 0;
+          } catch (err) {
+            console.error('❌ Error fetching reviews for user:', user.id.uuid, err.message);
+          }
 
-              // Находим фото профиля
-              const profileImage = included.find(
-                item =>
-                  item.type === 'image' &&
-                  item.id.uuid === user.relationships?.profileImage?.data?.id?.uuid
-              );
+          // Получаем выполненные задания (транзакции где пользователь - исполнитель)
+          try {
+            const transactionsResponse = await integrationSdk.transactions.query({
+              providerId: user.id.uuid,
+              lastTransitions: [
+                'transition/complete',
+                'transition/review-1-by-customer',
+                'transition/review-2-by-customer',
+                'transition/review-1-by-provider',
+                'transition/review-2-by-provider',
+              ],
+              perPage: 100,
+            });
+            completedTasksCount = transactionsResponse.data.data.length;
+          } catch (err) {
+            console.error('❌ Error fetching transactions for user:', user.id.uuid, err.message);
+          }
 
-            return {
-              id: user.id.uuid,
-              displayName: user.attributes.profile.displayName,
-              abbreviatedName: user.attributes.profile.abbreviatedName,
-              publicData: user.attributes.profile.publicData || {},
-              metadata: user.attributes.profile.metadata || {},
-                isVerified: user.attributes.profile.metadata?.isVerified === true,
-              createdAt: user.attributes.createdAt,
-                profileImage: profileImage,
-              reviews: {
-                count: reviewCount,
-                  averageRating: Math.round(averageRating * 10) / 10,
-              },
-            };
-          })
-          .catch(err => {
-              console.error('❌ Error fetching reviews for user:', user.id.uuid, err.message);
-              
-              // Если ошибка с отзывами - всё равно возвращаем пользователя
-              const profileImage = included.find(
-                item =>
-                  item.type === 'image' &&
-                  item.id.uuid === user.relationships?.profileImage?.data?.id?.uuid
-              );
-
-            return {
-              id: user.id.uuid,
-              displayName: user.attributes.profile.displayName,
-              abbreviatedName: user.attributes.profile.abbreviatedName,
-              publicData: user.attributes.profile.publicData || {},
-              metadata: user.attributes.profile.metadata || {},
-                isVerified: user.attributes.profile.metadata?.isVerified === true,
-              createdAt: user.attributes.createdAt,
-                profileImage: profileImage,
-              reviews: {
-                count: 0,
-                averageRating: 0,
-              },
-            };
-          });
+          return {
+            id: user.id.uuid,
+            displayName: user.attributes.profile.displayName,
+            abbreviatedName: user.attributes.profile.abbreviatedName,
+            publicData: user.attributes.profile.publicData || {},
+            metadata: user.attributes.profile.metadata || {},
+            isVerified: user.attributes.profile.metadata?.isVerified === true,
+            createdAt: user.attributes.createdAt,
+            profileImage: profileImage,
+            reviews: {
+              count: reviewCount,
+              averageRating: Math.round(averageRating * 10) / 10,
+            },
+            completedTasks: completedTasksCount,
+          };
       });
 
       return Promise.all(userPromises);
