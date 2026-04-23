@@ -96,14 +96,15 @@ module.exports = async (req, res) => {
         }
       }
 
-      // Get offer price from protectedData or lineItems
+      // Get offer price from payinTotal (this is where Sharetribe stores the total price)
       let offerPrice = 0;
-      const protectedData = tx.attributes?.protectedData || {};
-      if (protectedData.offerPrice) {
-        offerPrice = protectedData.offerPrice;
+      if (tx.attributes?.payinTotal?.amount) {
+        offerPrice = tx.attributes.payinTotal.amount / 100;
+      } else if (tx.attributes?.protectedData?.offerPrice) {
+        offerPrice = tx.attributes.protectedData.offerPrice;
       } else if (tx.attributes?.lineItems) {
         const lineItem = tx.attributes.lineItems.find(li => 
-          li.code === 'line-item/offer-price' || li.code === 'line-item/units'
+          li.code === 'line-item/offer-price' || li.code === 'line-item/units' || li.code === 'line-item/item'
         );
         if (lineItem?.unitPrice?.amount) {
           offerPrice = lineItem.unitPrice.amount / 100;
