@@ -1,5 +1,7 @@
 const sharetribeSdk = require('sharetribe-flex-sdk');
+const sharetribeIntegrationSdk = require('sharetribe-flex-integration-sdk');
 const { handleError, serialize, typeHandlers } = require('../api-util/sdk');
+const { sendExecutorSelectedNotification } = require('./send-notification');
 
 const CLIENT_ID = process.env.REACT_APP_SHARETRIBE_SDK_CLIENT_ID;
 const CLIENT_SECRET = process.env.SHARETRIBE_SDK_CLIENT_SECRET;
@@ -69,6 +71,42 @@ module.exports = async (req, res) => {
     });
 
     console.log('✅ accept-offer: Transition successful');
+
+    // Send push notification to the executor
+    try {
+      const integrationClientId = process.env.INTEGRATION_API_CLIENT_ID;
+      const integrationClientSecret = process.env.INTEGRATION_API_CLIENT_SECRET;
+      
+      if (integrationClientId && integrationClientSecret) {
+        const integrationSdk = sharetribeIntegrationSdk.createInstance({
+          clientId: integrationClientId,
+          clientSecret: integrationClientSecret,
+        });
+
+        // Get transaction details to find customer (executor) and listing
+        const txRes = await integrationSdk.transactions.show({
+          id: transactionId,
+          include: ['customer', 'listing'],
+        });
+        
+        const tx = txRes.data.data;
+        const customerId = tx.relationships?.customer?.data?.id?.uuid;
+        const listingId = tx.relationships?.listing?.data?.id?.uuid;
+        
+        const listing = txRes.data.included?.find(
+          inc => inc.type === 'listing' && inc.id.uuid === listingId
+        );
+        const listingTitle = listing?.attributes?.title || 'Задание';
+
+        if (customerId) {
+          await sendExecutorSelectedNotification(customerId, listingTitle, listingId);
+          console.log('📤 Notification sent to executor:', customerId);
+        }
+      }
+    } catch (notifError) {
+      console.error('⚠️ Failed to send notification:', notifError.message);
+      // Don't fail the request if notification fails
+    }
 
     res.status(200).json({
       success: true,
