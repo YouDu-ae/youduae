@@ -26,6 +26,7 @@ const createMyExecutorProfile = require('./api/create-my-executor-profile');
 const addPortfolioItem = require('./api/add-portfolio-item');
 const userCompletedTransactions = require('./api/user-completed-transactions');
 const platformStats = require('./api/platform-stats');
+const listingResponses = require('./api/listing-responses');
 
 const createUserWithIdp = require('./api/auth/createUserWithIdp');
 const { sendEmailOtp, verifyEmailOtp, assertEmailVerified } = require('./api/email-otp');
@@ -86,6 +87,7 @@ router.post('/create-my-executor-profile', createMyExecutorProfile);
 router.post('/add-portfolio-item', addPortfolioItem);
 router.get('/user-completed-transactions', userCompletedTransactions);
 router.get('/platform-stats', platformStats);
+router.get('/listing-responses', listingResponses);
 
 // Email OTP verification endpoints
 router.post('/otp/email/send', sendEmailOtp);
