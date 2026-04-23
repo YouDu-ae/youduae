@@ -97,34 +97,18 @@ module.exports = async (req, res) => {
         }
       }
 
-      // Get offer price from payinTotal (this is where Sharetribe stores the total price)
+      // Get offer price from protectedData.offer.price (this is where YouDu stores the offer price)
       let offerPrice = 0;
+      const offerData = tx.attributes?.protectedData?.offer || {};
       
-      // Debug: log transaction attributes
-      console.log(`💰 Transaction ${tx.id.uuid} price data:`, {
-        payinTotal: tx.attributes?.payinTotal,
-        protectedData: tx.attributes?.protectedData,
-        lineItemsCount: tx.attributes?.lineItems?.length || 0,
-      });
+      console.log(`💰 Transaction ${tx.id.uuid} offer data:`, offerData);
       
-      if (tx.attributes?.payinTotal?.amount) {
+      if (offerData.price !== undefined && offerData.price !== null) {
+        offerPrice = offerData.price;
+        console.log(`  → Using protectedData.offer.price: ${offerPrice}`);
+      } else if (tx.attributes?.payinTotal?.amount) {
         offerPrice = tx.attributes.payinTotal.amount / 100;
         console.log(`  → Using payinTotal: ${offerPrice}`);
-      } else if (tx.attributes?.protectedData?.offerPrice) {
-        offerPrice = tx.attributes.protectedData.offerPrice;
-        console.log(`  → Using protectedData.offerPrice: ${offerPrice}`);
-      } else if (tx.attributes?.lineItems) {
-        const lineItem = tx.attributes.lineItems.find(li => 
-          li.code === 'line-item/offer-price' || li.code === 'line-item/units' || li.code === 'line-item/item'
-        );
-        if (lineItem?.unitPrice?.amount) {
-          offerPrice = lineItem.unitPrice.amount / 100;
-          console.log(`  → Using lineItem: ${offerPrice}`);
-        }
-      }
-      
-      if (offerPrice === 0) {
-        console.log(`  ⚠️ No price found for transaction ${tx.id.uuid}`);
       }
 
       // Get customer reviews
