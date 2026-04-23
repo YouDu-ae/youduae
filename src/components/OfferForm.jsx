@@ -263,7 +263,7 @@ export default function OfferForm({
     <div className={css.root}>
       <h3 className={css.title}>Отправить отклик</h3>
       
-      <form onSubmit={onSubmit}>
+    <form onSubmit={onSubmit}>
         <div className={css.inputGroup}>
           <label className={css.label}>
             Ваша цена (AED)
@@ -271,30 +271,30 @@ export default function OfferForm({
           </label>
           <div className={css.priceInputContainer}>
             <span className={css.currencySymbol}>د.إ</span>
-            <input
-              type="number"
-              min="1"
-              step="1"
-              value={price}
-              onChange={e => setPrice(e.target.value)}
+        <input
+          type="number"
+          min="1"
+          step="1"
+          value={price}
+          onChange={e => setPrice(e.target.value)}
               className={css.priceInput}
-              placeholder="Например, 250"
+          placeholder="Например, 250"
               required
-            />
+        />
           </div>
         </div>
 
         <div className={css.inputGroup}>
           <label className={css.label}>
-            Комментарий
+        Комментарий
           </label>
-          <textarea
-            value={comment}
-            onChange={e => setComment(e.target.value)}
+        <textarea
+          value={comment}
+          onChange={e => setComment(e.target.value)}
             className={css.commentTextarea}
-            rows={4}
+          rows={4}
             placeholder="Кратко опишите: сроки выполнения, условия, что входит в работу..."
-          />
+        />
         </div>
 
         {err && <div className={css.errorMessage}>{err}</div>}
@@ -305,9 +305,9 @@ export default function OfferForm({
           disabled={submitting} 
           className={css.submitButton}
         >
-          {submitting ? 'Отправка…' : 'Отправить отклик'}
-        </button>
-      </form>
+        {submitting ? 'Отправка…' : 'Отправить отклик'}
+      </button>
+    </form>
     </div>
   );
 }

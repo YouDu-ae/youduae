@@ -92,10 +92,10 @@ const setPageScrollPosition = (location, delayed, action) => {
       }
     } else {
       // Обычная навигация - скроллим наверх
-      window.scroll({
-        top: 0,
-        left: 0,
-      });
+    window.scroll({
+      top: 0,
+      left: 0,
+    });
     }
   } else {
     const el = document.querySelector(location.hash);

@@ -1,15 +1,41 @@
-const { getSdk, handleError, serialize } = require('../api-util/sdk');
+const sharetribeSdk = require('sharetribe-flex-sdk');
+const { getSdk, handleError, serialize, typeHandlers } = require('../api-util/sdk');
+
+const CLIENT_ID = process.env.REACT_APP_SHARETRIBE_SDK_CLIENT_ID;
+const BASE_URL = process.env.REACT_APP_SHARETRIBE_SDK_BASE_URL;
 
 /**
  * Обновляет publicData листинга (например, status и assignedTo).
  * Используется после accept-offer чтобы пометить листинг как "в работе".
+ * Поддерживает как cookie auth (web), так и Bearer token auth (mobile).
  */
-module.exports = (req, res) => {
+module.exports = async (req, res) => {
   const { listingId, assignedTo, status } = req.body;
-  const sdk = getSdk(req, res);
-
+  
   if (!listingId) {
     return res.status(400).json({ error: 'listingId is required' }).end();
+  }
+
+  // Check for Bearer token (mobile) or use cookie-based SDK (web)
+  const authHeader = req.headers.authorization;
+  let sdk;
+  
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    const accessToken = authHeader.substring(7);
+    console.log('📱 update-listing-status: Using Bearer token auth');
+    
+    const tokenStore = sharetribeSdk.tokenStore.memoryStore();
+    tokenStore.setToken({ access_token: accessToken });
+    
+    sdk = sharetribeSdk.createInstance({
+      clientId: CLIENT_ID,
+      tokenStore,
+      typeHandlers,
+      ...(BASE_URL ? { baseUrl: BASE_URL } : {}),
+    });
+  } else {
+    console.log('🌐 update-listing-status: Using cookie auth');
+    sdk = getSdk(req, res);
   }
 
   console.log('🔄 update-listing-status:', { listingId, assignedTo, status });

@@ -24,9 +24,9 @@ const ConfirmSignupFormComponent = props => {
   const autoUserType = props.preselectedUserType || getSoleUserTypeMaybe(props.userTypes) || 'provider';
   
   return (
-    <FinalForm
-      {...props}
-      mutators={{ ...arrayMutators }}
+  <FinalForm
+    {...props}
+    mutators={{ ...arrayMutators }}
       initialValues={{ 
         userType: autoUserType,
         // Предзаполняем данные из Google OAuth, если они есть
@@ -34,7 +34,7 @@ const ConfirmSignupFormComponent = props => {
         firstName: props.authInfo?.firstName || '',
         lastName: props.authInfo?.lastName || '',
       }}
-      render={formRenderProps => {
+    render={formRenderProps => {
       const {
         rootClassName,
         className,
@@ -105,12 +105,12 @@ const ConfirmSignupFormComponent = props => {
         <Form className={classes} onSubmit={handleSubmit}>
           {/* Скрываем выбор типа пользователя для Google OAuth (автоматически Provider) */}
           {!preselectedUserType && (
-            <FieldSelectUserType
-              name="userType"
-              userTypes={userTypes}
+          <FieldSelectUserType
+            name="userType"
+            userTypes={userTypes}
               hasExistingUserType={false}
-              intl={intl}
-            />
+            intl={intl}
+          />
           )}
           
           {/* Скрытое поле для автоматического выбора Provider при Google OAuth */}
@@ -208,7 +208,7 @@ const ConfirmSignupFormComponent = props => {
       );
     }}
   />
-  );
+);
 };
 
 /**

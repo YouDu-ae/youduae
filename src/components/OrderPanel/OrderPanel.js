@@ -503,12 +503,12 @@ const OrderPanel = props => {
           <AvatarSmall user={author} className={css.providerAvatar} />
           <div className={css.authorInfo}>
             <div className={css.authorNameRow}>
-              <span className={css.providerNameLinked}>
-                <FormattedMessage id="OrderPanel.author" values={{ name: authorLink }} />
-              </span>
-              <span className={css.providerNamePlain}>
-                <FormattedMessage id="OrderPanel.author" values={{ name: authorDisplayName }} />
-              </span>
+          <span className={css.providerNameLinked}>
+            <FormattedMessage id="OrderPanel.author" values={{ name: authorLink }} />
+          </span>
+          <span className={css.providerNamePlain}>
+            <FormattedMessage id="OrderPanel.author" values={{ name: authorDisplayName }} />
+          </span>
               {author?.attributes?.profile?.publicData?.isVerified && (
                 <span className={css.verifiedBadge} title="Verified Provider">
                   ✓
