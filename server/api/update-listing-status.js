@@ -40,9 +40,14 @@ module.exports = async (req, res) => {
 
   console.log('🔄 update-listing-status:', { listingId, assignedTo, status });
 
+  // Ensure listingId is in correct format for SDK
+  const listingUUID = typeof listingId === 'string' 
+    ? { _sdkType: 'UUID', uuid: listingId }
+    : listingId;
+
   // Обновляем publicData листинга
   const updateParams = {
-    id: listingId,
+    id: listingUUID,
     publicData: {}
   };
 
@@ -67,7 +72,7 @@ module.exports = async (req, res) => {
       // Если нужно закрыть листинг (при in-progress), делаем отдельный вызов
       if (status === 'in-progress') {
         console.log('  → Closing listing to hide from search...');
-        return sdk.ownListings.close({ id: listingId });
+        return sdk.ownListings.close({ id: listingUUID });
       }
       
       return apiResponse;
