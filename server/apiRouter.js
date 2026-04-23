@@ -30,6 +30,8 @@ const listingResponses = require('./api/listing-responses');
 const acceptOffer = require('./api/accept-offer');
 const registerDeviceToken = require('./api/register-device-token');
 const { handler: sendNotification } = require('./api/send-notification');
+const notifyNewMessage = require('./api/notify-new-message');
+const notifyNewReview = require('./api/notify-new-review');
 
 const createUserWithIdp = require('./api/auth/createUserWithIdp');
 const { sendEmailOtp, verifyEmailOtp, assertEmailVerified } = require('./api/email-otp');
@@ -94,6 +96,8 @@ router.get('/listing-responses', listingResponses);
 router.post('/accept-offer', acceptOffer);
 router.post('/register-device-token', registerDeviceToken);
 router.post('/send-notification', sendNotification);
+router.post('/notify-new-message', notifyNewMessage);
+router.post('/notify-new-review', notifyNewReview);
 
 // Email OTP verification endpoints
 router.post('/otp/email/send', sendEmailOtp);
