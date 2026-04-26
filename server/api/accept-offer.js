@@ -31,12 +31,21 @@ module.exports = async (req, res) => {
   }
 
   const accessToken = authHeader.substring(7); // Remove 'Bearer ' prefix
+  
+  if (!accessToken || accessToken === 'null' || accessToken === 'undefined') {
+    console.log('❌ accept-offer: Invalid access token');
+    return res.status(401).json({ error: 'Invalid access token' }).end();
+  }
+  
   console.log('🔑 accept-offer: Got access token');
 
   try {
     // Create SDK with the user's access token
     const tokenStore = sharetribeSdk.tokenStore.memoryStore();
-    tokenStore.setToken({ access_token: accessToken });
+    tokenStore.setToken({ 
+      access_token: accessToken,
+      token_type: 'bearer'
+    });
 
     const sdk = sharetribeSdk.createInstance({
       clientId: CLIENT_ID,

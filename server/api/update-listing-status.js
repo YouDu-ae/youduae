@@ -22,10 +22,19 @@ module.exports = async (req, res) => {
   
   if (authHeader && authHeader.startsWith('Bearer ')) {
     const accessToken = authHeader.substring(7);
+    
+    if (!accessToken || accessToken === 'null' || accessToken === 'undefined') {
+      console.log('❌ update-listing-status: Invalid access token');
+      return res.status(401).json({ error: 'Invalid access token' }).end();
+    }
+    
     console.log('📱 update-listing-status: Using Bearer token auth');
     
     const tokenStore = sharetribeSdk.tokenStore.memoryStore();
-    tokenStore.setToken({ access_token: accessToken });
+    tokenStore.setToken({ 
+      access_token: accessToken,
+      token_type: 'bearer'
+    });
     
     sdk = sharetribeSdk.createInstance({
       clientId: CLIENT_ID,
