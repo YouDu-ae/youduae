@@ -10,7 +10,7 @@ const BASE_URL = process.env.REACT_APP_SHARETRIBE_SDK_BASE_URL;
  * Поддерживает как cookie auth (web), так и Bearer token auth (mobile).
  */
 module.exports = async (req, res) => {
-  const { listingId, assignedTo, status } = req.body;
+  const { listingId, assignedTo, status, transactionId, executorName, reviewSubmitted } = req.body;
   
   if (!listingId) {
     return res.status(400).json({ error: 'listingId is required' }).end();
@@ -54,13 +54,24 @@ module.exports = async (req, res) => {
   if (assignedTo) {
     updateParams.publicData.assignedTo = assignedTo;
   }
+  if (transactionId) {
+    updateParams.publicData.transactionId = transactionId;
+  }
+  if (executorName) {
+    updateParams.publicData.executorName = executorName;
+  }
   if (status) {
     updateParams.publicData.status = status;
     // Если статус "in-progress", устанавливаем hired=true
     if (status === 'in-progress') {
       updateParams.publicData.hired = true;
+      updateParams.publicData.reviewSubmitted = false; // Track if review was submitted
       console.log('  → Setting hired=true for in-progress status');
     }
+  }
+  if (reviewSubmitted !== undefined) {
+    updateParams.publicData.reviewSubmitted = reviewSubmitted;
+    console.log('  → Setting reviewSubmitted:', reviewSubmitted);
   }
 
   // Сначала обновляем publicData
