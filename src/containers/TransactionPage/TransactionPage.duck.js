@@ -777,6 +777,18 @@ export const sendMessage = (txId, message, config) => (dispatch, getState, sdk) 
     .then(response => {
       const messageId = response.data.data.id;
 
+      // Send push notification to recipient (fire and forget)
+      const transactionId = txId?.uuid || txId;
+      fetch('/api/notify-new-message', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ 
+          transactionId, 
+          messagePreview: message?.substring(0, 100) 
+        }),
+      }).catch(err => console.warn('Failed to send notification:', err));
+
       // We fetch the first page again to add sent message to the page data
       // and update possible incoming messages too.
       // TODO if there're more than 100 incoming messages,
