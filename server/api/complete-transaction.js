@@ -1,12 +1,15 @@
+const sharetribeSdk = require('sharetribe-flex-sdk');
 const sharetribeIntegrationSdk = require('sharetribe-flex-integration-sdk');
 const { handleError, serialize, typeHandlers } = require('../api-util/sdk');
 
+const CLIENT_ID = process.env.REACT_APP_SHARETRIBE_SDK_CLIENT_ID;
 const INTEGRATION_CLIENT_ID = process.env.INTEGRATION_API_CLIENT_ID;
 const INTEGRATION_CLIENT_SECRET = process.env.INTEGRATION_API_CLIENT_SECRET;
+const BASE_URL = process.env.REACT_APP_SHARETRIBE_SDK_BASE_URL;
 
 /**
  * Complete a transaction using Integration API (privileged)
- * This allows the operator to complete transactions regardless of user role
+ * SECURITY: Verifies that the requesting user is a party to the transaction
  */
 module.exports = async (req, res) => {
   const { transactionId } = req.body;
@@ -35,18 +38,53 @@ module.exports = async (req, res) => {
   }
 
   try {
+    // SECURITY: First verify the user is a party to this transaction
+    const tokenStore = sharetribeSdk.tokenStore.memoryStore();
+    tokenStore.setToken({ 
+      access_token: accessToken,
+      token_type: 'bearer'
+    });
+
+    const userSdk = sharetribeSdk.createInstance({
+      clientId: CLIENT_ID,
+      tokenStore,
+      typeHandlers,
+      ...(BASE_URL ? { baseUrl: BASE_URL } : {}),
+    });
+
+    // Get current user
+    const currentUserResponse = await userSdk.currentUser.show();
+    const currentUserId = currentUserResponse.data.data.id.uuid;
+    console.log('👤 Current user:', currentUserId);
+
     // Create Integration SDK (has operator privileges)
     const integrationSdk = sharetribeIntegrationSdk.createInstance({
       clientId: INTEGRATION_CLIENT_ID,
       clientSecret: INTEGRATION_CLIENT_SECRET,
     });
 
-    // First, get the transaction to check its current state
+    // Get the transaction to verify user is a party
     const txResponse = await integrationSdk.transactions.show({
       id: transactionId,
     });
+
+    const transaction = txResponse.data.data;
+    const providerId = transaction.relationships?.provider?.data?.id?.uuid;
+    const customerId = transaction.relationships?.customer?.data?.id?.uuid;
+
+    // SECURITY CHECK: User must be either provider or customer
+    if (currentUserId !== providerId && currentUserId !== customerId) {
+      console.log('❌ User is not a party to this transaction');
+      console.log('   Provider:', providerId, 'Customer:', customerId, 'User:', currentUserId);
+      return res.status(403).json({ 
+        error: 'Forbidden',
+        message: 'You are not a party to this transaction'
+      }).end();
+    }
+
+    console.log('✅ User verified as party to transaction');
     
-    const currentTransition = txResponse.data.data.attributes.lastTransition;
+    const currentTransition = transaction.attributes.lastTransition;
     console.log('📊 Current transaction state:', currentTransition);
 
     // Determine which transition to use based on current state
