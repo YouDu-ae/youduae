@@ -25,6 +25,59 @@ module.exports = async (req, res) => {
   }
 
   try {
+    // SECURITY: Require authentication and verify requester is listing author (provider).
+    // This endpoint returns all responses for a listing and must not be publicly accessible.
+    const authHeader = req.headers.authorization;
+    const hasBearerToken = authHeader && authHeader.startsWith('Bearer ');
+    const hasCookieAuth = req.cookies && (req.cookies.st || req.cookies['st-token']);
+
+    if (!hasBearerToken && !hasCookieAuth) {
+      return res.status(401).json({ error: 'Authorization required' }).end();
+    }
+
+    let userSdk;
+    if (hasBearerToken) {
+      const accessToken = authHeader.substring(7);
+      if (!accessToken || accessToken === 'null' || accessToken === 'undefined') {
+        return res.status(401).json({ error: 'Invalid access token' }).end();
+      }
+
+      const tokenStore = sharetribeSdk.tokenStore.memoryStore();
+      tokenStore.setToken({
+        access_token: accessToken,
+        token_type: 'bearer',
+      });
+
+      userSdk = sharetribeSdk.createInstance({
+        clientId: marketplaceClientId,
+        clientSecret: marketplaceClientSecret,
+        tokenStore,
+      });
+    } else {
+      // Cookie auth (web). Use request object so sdk picks up cookies.
+      userSdk = sharetribeSdk.createInstance({
+        clientId: marketplaceClientId,
+        clientSecret: marketplaceClientSecret,
+        req,
+      });
+    }
+
+    const currentUserRes = await userSdk.currentUser.show();
+    const currentUserId = currentUserRes?.data?.data?.id?.uuid;
+    if (!currentUserId) {
+      return res.status(401).json({ error: 'Unable to identify current user' }).end();
+    }
+
+    // Verify the current user is the listing author
+    const listingRes = await userSdk.listings.show({ id: listingId, include: ['author'] });
+    const authorId = listingRes?.data?.data?.relationships?.author?.data?.id?.uuid;
+    if (!authorId) {
+      return res.status(404).json({ error: 'Listing not found' }).end();
+    }
+    if (authorId !== currentUserId) {
+      return res.status(403).json({ error: 'Forbidden' }).end();
+    }
+
     const integrationSdk = sharetribeIntegrationSdk.createInstance({
       clientId: integrationClientId,
       clientSecret: integrationClientSecret,
@@ -82,18 +135,23 @@ module.exports = async (req, res) => {
       const metadata = customer.attributes?.profile?.metadata || {};
       const isVerified = metadata.isVerified === true;
 
-      // Get first message as preview
+      // Last message as preview (matches chat UX — newest activity)
       let messagePreview = '';
+      let lastMessageAt = null;
       const messagesRef = tx.relationships?.messages?.data;
       if (messagesRef && messagesRef.length > 0) {
-        const firstMessage = included.find(
-          item => item.type === 'message' && item.id.uuid === messagesRef[0].id.uuid
+        const lastRef = messagesRef[messagesRef.length - 1];
+        const lastMessage = included.find(
+          item => item.type === 'message' && item.id.uuid === lastRef.id.uuid
         );
-        if (firstMessage?.attributes?.content) {
-          messagePreview = firstMessage.attributes.content.substring(0, 100);
-          if (firstMessage.attributes.content.length > 100) {
+        if (lastMessage?.attributes?.content) {
+          messagePreview = lastMessage.attributes.content.substring(0, 100);
+          if (lastMessage.attributes.content.length > 100) {
             messagePreview += '...';
           }
+        }
+        if (lastMessage?.attributes?.createdAt) {
+          lastMessageAt = lastMessage.attributes.createdAt;
         }
       }
 
@@ -183,6 +241,7 @@ module.exports = async (req, res) => {
         completedTasks,
         offerPrice,
         messagePreview,
+        lastMessageAt,
         status,
         statusLabel,
         createdAt: tx.attributes?.createdAt,
@@ -192,11 +251,17 @@ module.exports = async (req, res) => {
 
     const responses = (await Promise.all(responsePromises)).filter(r => r !== null);
 
+    /** Newest chat activity first (last message time), else transaction createdAt */
+    const dialogFreshnessMs = (r) => {
+      if (r.lastMessageAt) return new Date(r.lastMessageAt).getTime();
+      return new Date(r.createdAt).getTime();
+    };
+
     // Sort responses by priority:
-    // 1. Verified + Reviews (by rating, then review count)
+    // 1. Verified + Reviews (by rating, then review count, then dialog freshness)
     // 2. Verified only
-    // 3. Reviews only (by rating, then review count)
-    // 4. Others (by date)
+    // 3. Reviews only (by rating, then review count, then dialog freshness)
+    // 4. Others (by dialog freshness, then createdAt)
     const sortedResponses = responses.sort((a, b) => {
       const aVerified = a.isVerified;
       const bVerified = b.isVerified;
@@ -214,7 +279,10 @@ module.exports = async (req, res) => {
         if (b.averageRating !== a.averageRating) {
           return b.averageRating - a.averageRating;
         }
-        return b.reviewCount - a.reviewCount;
+        if (b.reviewCount !== a.reviewCount) {
+          return b.reviewCount - a.reviewCount;
+        }
+        return dialogFreshnessMs(b) - dialogFreshnessMs(a);
       }
 
       // Group 2: Verified only
@@ -223,6 +291,10 @@ module.exports = async (req, res) => {
       
       if (aVerifiedOnly && !bVerifiedOnly) return -1;
       if (!aVerifiedOnly && bVerifiedOnly) return 1;
+
+      if (aVerifiedOnly && bVerifiedOnly) {
+        return dialogFreshnessMs(b) - dialogFreshnessMs(a);
+      }
 
       // Group 3: Reviews only
       const aReviewsOnly = !aVerified && aHasReviews;
@@ -235,10 +307,15 @@ module.exports = async (req, res) => {
         if (b.averageRating !== a.averageRating) {
           return b.averageRating - a.averageRating;
         }
-        return b.reviewCount - a.reviewCount;
+        if (b.reviewCount !== a.reviewCount) {
+          return b.reviewCount - a.reviewCount;
+        }
+        return dialogFreshnessMs(b) - dialogFreshnessMs(a);
       }
 
-      // Group 4: By date (newest first)
+      // Group 4: By dialog freshness, then createdAt
+      const f = dialogFreshnessMs(b) - dialogFreshnessMs(a);
+      if (f !== 0) return f;
       return new Date(b.createdAt) - new Date(a.createdAt);
     });
 
