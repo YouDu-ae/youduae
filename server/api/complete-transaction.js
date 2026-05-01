@@ -7,6 +7,14 @@ const INTEGRATION_CLIENT_ID = process.env.INTEGRATION_API_CLIENT_ID;
 const INTEGRATION_CLIENT_SECRET = process.env.INTEGRATION_API_CLIENT_SECRET;
 const BASE_URL = process.env.REACT_APP_SHARETRIBE_SDK_BASE_URL;
 
+/** JSON:API id может быть строкой или { uuid } — приводим к строке UUID */
+function flexEntityId(idLike) {
+  if (!idLike) return null;
+  if (typeof idLike === 'string') return idLike;
+  if (typeof idLike === 'object' && idLike.uuid) return idLike.uuid;
+  return null;
+}
+
 /**
  * Complete a transaction using Integration API (privileged)
  * SECURITY: Verifies that the requesting user is a party to the transaction
@@ -54,8 +62,11 @@ module.exports = async (req, res) => {
 
     // Get current user
     const currentUserResponse = await userSdk.currentUser.show();
-    const currentUserId = currentUserResponse.data.data.id.uuid;
+    const currentUserId = flexEntityId(currentUserResponse.data.data.id);
     console.log('👤 Current user:', currentUserId);
+    if (!currentUserId) {
+      return res.status(401).json({ error: 'Could not resolve current user id' }).end();
+    }
 
     // Create Integration SDK (has operator privileges)
     const integrationSdk = sharetribeIntegrationSdk.createInstance({
@@ -69,8 +80,8 @@ module.exports = async (req, res) => {
     });
 
     const transaction = txResponse.data.data;
-    const providerId = transaction.relationships?.provider?.data?.id?.uuid;
-    const customerId = transaction.relationships?.customer?.data?.id?.uuid;
+    const providerId = flexEntityId(transaction.relationships?.provider?.data?.id);
+    const customerId = flexEntityId(transaction.relationships?.customer?.data?.id);
 
     // SECURITY CHECK: User must be either provider or customer
     if (currentUserId !== providerId && currentUserId !== customerId) {

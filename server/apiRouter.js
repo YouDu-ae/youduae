@@ -33,6 +33,9 @@ const registerDeviceToken = require('./api/register-device-token');
 const { handler: sendNotification } = require('./api/send-notification');
 const notifyNewMessage = require('./api/notify-new-message');
 const notifyNewReview = require('./api/notify-new-review');
+const updatePresence = require('./api/update-presence');
+const presenceBatch = require('./api/presence-batch');
+const placesProxy = require('./api/places-proxy');
 
 const createUserWithIdp = require('./api/auth/createUserWithIdp');
 const { sendEmailOtp, verifyEmailOtp, assertEmailVerified } = require('./api/email-otp');
@@ -100,6 +103,12 @@ router.post('/register-device-token', registerDeviceToken);
 router.post('/send-notification', sendNotification);
 router.post('/notify-new-message', notifyNewMessage);
 router.post('/notify-new-review', notifyNewReview);
+router.post('/update-presence', updatePresence);
+router.get('/presence-batch', presenceBatch);
+
+// Google Places (для мобильного приложения — ключ на сервере, без referrer с телефона)
+router.get('/places/autocomplete', placesProxy.autocomplete);
+router.get('/places/details', placesProxy.details);
 
 // Email OTP verification endpoints
 router.post('/otp/email/send', sendEmailOtp);
