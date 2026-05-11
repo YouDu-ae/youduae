@@ -9,9 +9,9 @@ const BASE_URL = process.env.REACT_APP_SHARETRIBE_SDK_BASE_URL;
  * Stores FCM token in user's privateData
  */
 module.exports = async (req, res) => {
-  const { token, platform } = req.body;
+  const { token, platform, unregister } = req.body;
 
-  console.log('📱 register-device-token:', { platform, tokenLength: token?.length });
+  console.log('📱 register-device-token:', { platform, tokenLength: token?.length, unregister: !!unregister });
 
   if (!token) {
     return res.status(400).json({ error: 'token is required' }).end();
@@ -44,10 +44,28 @@ module.exports = async (req, res) => {
     
     // Get existing device tokens or create empty array
     let deviceTokens = privateData.deviceTokens || [];
-    
+
+    if (unregister === true || unregister === 'true') {
+      const nextTokens = deviceTokens.filter(t => t.token !== token);
+      await sdk.currentUser.updateProfile({
+        privateData: {
+          ...privateData,
+          deviceTokens: nextTokens,
+        },
+      });
+      console.log('✅ Device token unregistered for user:', currentUser.id.uuid);
+      return res
+        .status(200)
+        .json({
+          success: true,
+          message: 'Device token removed',
+        })
+        .end();
+    }
+
     // Check if token already exists
     const existingIndex = deviceTokens.findIndex(t => t.token === token);
-    
+
     if (existingIndex >= 0) {
       // Update existing token
       deviceTokens[existingIndex] = {
@@ -62,7 +80,7 @@ module.exports = async (req, res) => {
         platform,
         createdAt: new Date().toISOString(),
       });
-      
+
       // Keep only last 5 tokens
       if (deviceTokens.length > 5) {
         deviceTokens = deviceTokens.slice(-5);
@@ -79,7 +97,7 @@ module.exports = async (req, res) => {
 
     console.log('✅ Device token registered for user:', currentUser.id.uuid);
 
-    res.status(200).json({ 
+    res.status(200).json({
       success: true,
       message: 'Device token registered',
     }).end();
