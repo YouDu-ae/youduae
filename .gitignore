@@ -11,11 +11,11 @@ build
 
 # misc
 .DS_Store
+
+# Environment / secrets — never commit real keys (copy from .env-template)
 .env
-.env.local
-.env.development
-.env.test
-.env.production
+.env.*
+!.env-template
 npm-debug.log
 yarn-error.log
 
@@ -24,7 +24,6 @@ EXECUTOR_SEARCH_COMPLETE.md
 EXECUTOR_PROFILES_SETUP.md
 INTEGRATION_TEST_COMPLETE.md
 CREATE_TEST_EXECUTORS.md
-.env.backup*
 check-api-type.js
 check-users-data.js
 test-integration-api.js
