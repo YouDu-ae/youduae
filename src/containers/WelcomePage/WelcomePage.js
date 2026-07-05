@@ -71,6 +71,25 @@ export const WelcomePageComponent = props => {
               <FormattedMessage id="WelcomePage.subtitle" />
             </p>
 
+            {/* Telegram Section - First thing user sees */}
+            <div className={css.telegramSection}>
+              <div className={css.telegramIcon}>📱</div>
+              <div className={css.telegramContent}>
+                <h3 className={css.telegramTitle}>
+                  {isProvider ? 'Не пропустите отклики!' : 'Не пропустите новые задания!'}
+                </h3>
+                <p className={css.telegramDescription}>
+                  {isProvider 
+                    ? 'Подключите Telegram-бот и получайте мгновенные уведомления о новых откликах на ваши задания.'
+                    : 'Подключите Telegram-бот и получайте мгновенные уведомления о новых заданиях в ваших категориях.'
+                  }
+                </p>
+                <ExternalLink href={TELEGRAM_BOT_URL} className={css.telegramButton}>
+                  Подключить Telegram
+                </ExternalLink>
+              </div>
+            </div>
+
             {isProvider ? (
               <div className={css.guidanceSection}>
                 <h2 className={css.sectionTitle}>
@@ -112,20 +131,6 @@ export const WelcomePageComponent = props => {
                         <FormattedMessage id="WelcomePage.providerStep3Description" />
                       </p>
                     </div>
-                  </div>
-                </div>
-
-                {/* Telegram Section */}
-                <div className={css.telegramSection}>
-                  <div className={css.telegramIcon}>📱</div>
-                  <div className={css.telegramContent}>
-                    <h3 className={css.telegramTitle}>Не пропустите отклики!</h3>
-                    <p className={css.telegramDescription}>
-                      Подключите Telegram-бот и получайте мгновенные уведомления о новых откликах на ваши задания.
-                    </p>
-                    <ExternalLink href={TELEGRAM_BOT_URL} className={css.telegramButton}>
-                      Подключить Telegram
-                    </ExternalLink>
                   </div>
                 </div>
 
@@ -183,20 +188,6 @@ export const WelcomePageComponent = props => {
                         <FormattedMessage id="WelcomePage.customerStep3Description" />
                       </p>
                     </div>
-                  </div>
-                </div>
-
-                {/* Telegram Section */}
-                <div className={css.telegramSection}>
-                  <div className={css.telegramIcon}>📱</div>
-                  <div className={css.telegramContent}>
-                    <h3 className={css.telegramTitle}>Не пропустите новые задания!</h3>
-                    <p className={css.telegramDescription}>
-                      Подключите Telegram-бот и получайте мгновенные уведомления о новых заданиях в ваших категориях.
-                    </p>
-                    <ExternalLink href={TELEGRAM_BOT_URL} className={css.telegramButton}>
-                      Подключить Telegram
-                    </ExternalLink>
                   </div>
                 </div>
 
