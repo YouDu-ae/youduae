@@ -12,7 +12,7 @@ import { showCreateListingLinkForUser, showPaymentDetailsForUser } from '../../u
 import { sendVerificationEmail } from '../../ducks/user.duck';
 import { isScrollingDisabled } from '../../ducks/ui.duck';
 
-import { H3, Page, UserNav, LayoutSideNavigation } from '../../components';
+import { H3, Page, UserNav, LayoutSideNavigation, TelegramConnect } from '../../components';
 
 import TopbarContainer from '../../containers/TopbarContainer/TopbarContainer';
 import FooterContainer from '../../containers/FooterContainer/FooterContainer';
@@ -138,6 +138,9 @@ export const ContactDetailsPageComponent = props => {
             <FormattedMessage id="ContactDetailsPage.heading" />
           </H3>
           {contactInfoForm}
+          
+          {/* Telegram notifications */}
+          <TelegramConnect currentUser={currentUser} />
         </div>
       </LayoutSideNavigation>
     </Page>

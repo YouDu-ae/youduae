@@ -1,0 +1,264 @@
+.root {
+  background-color: var(--colorWhite);
+  border: 1px solid var(--colorGrey100);
+  border-radius: 8px;
+  padding: 24px;
+  margin-top: 32px;
+}
+
+.title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 12px 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--colorGrey900);
+}
+
+.telegramIcon {
+  font-size: 24px;
+}
+
+.description {
+  color: var(--colorGrey600);
+  font-size: 14px;
+  margin: 0 0 20px 0;
+  line-height: 1.5;
+}
+
+.error {
+  background-color: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #dc2626;
+  padding: 12px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  margin-bottom: 16px;
+}
+
+.loadingWrapper {
+  display: flex;
+  justify-content: center;
+  padding: 24px 0;
+}
+
+/* Connected state */
+.linkedSection {
+  /* Empty for now */
+}
+
+.statusConnected {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background-color: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  padding: 16px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+
+.statusIcon {
+  font-size: 24px;
+}
+
+.statusText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.statusText strong {
+  color: #166534;
+  font-size: 15px;
+}
+
+.linkedDate {
+  color: #22c55e;
+  font-size: 13px;
+}
+
+.linkedInfo {
+  color: var(--colorGrey700);
+  font-size: 14px;
+  margin: 16px 0 8px 0;
+}
+
+.featureList {
+  margin: 0 0 20px 0;
+  padding-left: 0;
+  list-style: none;
+}
+
+.featureList li {
+  color: var(--colorGrey600);
+  font-size: 14px;
+  padding: 4px 0;
+}
+
+.unlinkButton {
+  composes: buttonSecondary from global;
+  background-color: transparent;
+  border: 1px solid var(--colorGrey200);
+  color: var(--colorGrey700);
+  font-size: 14px;
+  padding: 10px 20px;
+  min-height: auto;
+}
+
+.unlinkButton:hover {
+  background-color: var(--colorGrey50);
+  border-color: var(--colorGrey300);
+}
+
+/* Disconnected state */
+.connectSection {
+  /* Empty for now */
+}
+
+.generateSection {
+  text-align: center;
+}
+
+.statusDisconnected {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: var(--colorGrey500);
+  font-size: 14px;
+  margin-bottom: 16px;
+}
+
+.connectButton {
+  composes: buttonPrimary from global;
+  background-color: #0088cc;
+  min-height: auto;
+  padding: 12px 24px;
+  font-size: 15px;
+}
+
+.connectButton:hover {
+  background-color: #006699;
+}
+
+/* Code section */
+.codeSection {
+  text-align: center;
+}
+
+.codeInstructions {
+  color: var(--colorGrey700);
+  font-size: 14px;
+  margin: 0 0 12px 0;
+}
+
+.codeInstructions strong {
+  color: var(--colorGrey900);
+}
+
+.botLink {
+  display: inline-block;
+  background-color: #0088cc;
+  color: white;
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-size: 15px;
+  font-weight: 500;
+  text-decoration: none;
+  margin-bottom: 20px;
+}
+
+.botLink:hover {
+  background-color: #006699;
+  color: white;
+  text-decoration: none;
+}
+
+.codeDisplay {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: 8px;
+  padding: 20px 32px;
+  border-radius: 12px;
+  display: inline-block;
+  margin: 8px 0 12px 0;
+  font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Mono', monospace;
+  box-shadow: 0 4px 14px rgba(102, 126, 234, 0.4);
+}
+
+.codeExpiry {
+  color: var(--colorGrey500);
+  font-size: 13px;
+  margin: 0 0 20px 0;
+}
+
+.orDivider {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin: 20px 0;
+  color: var(--colorGrey400);
+  font-size: 13px;
+}
+
+.orDivider::before,
+.orDivider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background-color: var(--colorGrey200);
+}
+
+.deepLinkButton {
+  display: inline-block;
+  background-color: #0088cc;
+  color: white;
+  padding: 12px 24px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+  margin-bottom: 16px;
+}
+
+.deepLinkButton:hover {
+  background-color: #006699;
+  color: white;
+  text-decoration: none;
+}
+
+.refreshButton {
+  composes: buttonSecondary from global;
+  display: block;
+  width: 100%;
+  background-color: transparent;
+  border: 1px solid var(--colorGrey200);
+  color: var(--colorGrey700);
+  font-size: 14px;
+  padding: 10px 20px;
+  min-height: auto;
+  margin-top: 8px;
+}
+
+.refreshButton:hover {
+  background-color: var(--colorGrey50);
+  border-color: var(--colorGrey300);
+}
+
+/* Mobile styles */
+@media (max-width: 767px) {
+  .root {
+    padding: 20px 16px;
+    margin-top: 24px;
+  }
+  
+  .codeDisplay {
+    font-size: 24px;
+    letter-spacing: 6px;
+    padding: 16px 24px;
+  }
+}
