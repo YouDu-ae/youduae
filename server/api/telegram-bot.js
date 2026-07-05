@@ -495,6 +495,88 @@ async function getUserTelegramChatId(userId) {
 }
 
 /**
+ * Get all executors (customers) with Telegram linked in a specific category
+ */
+async function getExecutorsWithTelegramByCategory(categoryId) {
+  try {
+    // Get all users
+    const usersResponse = await integrationSdk.users.query({
+      perPage: 100,
+    });
+    
+    const users = usersResponse.data.data;
+    
+    // Filter users who:
+    // 1. Have serviceCategories including this category
+    // 2. Have Telegram linked (telegramChatId in privateData)
+    const executors = users.filter(user => {
+      const publicData = user.attributes?.profile?.publicData || {};
+      const privateData = user.attributes?.profile?.privateData || {};
+      
+      const serviceCategories = publicData.serviceCategories || [];
+      const hasTelegram = !!privateData.telegramChatId;
+      const hasCategory = Array.isArray(serviceCategories) && serviceCategories.includes(categoryId);
+      
+      return hasTelegram && hasCategory;
+    });
+    
+    return executors.map(user => ({
+      userId: user.id.uuid,
+      chatId: user.attributes.profile.privateData.telegramChatId,
+      displayName: user.attributes.profile.displayName,
+    }));
+  } catch (error) {
+    console.error('Error getting executors by category:', error);
+    return [];
+  }
+}
+
+/**
+ * Notify all executors in a category about new listing
+ */
+async function notifyNewListingToCategory(data) {
+  const { categoryId, categoryName, listingTitle, price, listingUrl, listingId } = data;
+  
+  try {
+    const executors = await getExecutorsWithTelegramByCategory(categoryId);
+    
+    if (executors.length === 0) {
+      console.log(`📱 No executors with Telegram in category ${categoryId}`);
+      return { sent: 0, total: 0 };
+    }
+    
+    console.log(`📱 Sending new listing notification to ${executors.length} executors in ${categoryId}`);
+    
+    const message = `📋 <b>Новое задание!</b>
+
+"${listingTitle}"
+📁 ${categoryName}
+💰 ${price || 'Цена договорная'}
+
+<a href="${listingUrl}">Откликнуться →</a>`;
+
+    let sent = 0;
+    
+    for (const executor of executors) {
+      try {
+        await sendTelegramMessage(executor.chatId, message);
+        sent++;
+        // Small delay to avoid rate limiting
+        await new Promise(resolve => setTimeout(resolve, 50));
+      } catch (err) {
+        console.error(`Failed to notify ${executor.userId}:`, err.message);
+      }
+    }
+    
+    console.log(`📱 Sent ${sent}/${executors.length} notifications for listing ${listingId}`);
+    return { sent, total: executors.length };
+  } catch (error) {
+    console.error('Error notifying category executors:', error);
+    return { sent: 0, total: 0, error: error.message };
+  }
+}
+
+/**
  * Setup Telegram webhook
  */
 async function setupWebhook(webhookUrl) {
@@ -529,6 +611,8 @@ module.exports = {
   notifyOfferDeclined,
   notifyNewMessage,
   notifyNewListing,
+  notifyNewListingToCategory,
+  getExecutorsWithTelegramByCategory,
   sendTelegramMessage,
   getUserTelegramChatId,
 };
