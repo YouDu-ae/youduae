@@ -139,6 +139,61 @@
   color: var(--colorGrey700);
 }
 
+/* Telegram Section */
+.telegramSection {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 24px;
+  background: linear-gradient(135deg, #0088cc 0%, #00a8e8 100%);
+  border-radius: 16px;
+  margin-top: 32px;
+  text-align: left;
+  color: white;
+}
+
+.telegramIcon {
+  font-size: 48px;
+  flex-shrink: 0;
+}
+
+.telegramContent {
+  flex: 1;
+}
+
+.telegramTitle {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0 0 8px 0;
+  color: white;
+}
+
+.telegramDescription {
+  font-size: 14px;
+  line-height: 1.5;
+  margin: 0 0 16px 0;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.telegramButton {
+  display: inline-block;
+  padding: 10px 20px;
+  background-color: white;
+  color: #0088cc;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 8px;
+  text-decoration: none;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.telegramButton:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  color: #006699;
+  text-decoration: none;
+}
+
 .actions {
   display: flex;
   flex-direction: column;

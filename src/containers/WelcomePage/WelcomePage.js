@@ -7,11 +7,13 @@ import { useConfiguration } from '../../context/configurationContext';
 import { ensureCurrentUser } from '../../util/data';
 import { getCurrentUserTypeRoles } from '../../util/userHelpers';
 import { isScrollingDisabled } from '../../ducks/ui.duck';
-import { Page, NamedLink, LayoutSingleColumn, PrimaryButton, SecondaryButton } from '../../components';
+import { Page, NamedLink, LayoutSingleColumn, PrimaryButton, SecondaryButton, ExternalLink } from '../../components';
 import TopbarContainer from '../TopbarContainer/TopbarContainer';
 import FooterContainer from '../FooterContainer/FooterContainer';
 
 import css from './WelcomePage.module.css';
+
+const TELEGRAM_BOT_URL = 'https://t.me/YouDuAE_bot';
 
 export const WelcomePageComponent = props => {
   const { scrollingDisabled, currentUser } = props;
@@ -113,6 +115,20 @@ export const WelcomePageComponent = props => {
                   </div>
                 </div>
 
+                {/* Telegram Section */}
+                <div className={css.telegramSection}>
+                  <div className={css.telegramIcon}>📱</div>
+                  <div className={css.telegramContent}>
+                    <h3 className={css.telegramTitle}>Не пропустите отклики!</h3>
+                    <p className={css.telegramDescription}>
+                      Подключите Telegram-бот и получайте мгновенные уведомления о новых откликах на ваши задания.
+                    </p>
+                    <ExternalLink href={TELEGRAM_BOT_URL} className={css.telegramButton}>
+                      Подключить Telegram
+                    </ExternalLink>
+                  </div>
+                </div>
+
                 <div className={css.actions}>
                   <NamedLink name="NewListingPage" className={css.primaryActionLink}>
                     <PrimaryButton className={css.primaryAction}>
@@ -167,6 +183,20 @@ export const WelcomePageComponent = props => {
                         <FormattedMessage id="WelcomePage.customerStep3Description" />
                       </p>
                     </div>
+                  </div>
+                </div>
+
+                {/* Telegram Section */}
+                <div className={css.telegramSection}>
+                  <div className={css.telegramIcon}>📱</div>
+                  <div className={css.telegramContent}>
+                    <h3 className={css.telegramTitle}>Не пропустите новые задания!</h3>
+                    <p className={css.telegramDescription}>
+                      Подключите Telegram-бот и получайте мгновенные уведомления о новых заданиях в ваших категориях.
+                    </p>
+                    <ExternalLink href={TELEGRAM_BOT_URL} className={css.telegramButton}>
+                      Подключить Telegram
+                    </ExternalLink>
                   </div>
                 </div>
 
