@@ -1,5 +1,6 @@
 const sharetribeIntegrationSdk = require('sharetribe-flex-integration-sdk');
 const { sendNewMessageNotification } = require('./send-notification');
+const { notifyNewMessage } = require('./telegram-bot');
 
 /**
  * Notify recipient about a new message
@@ -70,12 +71,30 @@ module.exports = async (req, res) => {
     // or we can improve this by checking who the sender is
     const preview = messagePreview?.substring(0, 100) || 'Новое сообщение';
 
-    const results = await Promise.allSettled([
+    // Push notifications (FCM)
+    const pushResults = await Promise.allSettled([
       sendNewMessageNotification(customerId, providerName, preview, transactionId),
       sendNewMessageNotification(providerId, customerName, preview, transactionId),
     ]);
+    console.log('📤 Push notifications sent:', pushResults.map(r => r.status));
 
-    console.log('📤 Message notifications sent:', results.map(r => r.status));
+    // Telegram notifications
+    const rootUrl = process.env.REACT_APP_MARKETPLACE_ROOT_URL || 'https://youdu.ae';
+    const conversationUrl = `${rootUrl}/order/${transactionId}/details`;
+    
+    const telegramResults = await Promise.allSettled([
+      notifyNewMessage(customerId, {
+        senderName: providerName,
+        messagePreview: preview,
+        conversationUrl,
+      }),
+      notifyNewMessage(providerId, {
+        senderName: customerName,
+        messagePreview: preview,
+        conversationUrl,
+      }),
+    ]);
+    console.log('📱 Telegram notifications sent:', telegramResults.map(r => r.status));
 
     res.status(200).json({ 
       success: true,

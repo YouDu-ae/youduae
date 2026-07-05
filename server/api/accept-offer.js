@@ -2,6 +2,7 @@ const sharetribeSdk = require('sharetribe-flex-sdk');
 const sharetribeIntegrationSdk = require('sharetribe-flex-integration-sdk');
 const { handleError, serialize, typeHandlers } = require('../api-util/sdk');
 const { sendExecutorSelectedNotification } = require('./send-notification');
+const { notifyOfferAccepted } = require('./telegram-bot');
 
 const CLIENT_ID = process.env.REACT_APP_SHARETRIBE_SDK_CLIENT_ID;
 const CLIENT_SECRET = process.env.SHARETRIBE_SDK_CLIENT_SECRET;
@@ -108,8 +109,24 @@ module.exports = async (req, res) => {
         const listingTitle = listing?.attributes?.title || 'Задание';
 
         if (customerId) {
+          // Push notification (FCM)
           await sendExecutorSelectedNotification(customerId, listingTitle, listingId);
-          console.log('📤 Notification sent to executor:', customerId);
+          console.log('📤 Push notification sent to executor:', customerId);
+          
+          // Telegram notification
+          const provider = txRes.data.included?.find(
+            inc => inc.type === 'user' && inc.id.uuid === tx.relationships?.provider?.data?.id?.uuid
+          );
+          const customerName = provider?.attributes?.profile?.displayName || 'Заказчик';
+          const rootUrl = process.env.REACT_APP_MARKETPLACE_ROOT_URL || 'https://youdu.ae';
+          const listingUrl = `${rootUrl}/l/${listingId}`;
+          
+          await notifyOfferAccepted(customerId, {
+            listingTitle,
+            customerName,
+            listingUrl,
+          });
+          console.log('📱 Telegram notification sent to executor:', customerId);
         }
       }
     } catch (notifError) {

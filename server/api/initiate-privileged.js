@@ -6,6 +6,7 @@ const {
   serialize,
   fetchCommission,
 } = require('../api-util/sdk');
+const { notifyNewOffer } = require('./telegram-bot');
 
 module.exports = (req, res) => {
   const { isSpeculative, orderData, bodyParams, queryParams } = req.body;
@@ -67,9 +68,40 @@ module.exports = (req, res) => {
       }
       return trustedSdk.transactions.initiate(body, queryParams);
     })
-    .then(apiResponse => {
+    .then(async apiResponse => {
       const { status, statusText, data } = apiResponse;
       console.log('✅ initiate-privileged: success, status =', status);
+      
+      // Send Telegram notification for new offer (inquire transition)
+      const transition = req.body?.bodyParams?.transition;
+      if (transition === 'transition/inquire' && data?.data) {
+        try {
+          const tx = data.data;
+          const providerId = tx.relationships?.provider?.data?.id?.uuid;
+          const listingId = tx.relationships?.listing?.data?.id?.uuid;
+          const listing = data.included?.find(inc => inc.type === 'listing' && inc.id?.uuid === listingId);
+          const customer = data.included?.find(inc => inc.type === 'user' && inc.id?.uuid === tx.relationships?.customer?.data?.id?.uuid);
+          
+          const listingTitle = listing?.attributes?.title || 'Задание';
+          const executorName = customer?.attributes?.profile?.displayName || 'Исполнитель';
+          const offerPrice = tx.attributes?.protectedData?.offer?.price;
+          const rootUrl = process.env.REACT_APP_MARKETPLACE_ROOT_URL || 'https://youdu.ae';
+          const listingUrl = `${rootUrl}/l/${listingId}`;
+          
+          if (providerId) {
+            await notifyNewOffer(providerId, {
+              listingTitle,
+              executorName,
+              offerPrice: offerPrice ? `${offerPrice} AED` : null,
+              listingUrl,
+            });
+            console.log('📱 Telegram: New offer notification sent to provider:', providerId);
+          }
+        } catch (notifyError) {
+          console.error('⚠️ Telegram notification error:', notifyError.message);
+        }
+      }
+      
       res
         .status(status)
         .set('Content-Type', 'application/transit+json')
