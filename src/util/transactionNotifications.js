@@ -1,31 +1,98 @@
 /**
  * Utility functions for tracking read/unread transactions
+ * 
+ * Uses server-side storage (Sharetribe privateData) to sync across devices.
+ * Falls back to localStorage for immediate UI updates before server sync.
  */
 
-const STORAGE_KEY_PREFIX = 'lastViewedTx_';
-const STORAGE_KEY_ALL_VIEWED = 'viewedTransactions';
+// In-memory cache of viewed transactions (synced from server)
+let viewedTransactionsCache = {};
+let cacheInitialized = false;
 
 /**
- * Mark transaction as viewed by saving current timestamp
- * @param {string} transactionId - Transaction UUID
+ * Initialize cache from server
+ * @param {string} userId - Current user UUID
  */
-export const markTransactionAsViewed = transactionId => {
-  if (typeof window === 'undefined' || !window.localStorage) {
-    return;
-  }
-
+export const initViewedTransactionsCache = async (userId) => {
+  if (!userId) return;
+  
   try {
-    const now = new Date().getTime();
-    window.localStorage.setItem(`${STORAGE_KEY_PREFIX}${transactionId}`, now.toString());
-
-    // Also add to the list of all viewed transactions
-    const viewed = getViewedTransactions();
-    if (!viewed.includes(transactionId)) {
-      viewed.push(transactionId);
-      window.localStorage.setItem(STORAGE_KEY_ALL_VIEWED, JSON.stringify(viewed));
+    const response = await fetch(`/api/viewed-transactions?userId=${userId}`);
+    const data = await response.json();
+    
+    if (data.success && data.viewedTransactions) {
+      viewedTransactionsCache = data.viewedTransactions;
+      cacheInitialized = true;
+      console.log('📬 Viewed transactions cache initialized:', Object.keys(viewedTransactionsCache).length);
     }
-  } catch (e) {
-    console.error('Error marking transaction as viewed:', e);
+  } catch (error) {
+    console.error('Error initializing viewed transactions cache:', error);
+  }
+};
+
+/**
+ * Set cache directly (used when data comes from user.duck.js)
+ * @param {Object} viewedTransactions - Object with transactionId: timestamp
+ */
+export const setViewedTransactionsCache = (viewedTransactions) => {
+  viewedTransactionsCache = viewedTransactions || {};
+  cacheInitialized = true;
+};
+
+/**
+ * Get cached viewed transactions
+ */
+export const getViewedTransactionsCache = () => viewedTransactionsCache;
+
+/**
+ * Mark transaction as viewed - updates server and local cache
+ * @param {string} transactionId - Transaction UUID
+ * @param {string} userId - Current user UUID
+ */
+export const markTransactionAsViewed = async (transactionId, userId) => {
+  if (!transactionId || !userId) return;
+  
+  const now = Date.now();
+  
+  // Update local cache immediately for responsive UI
+  viewedTransactionsCache[transactionId] = now;
+  
+  // Sync to server in background
+  try {
+    await fetch('/api/viewed-transactions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId, transactionId }),
+    });
+  } catch (error) {
+    console.error('Error syncing viewed transaction to server:', error);
+  }
+};
+
+/**
+ * Mark multiple transactions as viewed
+ * @param {Array<string>} transactionIds - Array of transaction UUIDs
+ * @param {string} userId - Current user UUID
+ */
+export const markTransactionsBatchViewed = async (transactionIds, userId) => {
+  if (!transactionIds?.length || !userId) return;
+  
+  const now = Date.now();
+  
+  // Update local cache immediately
+  transactionIds.forEach(txId => {
+    viewedTransactionsCache[txId] = now;
+  });
+  
+  // Sync to server in background
+  try {
+    await fetch('/api/viewed-transactions/batch', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId, transactionIds }),
+    });
+  } catch (error) {
+    console.error('Error syncing viewed transactions batch to server:', error);
   }
 };
 
@@ -34,24 +101,14 @@ export const markTransactionAsViewed = transactionId => {
  * @param {string} transactionId - Transaction UUID
  * @returns {number|null} Timestamp in milliseconds or null if never viewed
  */
-export const getTransactionLastViewedAt = transactionId => {
-  if (typeof window === 'undefined' || !window.localStorage) {
-    return null;
-  }
-
-  try {
-    const timestamp = window.localStorage.getItem(`${STORAGE_KEY_PREFIX}${transactionId}`);
-    return timestamp ? parseInt(timestamp, 10) : null;
-  } catch (e) {
-    console.error('Error getting transaction last viewed time:', e);
-    return null;
-  }
+export const getTransactionLastViewedAt = (transactionId) => {
+  return viewedTransactionsCache[transactionId] || null;
 };
 
 /**
  * Check if transaction has unread updates
  * @param {Object} transaction - Transaction entity from Sharetribe API
- * @param {string} currentUserId - Current user UUID
+ * @param {string} currentUserId - Current user UUID (not used but kept for API compatibility)
  * @returns {boolean} True if transaction has unread updates
  */
 export const hasUnreadUpdates = (transaction, currentUserId) => {
@@ -61,6 +118,11 @@ export const hasUnreadUpdates = (transaction, currentUserId) => {
 
   const transactionId = transaction.id.uuid;
   const lastViewedAt = getTransactionLastViewedAt(transactionId);
+
+  // If cache not initialized yet, don't show false positives
+  if (!cacheInitialized) {
+    return false;
+  }
 
   // If never viewed, consider it unread
   if (!lastViewedAt) {
@@ -80,70 +142,10 @@ export const hasUnreadUpdates = (transaction, currentUserId) => {
 };
 
 /**
- * Get list of all viewed transaction IDs
- * @returns {Array<string>} Array of transaction UUIDs
+ * Clear cache (useful for logout)
  */
-export const getViewedTransactions = () => {
-  if (typeof window === 'undefined' || !window.localStorage) {
-    return [];
-  }
-
-  try {
-    const viewed = window.localStorage.getItem(STORAGE_KEY_ALL_VIEWED);
-    return viewed ? JSON.parse(viewed) : [];
-  } catch (e) {
-    console.error('Error getting viewed transactions:', e);
-    return [];
-  }
-};
-
-/**
- * Clear all viewed transaction records (useful for testing or logout)
- */
-export const clearAllViewedTransactions = () => {
-  if (typeof window === 'undefined' || !window.localStorage) {
-    return;
-  }
-
-  try {
-    const viewed = getViewedTransactions();
-    viewed.forEach(txId => {
-      window.localStorage.removeItem(`${STORAGE_KEY_PREFIX}${txId}`);
-    });
-    window.localStorage.removeItem(STORAGE_KEY_ALL_VIEWED);
-  } catch (e) {
-    console.error('Error clearing viewed transactions:', e);
-  }
-};
-
-/**
- * Clean up old viewed transaction records (older than 90 days)
- * This prevents localStorage from growing indefinitely
- */
-export const cleanupOldViewedTransactions = () => {
-  if (typeof window === 'undefined' || !window.localStorage) {
-    return;
-  }
-
-  try {
-    const NINETY_DAYS_MS = 90 * 24 * 60 * 60 * 1000;
-    const now = new Date().getTime();
-    const viewed = getViewedTransactions();
-    const stillValid = [];
-
-    viewed.forEach(txId => {
-      const lastViewed = getTransactionLastViewedAt(txId);
-      if (lastViewed && now - lastViewed < NINETY_DAYS_MS) {
-        stillValid.push(txId);
-      } else {
-        // Remove old entry
-        window.localStorage.removeItem(`${STORAGE_KEY_PREFIX}${txId}`);
-      }
-    });
-
-    window.localStorage.setItem(STORAGE_KEY_ALL_VIEWED, JSON.stringify(stillValid));
-  } catch (e) {
-    console.error('Error cleaning up old viewed transactions:', e);
-  }
+export const clearViewedTransactionsCache = () => {
+  viewedTransactionsCache = {};
+  cacheInitialized = false;
 };
 

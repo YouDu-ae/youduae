@@ -2,6 +2,7 @@ import * as log from '../util/log';
 import { storableError } from '../util/errors';
 import { clearCurrentUser, fetchCurrentUser } from './user.duck';
 import { createUserWithIdp } from '../util/api';
+import { clearViewedTransactionsCache } from '../util/transactionNotifications';
 
 const authenticated = authInfo => authInfo?.isAnonymous === false;
 const loggedInAs = authInfo => authInfo?.isLoggedInAs === true;
@@ -198,6 +199,7 @@ export const logout = () => (dispatch, getState, sdk) => {
       // The order of the dispatched actions
       dispatch(logoutSuccess());
       dispatch(clearCurrentUser());
+      clearViewedTransactionsCache();
       log.clearUserId();
       dispatch(userLogout());
     })

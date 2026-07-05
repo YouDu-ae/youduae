@@ -5,7 +5,7 @@ import { LISTING_STATE_DRAFT } from '../util/types';
 import { storableError } from '../util/errors';
 import { isUserAuthorized } from '../util/userHelpers';
 import { getTransitionsNeedingProviderAttention, getTransitionsNeedingCustomerAttention } from '../transactions/transaction';
-import { hasUnreadUpdates } from '../util/transactionNotifications';
+import { hasUnreadUpdates, setViewedTransactionsCache, clearViewedTransactionsCache } from '../util/transactionNotifications';
 
 import { authInfo } from './auth.duck';
 import { stripeAccountCreateSuccess } from './stripeConnectAccount.duck';
@@ -300,7 +300,7 @@ export const fetchCurrentUserHasOrders = () => (dispatch, getState, sdk) => {
 // Notificaiton page size is max (100 items on page)
 const NOTIFICATION_PAGE_SIZE = 100;
 
-export const fetchCurrentUserNotifications = () => (dispatch, getState, sdk) => {
+export const fetchCurrentUserNotifications = () => async (dispatch, getState, sdk) => {
   const { currentUser } = getState().user;
   if (!currentUser?.id) {
     console.log('🔔 [Notifications] No currentUser');
@@ -336,28 +336,37 @@ export const fetchCurrentUserNotifications = () => (dispatch, getState, sdk) => 
 
   dispatch(fetchCurrentUserNotificationsRequest());
 
-  // Fetch both sales and orders in parallel
-  Promise.all([
-    sdk.transactions.query(providerQueryParams),
-    sdk.transactions.query(customerQueryParams),
-  ])
-    .then(([salesResponse, ordersResponse]) => {
-      const salesTransactions = salesResponse.data.data || [];
-      const ordersTransactions = ordersResponse.data.data || [];
-      
-      // Combine and filter transactions:
-      // Считаем ТОЛЬКО транзакции с непрочитанными сообщениями
-      const allTransactions = [...salesTransactions, ...ordersTransactions];
-      
-      const transactionsWithUnreadMessages = allTransactions.filter(tx => {
-        return hasUnreadUpdates(tx, currentUserId);
-      });
+  try {
+    // First, load viewedTransactions from server to sync across devices
+    const viewedResponse = await fetch(`/api/viewed-transactions?userId=${currentUserId}`);
+    const viewedData = await viewedResponse.json();
+    
+    if (viewedData.success && viewedData.viewedTransactions) {
+      setViewedTransactionsCache(viewedData.viewedTransactions);
+      console.log('📬 Synced viewedTransactions from server:', Object.keys(viewedData.viewedTransactions).length);
+    }
 
-      dispatch(fetchCurrentUserNotificationsSuccess(transactionsWithUnreadMessages));
-    })
-    .catch(e => {
-      dispatch(fetchCurrentUserNotificationsError(storableError(e)));
+    // Fetch both sales and orders in parallel
+    const [salesResponse, ordersResponse] = await Promise.all([
+      sdk.transactions.query(providerQueryParams),
+      sdk.transactions.query(customerQueryParams),
+    ]);
+
+    const salesTransactions = salesResponse.data.data || [];
+    const ordersTransactions = ordersResponse.data.data || [];
+    
+    // Combine and filter transactions:
+    // Считаем ТОЛЬКО транзакции с непрочитанными сообщениями
+    const allTransactions = [...salesTransactions, ...ordersTransactions];
+    
+    const transactionsWithUnreadMessages = allTransactions.filter(tx => {
+      return hasUnreadUpdates(tx, currentUserId);
     });
+
+    dispatch(fetchCurrentUserNotificationsSuccess(transactionsWithUnreadMessages));
+  } catch (e) {
+    dispatch(fetchCurrentUserNotificationsError(storableError(e)));
+  }
 };
 
 /**

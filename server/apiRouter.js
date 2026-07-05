@@ -37,6 +37,7 @@ const updatePresence = require('./api/update-presence');
 const presenceBatch = require('./api/presence-batch');
 const placesProxy = require('./api/places-proxy');
 const telegramBot = require('./api/telegram-bot');
+const viewedTransactions = require('./api/viewed-transactions');
 
 const createUserWithIdp = require('./api/auth/createUserWithIdp');
 const { sendEmailOtp, verifyEmailOtp, assertEmailVerified } = require('./api/email-otp');
@@ -116,6 +117,11 @@ router.post('/telegram/webhook', telegramBot.handleWebhook);
 router.post('/telegram/generate-code', telegramBot.generateCode);
 router.get('/telegram/status', telegramBot.checkTelegramStatus);
 router.post('/telegram/unlink', telegramBot.unlinkTelegram);
+
+// Viewed transactions (for syncing read/unread state across devices)
+router.get('/viewed-transactions', viewedTransactions.getViewedTransactions);
+router.post('/viewed-transactions', viewedTransactions.markTransactionViewed);
+router.post('/viewed-transactions/batch', viewedTransactions.markTransactionsBatchViewed);
 
 // Email OTP verification endpoints
 router.post('/otp/email/send', sendEmailOtp);

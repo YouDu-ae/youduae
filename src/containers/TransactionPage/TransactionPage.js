@@ -12,7 +12,7 @@ import { LISTING_UNIT_TYPES, propTypes } from '../../util/types';
 import { timestampToDate } from '../../util/dates';
 import { createSlug } from '../../util/urlHelpers';
 import { requireListingImage } from '../../util/configHelpers';
-import { markTransactionAsViewed, cleanupOldViewedTransactions } from '../../util/transactionNotifications';
+import { markTransactionAsViewed } from '../../util/transactionNotifications';
 
 import {
   INQUIRY_PROCESS_NAME,
@@ -177,19 +177,16 @@ export const TransactionPageComponent = props => {
 
   // Отмечаем транзакцию как просмотренную когда страница загружается
   useEffect(() => {
-    if (transaction?.id && props.onUpdateNotificationCount) {
-      markTransactionAsViewed(transaction.id.uuid);
-      
-      // Также очищаем старые записи (делаем это периодически)
-      cleanupOldViewedTransactions();
+    if (transaction?.id && currentUser?.id && props.onUpdateNotificationCount) {
+      markTransactionAsViewed(transaction.id.uuid, currentUser.id.uuid);
       
       // Обновляем счётчик уведомлений после небольшой задержки
-      // чтобы дать время localStorage обновиться
+      // чтобы дать время серверу обновиться
       setTimeout(() => {
         props.onUpdateNotificationCount();
       }, 500);
     }
-  }, [transaction?.id, props.onUpdateNotificationCount]);
+  }, [transaction?.id, currentUser?.id, props.onUpdateNotificationCount]);
   const txTransitions = transaction?.attributes?.transitions || [];
   const isProviderRole = transactionRole === PROVIDER;
   const isCustomerRole = transactionRole === CUSTOMER;
