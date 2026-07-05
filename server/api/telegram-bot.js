@@ -1,0 +1,534 @@
+/**
+ * Telegram Bot Integration for YouDu Notifications
+ * 
+ * Handles:
+ * - Webhook from Telegram (user messages)
+ * - Account linking via verification code
+ * - Sending notifications to users
+ */
+
+const crypto = require('crypto');
+const sharetribeIntegrationSdk = require('sharetribe-flex-integration-sdk');
+
+const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+const TELEGRAM_API = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}`;
+
+// Initialize Sharetribe Integration SDK
+const integrationSdk = sharetribeIntegrationSdk.createInstance({
+  clientId: process.env.INTEGRATION_API_CLIENT_ID,
+  clientSecret: process.env.INTEGRATION_API_CLIENT_SECRET,
+});
+
+// In-memory store for pending verifications (in production, use Redis)
+const pendingVerifications = new Map();
+
+/**
+ * Send message via Telegram Bot API
+ */
+async function sendTelegramMessage(chatId, text, options = {}) {
+  try {
+    const response = await fetch(`${TELEGRAM_API}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: chatId,
+        text,
+        parse_mode: 'HTML',
+        ...options,
+      }),
+    });
+    
+    const data = await response.json();
+    if (!data.ok) {
+      console.error('Telegram API error:', data);
+    }
+    return data;
+  } catch (error) {
+    console.error('Error sending Telegram message:', error);
+    return null;
+  }
+}
+
+/**
+ * Generate verification code for account linking
+ */
+function generateVerificationCode() {
+  return crypto.randomInt(100000, 999999).toString();
+}
+
+/**
+ * Handle incoming Telegram webhook
+ */
+async function handleWebhook(req, res) {
+  try {
+    const update = req.body;
+    
+    if (!update.message) {
+      return res.sendStatus(200);
+    }
+    
+    const chatId = update.message.chat.id;
+    const text = update.message.text || '';
+    const firstName = update.message.from.first_name || '';
+    const username = update.message.from.username || '';
+    
+    console.log(`Telegram message from ${firstName} (@${username}): ${text}`);
+    
+    // Handle /start command with deep link
+    if (text.startsWith('/start')) {
+      const parts = text.split(' ');
+      
+      if (parts.length > 1) {
+        // Deep link: /start CODE_userId
+        const payload = parts[1];
+        const [code, userId] = payload.split('_');
+        
+        if (code && userId) {
+          // Verify the code and link account
+          await handleAccountLinking(chatId, code, userId, firstName);
+        } else {
+          await sendWelcomeMessage(chatId, firstName);
+        }
+      } else {
+        await sendWelcomeMessage(chatId, firstName);
+      }
+    }
+    // Handle verification code input
+    else if (/^\d{6}$/.test(text)) {
+      await handleVerificationCode(chatId, text, firstName);
+    }
+    // Handle other commands
+    else if (text === '/help') {
+      await sendHelpMessage(chatId);
+    }
+    else if (text === '/status') {
+      await sendStatusMessage(chatId);
+    }
+    else {
+      await sendUnknownCommandMessage(chatId);
+    }
+    
+    res.sendStatus(200);
+  } catch (error) {
+    console.error('Telegram webhook error:', error);
+    res.sendStatus(200); // Always return 200 to Telegram
+  }
+}
+
+/**
+ * Send welcome message
+ */
+async function sendWelcomeMessage(chatId, firstName) {
+  const message = `👋 Привет, ${firstName}!
+
+Я бот <b>YouDu</b> — буду присылать уведомления о новых откликах, сообщениях и заданиях.
+
+🔗 <b>Чтобы подключить уведомления:</b>
+1. Зайдите на сайт youdu.ae
+2. Откройте Настройки профиля
+3. Нажмите "Подключить Telegram"
+4. Введите код, который там появится
+
+Или просто отправьте мне 6-значный код из настроек.
+
+💡 Команды:
+/help — помощь
+/status — статус подключения`;
+
+  await sendTelegramMessage(chatId, message);
+}
+
+/**
+ * Send help message
+ */
+async function sendHelpMessage(chatId) {
+  const message = `📚 <b>Помощь</b>
+
+Этот бот присылает уведомления с сайта youdu.ae:
+• 📬 Новые отклики на ваши задания
+• ✅ Когда вас выбрали исполнителем
+• 💬 Новые сообщения в чатах
+• 📋 Новые задания в ваших категориях
+
+<b>Как подключить:</b>
+1. Зайдите на youdu.ae
+2. Настройки → Уведомления
+3. Нажмите "Подключить Telegram"
+4. Отправьте мне код
+
+<b>Команды:</b>
+/start — начать
+/status — проверить подключение
+/help — эта справка`;
+
+  await sendTelegramMessage(chatId, message);
+}
+
+/**
+ * Check connection status
+ */
+async function sendStatusMessage(chatId) {
+  try {
+    // Search for user with this chatId
+    const usersResponse = await integrationSdk.users.query({
+      perPage: 100,
+    });
+    
+    const users = usersResponse.data.data;
+    const linkedUser = users.find(user => {
+      const privateData = user.attributes.profile.privateData || {};
+      return privateData.telegramChatId === chatId.toString();
+    });
+    
+    if (linkedUser) {
+      const displayName = linkedUser.attributes.profile.displayName || 'Пользователь';
+      await sendTelegramMessage(chatId, 
+        `✅ <b>Подключено!</b>\n\nВаш аккаунт: ${displayName}\n\nВы будете получать уведомления о новых откликах, сообщениях и заданиях.`
+      );
+    } else {
+      await sendTelegramMessage(chatId,
+        `❌ <b>Не подключено</b>\n\nВаш Telegram не привязан к аккаунту YouDu.\n\nЗайдите на youdu.ae → Настройки → Подключить Telegram`
+      );
+    }
+  } catch (error) {
+    console.error('Error checking status:', error);
+    await sendTelegramMessage(chatId, '⚠️ Ошибка проверки статуса. Попробуйте позже.');
+  }
+}
+
+/**
+ * Handle unknown command
+ */
+async function sendUnknownCommandMessage(chatId) {
+  await sendTelegramMessage(chatId,
+    `🤔 Не понял команду.\n\nЕсли хотите привязать аккаунт — отправьте 6-значный код из настроек на youdu.ae\n\n/help — справка`
+  );
+}
+
+/**
+ * Handle verification code from user
+ */
+async function handleVerificationCode(chatId, code, firstName) {
+  // Check if code exists in pending verifications
+  const verification = pendingVerifications.get(code);
+  
+  if (!verification) {
+    await sendTelegramMessage(chatId,
+      `❌ Код не найден или истёк.\n\nПолучите новый код в настройках на youdu.ae`
+    );
+    return;
+  }
+  
+  // Check if code expired (10 minutes)
+  if (Date.now() - verification.createdAt > 10 * 60 * 1000) {
+    pendingVerifications.delete(code);
+    await sendTelegramMessage(chatId,
+      `⏰ Код истёк.\n\nПолучите новый код в настройках на youdu.ae`
+    );
+    return;
+  }
+  
+  try {
+    // Update user's privateData with telegramChatId
+    await integrationSdk.users.updateProfile({
+      id: verification.userId,
+      privateData: {
+        telegramChatId: chatId.toString(),
+        telegramUsername: firstName,
+        telegramLinkedAt: new Date().toISOString(),
+      },
+    });
+    
+    // Remove used code
+    pendingVerifications.delete(code);
+    
+    await sendTelegramMessage(chatId,
+      `✅ <b>Отлично, ${firstName}!</b>\n\nВаш Telegram успешно привязан к аккаунту YouDu.\n\nТеперь вы будете получать уведомления:\n• 📬 Новые отклики\n• ✅ Принятие откликов\n• 💬 Новые сообщения`
+    );
+    
+    console.log(`Telegram linked: chatId=${chatId}, userId=${verification.userId}`);
+  } catch (error) {
+    console.error('Error linking Telegram:', error);
+    await sendTelegramMessage(chatId,
+      `⚠️ Ошибка привязки аккаунта. Попробуйте позже.`
+    );
+  }
+}
+
+/**
+ * Handle account linking via deep link
+ */
+async function handleAccountLinking(chatId, code, userId, firstName) {
+  // For deep link, code might be the full verification
+  await handleVerificationCode(chatId, code, firstName);
+}
+
+/**
+ * API: Generate verification code for user
+ */
+async function generateCode(req, res) {
+  try {
+    const { userId } = req.body;
+    
+    if (!userId) {
+      return res.status(400).json({ error: 'userId is required' });
+    }
+    
+    // Generate new code
+    const code = generateVerificationCode();
+    
+    // Store with expiration
+    pendingVerifications.set(code, {
+      userId,
+      createdAt: Date.now(),
+    });
+    
+    // Clean up old codes (older than 10 minutes)
+    for (const [key, value] of pendingVerifications.entries()) {
+      if (Date.now() - value.createdAt > 10 * 60 * 1000) {
+        pendingVerifications.delete(key);
+      }
+    }
+    
+    // Generate deep link
+    const botUsername = 'YouDuAE_bot';
+    const deepLink = `https://t.me/${botUsername}?start=${code}_${userId}`;
+    
+    res.json({
+      code,
+      deepLink,
+      expiresIn: 600, // 10 minutes
+    });
+  } catch (error) {
+    console.error('Error generating code:', error);
+    res.status(500).json({ error: 'Failed to generate code' });
+  }
+}
+
+/**
+ * API: Check if user has Telegram linked
+ */
+async function checkTelegramStatus(req, res) {
+  try {
+    const { userId } = req.query;
+    
+    if (!userId) {
+      return res.status(400).json({ error: 'userId is required' });
+    }
+    
+    const userResponse = await integrationSdk.users.show({
+      id: userId,
+    });
+    
+    const privateData = userResponse.data.data.attributes.profile.privateData || {};
+    const isLinked = !!privateData.telegramChatId;
+    
+    res.json({
+      isLinked,
+      linkedAt: privateData.telegramLinkedAt || null,
+    });
+  } catch (error) {
+    console.error('Error checking Telegram status:', error);
+    res.status(500).json({ error: 'Failed to check status' });
+  }
+}
+
+/**
+ * API: Unlink Telegram from user account
+ */
+async function unlinkTelegram(req, res) {
+  try {
+    const { userId } = req.body;
+    
+    if (!userId) {
+      return res.status(400).json({ error: 'userId is required' });
+    }
+    
+    // Get current user to find chatId
+    const userResponse = await integrationSdk.users.show({
+      id: userId,
+    });
+    
+    const privateData = userResponse.data.data.attributes.profile.privateData || {};
+    const chatId = privateData.telegramChatId;
+    
+    // Remove telegramChatId from user
+    await integrationSdk.users.updateProfile({
+      id: userId,
+      privateData: {
+        telegramChatId: null,
+        telegramUsername: null,
+        telegramLinkedAt: null,
+      },
+    });
+    
+    // Notify user in Telegram
+    if (chatId) {
+      await sendTelegramMessage(chatId,
+        `🔓 Ваш Telegram отключён от аккаунта YouDu.\n\nВы больше не будете получать уведомления.\n\nЧтобы подключить снова — зайдите в настройки на youdu.ae`
+      );
+    }
+    
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error unlinking Telegram:', error);
+    res.status(500).json({ error: 'Failed to unlink' });
+  }
+}
+
+// ============================================
+// NOTIFICATION FUNCTIONS
+// ============================================
+
+/**
+ * Send notification about new offer/response
+ */
+async function notifyNewOffer(userId, data) {
+  const chatId = await getUserTelegramChatId(userId);
+  if (!chatId) return false;
+  
+  const { listingTitle, executorName, offerPrice, listingUrl } = data;
+  
+  const message = `📬 <b>Новый отклик!</b>
+
+<b>${executorName}</b> откликнулся на ваше задание:
+"${listingTitle}"
+
+💰 Цена: ${offerPrice || 'Не указана'}
+
+<a href="${listingUrl}">Открыть задание →</a>`;
+
+  return await sendTelegramMessage(chatId, message);
+}
+
+/**
+ * Send notification when offer is accepted
+ */
+async function notifyOfferAccepted(userId, data) {
+  const chatId = await getUserTelegramChatId(userId);
+  if (!chatId) return false;
+  
+  const { listingTitle, customerName, listingUrl } = data;
+  
+  const message = `✅ <b>Вас выбрали!</b>
+
+<b>${customerName}</b> выбрал вас исполнителем:
+"${listingTitle}"
+
+<a href="${listingUrl}">Открыть задание →</a>`;
+
+  return await sendTelegramMessage(chatId, message);
+}
+
+/**
+ * Send notification when offer is declined
+ */
+async function notifyOfferDeclined(userId, data) {
+  const chatId = await getUserTelegramChatId(userId);
+  if (!chatId) return false;
+  
+  const { listingTitle } = data;
+  
+  const message = `❌ <b>Отклик отклонён</b>
+
+К сожалению, ваш отклик на задание "${listingTitle}" был отклонён.
+
+Не расстраивайтесь — на YouDu много других заданий!`;
+
+  return await sendTelegramMessage(chatId, message);
+}
+
+/**
+ * Send notification about new message
+ */
+async function notifyNewMessage(userId, data) {
+  const chatId = await getUserTelegramChatId(userId);
+  if (!chatId) return false;
+  
+  const { senderName, messagePreview, conversationUrl } = data;
+  
+  const message = `💬 <b>Новое сообщение</b>
+
+От: <b>${senderName}</b>
+"${messagePreview}"
+
+<a href="${conversationUrl}">Ответить →</a>`;
+
+  return await sendTelegramMessage(chatId, message);
+}
+
+/**
+ * Send notification about new listing in user's category
+ */
+async function notifyNewListing(userId, data) {
+  const chatId = await getUserTelegramChatId(userId);
+  if (!chatId) return false;
+  
+  const { listingTitle, category, price, listingUrl } = data;
+  
+  const message = `📋 <b>Новое задание</b>
+
+"${listingTitle}"
+📁 ${category}
+💰 ${price || 'Цена договорная'}
+
+<a href="${listingUrl}">Откликнуться →</a>`;
+
+  return await sendTelegramMessage(chatId, message);
+}
+
+/**
+ * Get user's Telegram chatId from Sharetribe
+ */
+async function getUserTelegramChatId(userId) {
+  try {
+    const userResponse = await integrationSdk.users.show({
+      id: userId,
+    });
+    
+    const privateData = userResponse.data.data.attributes.profile.privateData || {};
+    return privateData.telegramChatId || null;
+  } catch (error) {
+    console.error('Error getting user Telegram chatId:', error);
+    return null;
+  }
+}
+
+/**
+ * Setup Telegram webhook
+ */
+async function setupWebhook(webhookUrl) {
+  try {
+    const response = await fetch(`${TELEGRAM_API}/setWebhook`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        url: webhookUrl,
+        allowed_updates: ['message'],
+      }),
+    });
+    
+    const data = await response.json();
+    console.log('Telegram webhook setup:', data);
+    return data;
+  } catch (error) {
+    console.error('Error setting up webhook:', error);
+    return null;
+  }
+}
+
+module.exports = {
+  handleWebhook,
+  generateCode,
+  checkTelegramStatus,
+  unlinkTelegram,
+  setupWebhook,
+  // Notification functions
+  notifyNewOffer,
+  notifyOfferAccepted,
+  notifyOfferDeclined,
+  notifyNewMessage,
+  notifyNewListing,
+  sendTelegramMessage,
+  getUserTelegramChatId,
+};

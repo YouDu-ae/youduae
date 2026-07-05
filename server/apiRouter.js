@@ -36,6 +36,7 @@ const notifyNewReview = require('./api/notify-new-review');
 const updatePresence = require('./api/update-presence');
 const presenceBatch = require('./api/presence-batch');
 const placesProxy = require('./api/places-proxy');
+const telegramBot = require('./api/telegram-bot');
 
 const createUserWithIdp = require('./api/auth/createUserWithIdp');
 const { sendEmailOtp, verifyEmailOtp, assertEmailVerified } = require('./api/email-otp');
@@ -109,6 +110,12 @@ router.get('/presence-batch', presenceBatch);
 // Google Places (для мобильного приложения — ключ на сервере, без referrer с телефона)
 router.get('/places/autocomplete', placesProxy.autocomplete);
 router.get('/places/details', placesProxy.details);
+
+// Telegram Bot
+router.post('/telegram/webhook', telegramBot.handleWebhook);
+router.post('/telegram/generate-code', telegramBot.generateCode);
+router.get('/telegram/status', telegramBot.checkTelegramStatus);
+router.post('/telegram/unlink', telegramBot.unlinkTelegram);
 
 // Email OTP verification endpoints
 router.post('/otp/email/send', sendEmailOtp);
