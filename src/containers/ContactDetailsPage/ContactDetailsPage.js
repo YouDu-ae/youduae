@@ -134,13 +134,23 @@ export const ContactDetailsPageComponent = props => {
         footer={<FooterContainer />}
       >
         <div className={css.content}>
-          <H3 as="h1">
+          <H3 as="h1" className={css.pageTitle}>
             <FormattedMessage id="ContactDetailsPage.heading" />
           </H3>
-          {contactInfoForm}
           
-          {/* Telegram notifications */}
-          <TelegramConnect currentUser={currentUser} />
+          <div className={css.sectionsGrid}>
+            {/* Contact Details Section */}
+            <div className={css.section}>
+              <div className={css.sectionHeader}>
+                <span className={css.sectionIcon}>✉️</span>
+                <h3 className={css.sectionTitle}>Контактные данные</h3>
+              </div>
+              {contactInfoForm}
+            </div>
+            
+            {/* Telegram Section */}
+            <TelegramConnect currentUser={currentUser} />
+          </div>
         </div>
       </LayoutSideNavigation>
     </Page>

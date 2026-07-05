@@ -1,9 +1,8 @@
 .root {
   background-color: var(--colorWhite);
   border: 1px solid var(--colorGrey100);
-  border-radius: 8px;
+  border-radius: 12px;
   padding: 24px;
-  margin-top: 32px;
 }
 
 .title {
