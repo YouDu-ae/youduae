@@ -2,7 +2,7 @@
 
 ## Official Description
 
-YouDu is a technology marketplace that connects customers with verified service professionals across the United Arab Emirates.
+YouDu is a technology marketplace that connects customers with verified Russian-speaking service professionals across the United Arab Emirates. The platform serves the Russian-speaking expatriate community in the UAE.
 
 ## Mission
 
