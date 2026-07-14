@@ -197,27 +197,63 @@ class PageComponent extends Component {
     const hasSchema = schema != null;
     const schemaFromProps = hasSchema && Array.isArray(schema) ? schema : hasSchema ? [schema] : [];
     const addressMaybe = config.address?.streetAddress ? { address: config.address } : {};
+    
+    // Enhanced Organization schema for AI SEO
+    const organizationSchema = {
+      '@type': 'Organization',
+      '@id': `${marketplaceRootURL}#organization`,
+      url: marketplaceRootURL,
+      name: marketplaceName,
+      legalName: 'YouDu UAE',
+      description: 'YouDu is a technology marketplace that connects customers with verified service professionals across the United Arab Emirates.',
+      sameAs: sameOrganizationAs,
+      logo: {
+        '@type': 'ImageObject',
+        url: config.branding.logoImageMobileURL,
+      },
+      founder: {
+        '@type': 'Person',
+        name: 'Alexander Gross',
+      },
+      foundingDate: '2024',
+      areaServed: {
+        '@type': 'Country',
+        name: 'United Arab Emirates',
+        '@id': 'https://www.wikidata.org/wiki/Q878',
+      },
+      serviceType: 'Home Services Marketplace',
+      slogan: 'Find trusted service professionals in UAE',
+      knowsLanguage: ['ru', 'en'],
+      ...addressMaybe,
+    };
+
+    // Enhanced WebSite schema with SearchAction
+    const websiteSchema = {
+      '@type': 'WebSite',
+      '@id': `${marketplaceRootURL}#website`,
+      url: marketplaceRootURL,
+      name: marketplaceName,
+      description: schemaDescription,
+      publisher: {
+        '@id': `${marketplaceRootURL}#organization`,
+      },
+      potentialAction: {
+        '@type': 'SearchAction',
+        target: {
+          '@type': 'EntryPoint',
+          urlTemplate: `${marketplaceRootURL}/s?keywords={search_term_string}`,
+        },
+        'query-input': 'required name=search_term_string',
+      },
+      inLanguage: ['ru', 'en'],
+    };
+
     const schemaArrayJSONString = JSON.stringify({
-      '@context': 'http://schema.org',
+      '@context': 'https://schema.org',
       '@graph': [
         ...schemaFromProps,
-        {
-          '@context': 'http://schema.org',
-          '@type': 'Organization',
-          '@id': `${marketplaceRootURL}#organization`,
-          url: marketplaceRootURL,
-          name: marketplaceName,
-          sameAs: sameOrganizationAs,
-          logo: config.branding.logoImageMobileURL,
-          ...addressMaybe,
-        },
-        {
-          '@context': 'http://schema.org',
-          '@type': 'WebSite',
-          url: marketplaceRootURL,
-          description: schemaDescription,
-          name: schemaTitle,
-        },
+        organizationSchema,
+        websiteSchema,
       ],
     });
 

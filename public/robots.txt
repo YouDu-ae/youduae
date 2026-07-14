@@ -1,0 +1,50 @@
+# YouDu - Home Services Marketplace in UAE
+# https://youdu.ae
+
+User-agent: *
+Allow: /
+
+# Block internal pages
+Disallow: /verify-email
+Disallow: /order/*
+Disallow: /sale/*
+Disallow: /account/*
+Disallow: /inbox/*
+Disallow: /checkout/*
+Disallow: /preview
+
+# Allow important pages
+Allow: /
+Allow: /s
+Allow: /l/*
+Allow: /u/*
+Allow: /p/*
+Allow: /about
+Allow: /terms-of-service
+Allow: /privacy-policy
+Allow: /category/*
+
+# Sitemap
+Sitemap: https://youdu.ae/sitemap-index.xml
+
+# AI Crawlers - Welcome!
+User-agent: GPTBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: Anthropic-AI
+Allow: /
+
+User-agent: Claude-Web
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Bytespider
+Allow: /
