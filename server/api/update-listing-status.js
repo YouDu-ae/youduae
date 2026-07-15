@@ -74,8 +74,24 @@ module.exports = async (req, res) => {
     // Если статус "in-progress", устанавливаем hired=true
     if (status === 'in-progress') {
       updateParams.publicData.hired = true;
+      updateParams.publicData.cancelled = false;
       updateParams.publicData.reviewSubmitted = false; // Track if review was submitted
       console.log('  → Setting hired=true for in-progress status');
+    }
+    if (status === 'cancelled') {
+      updateParams.publicData.cancelled = true;
+      updateParams.publicData.hired = false;
+      console.log('  → Marking listing as cancelled');
+    }
+    // Reopen for new offers (change executor)
+    if (status === 'open') {
+      updateParams.publicData.hired = false;
+      updateParams.publicData.cancelled = false;
+      updateParams.publicData.assignedTo = null;
+      updateParams.publicData.executorName = null;
+      updateParams.publicData.transactionId = null;
+      updateParams.publicData.reviewSubmitted = false;
+      console.log('  → Clearing executor assignment');
     }
   }
   if (reviewSubmitted !== undefined) {
@@ -89,10 +105,15 @@ module.exports = async (req, res) => {
     .then(apiResponse => {
       console.log('✅ update-listing-status: publicData updated');
       
-      // Если нужно закрыть листинг (при in-progress), делаем отдельный вызов
-      if (status === 'in-progress') {
-        console.log('  → Closing listing to hide from search...');
+      // Закрыть листинг (скрыть из поиска)
+      if (status === 'in-progress' || status === 'cancelled') {
+        console.log('  → Closing listing...');
         return sdk.ownListings.close({ id: listingUUID });
+      }
+      // Снова открыть для откликов
+      if (status === 'open') {
+        console.log('  → Opening listing for new offers...');
+        return sdk.ownListings.open({ id: listingUUID });
       }
       
       return apiResponse;
