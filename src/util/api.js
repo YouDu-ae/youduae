@@ -52,6 +52,12 @@ const getSdk = () => {
   console.log('getSdk: createInstance =', typeof createInstance);
   console.log('getSdk: tokenStore =', typeof tokenStore);
 
+  const clientId = appSettings.sdk?.clientId;
+  if (!clientId) {
+    console.error('getSdk: missing appSettings.sdk.clientId');
+    return null;
+  }
+
   const baseUrlConfig = appSettings.sdk?.baseUrl ? { baseUrl: appSettings.sdk.baseUrl } : {};
   const assetCdnBaseUrl = appSettings.sdk?.assetCdnBaseUrl
     ? { assetCdnBaseUrl: appSettings.sdk.assetCdnBaseUrl }
@@ -59,15 +65,18 @@ const getSdk = () => {
 
   const sdkConfig = {
     transitVerbose: appSettings.sdk?.transitVerbose || false,
-    clientId: appSettings.sdk?.clientId,
+    clientId,
     secure: appSettings.usingSSL,
     typeHandlers,
-    tokenStore: tokenStore.browserCookieStore(),
+    tokenStore: tokenStore.browserCookieStore({
+      clientId,
+      secure: appSettings.usingSSL,
+    }),
     ...baseUrlConfig,
     ...assetCdnBaseUrl,
   };
 
-  console.log('getSdk: sdkConfig =', sdkConfig);
+  console.log('getSdk: sdkConfig =', { ...sdkConfig, tokenStore: '[CookieStore]' });
 
   sdkInstance = createInstance(sdkConfig);
 
@@ -202,9 +211,10 @@ export const transitionPrivileged = body => {
 // services in the specified category. The response includes user info,
 // reviews count, and average rating.
 //
+// Soft-gate for guests is enforced in CategoryExecutorsPage (UI only).
 // See `server/api/search-executors.js` for implementation details.
 export const searchExecutors = category => {
-  return get(`/api/search-executors?category=${category}`, {
+  return get(`/api/search-executors?category=${encodeURIComponent(category)}`, {
     headers: { 'Content-Type': 'application/json' },
   });
 };
