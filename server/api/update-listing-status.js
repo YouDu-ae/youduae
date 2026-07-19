@@ -10,7 +10,7 @@ const BASE_URL = process.env.REACT_APP_SHARETRIBE_SDK_BASE_URL;
  * Поддерживает как cookie auth (web), так и Bearer token auth (mobile).
  */
 module.exports = async (req, res) => {
-  const { listingId, assignedTo, status, transactionId, executorName, reviewSubmitted } = req.body;
+  const { listingId, assignedTo, status, transactionId, executorName, reviewSubmitted, removedCustomerId } = req.body;
   
   if (!listingId) {
     return res.status(400).json({ error: 'listingId is required' }).end();
@@ -54,6 +54,7 @@ module.exports = async (req, res) => {
     ? { _sdkType: 'UUID', uuid: listingId }
     : listingId;
 
+  const buildUpdateAndApply = (existingPublicData = {}) => {
   // Обновляем publicData листинга
   const updateParams = {
     id: listingUUID,
@@ -91,6 +92,15 @@ module.exports = async (req, res) => {
       updateParams.publicData.executorName = null;
       updateParams.publicData.transactionId = null;
       updateParams.publicData.reviewSubmitted = false;
+      const prevExcluded = Array.isArray(existingPublicData.excludedOfferCustomerIds)
+        ? existingPublicData.excludedOfferCustomerIds
+        : [];
+      const toExclude = removedCustomerId || existingPublicData.assignedTo;
+      if (toExclude) {
+        updateParams.publicData.excludedOfferCustomerIds = Array.from(
+          new Set([...prevExcluded, toExclude].filter(Boolean))
+        );
+      }
       console.log('  → Clearing executor assignment');
     }
   }
@@ -100,7 +110,7 @@ module.exports = async (req, res) => {
   }
 
   // Сначала обновляем publicData
-  sdk.ownListings
+  return sdk.ownListings
     .update(updateParams)
     .then(apiResponse => {
       console.log('✅ update-listing-status: publicData updated');
@@ -117,7 +127,23 @@ module.exports = async (req, res) => {
       }
       
       return apiResponse;
-    })
+    });
+  };
+
+  const run = status === 'open'
+    ? sdk.ownListings
+        .show({ id: listingUUID })
+        .then(showRes => {
+          const existing = showRes?.data?.data?.attributes?.publicData || {};
+          return buildUpdateAndApply(existing);
+        })
+        .catch(err => {
+          console.warn('⚠️ Could not load listing before open; proceeding:', err?.message);
+          return buildUpdateAndApply({});
+        })
+    : buildUpdateAndApply({});
+
+  run
     .then(apiResponse => {
       const { status: httpStatus, statusText, data } = apiResponse;
       console.log('✅ update-listing-status: complete (listing closed if needed)');
