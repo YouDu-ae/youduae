@@ -247,9 +247,26 @@ const buildAboutPage = locale => {
         content: meta.description,
       },
       socialSharing: {
-        fieldType: 'openGraph',
+        fieldType: 'openGraphData',
         title: meta.title,
         description: meta.description,
+        image: {
+          type: 'imageAsset',
+          attributes: {
+            variants: {
+              social1200: {
+                url: 'https://youdu.ae/og-banner.png',
+                width: 1200,
+                height: 630,
+              },
+              social600: {
+                url: 'https://youdu.ae/og-banner.png',
+                width: 600,
+                height: 314,
+              },
+            },
+          },
+        },
       },
     },
   };
