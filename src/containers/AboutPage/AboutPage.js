@@ -2,11 +2,12 @@ import React, { useMemo } from 'react';
 
 import { useIntl } from '../../util/reactIntl';
 import PageBuilder from '../PageBuilder/PageBuilder';
+import SectionTeam from './SectionTeam';
 
-const aboutContentRu = `
+const aboutIntroRu = `
 # О нас — YouDu
 
-**YouDu** — маркетплейс услуг в Дубае и ОАЭ. Клиенты публикуют задания, а исполнители-конкурсанты откликаются с предложениями. Мы ускоряем выбор проверенных специалистов, обеспечиваем прозрачное общение и повышаем доверие за счёт верификации и честных отзывов.
+**YouDu** (рус. Твой Дубай) — маркетплейс услуг от русскоговорящих специалистов в ОАЭ. Клиенты публикуют задания, а специалисты и компании откликаются с предложениями. Мы ускоряем выбор проверенных специалистов, обеспечиваем прозрачное общение и повышаем доверие за счёт верификации и честных отзывов.
 
 ## Что делает YouDu
 
@@ -45,15 +46,9 @@ const aboutContentRu = `
 - Локальные категории: ремонт, электрика, сантехника, клининг и др.
 
 Наши ценности: прозрачность, надёжность, локальная экспертиза, скорость, уважение к данным пользователей.
+`;
 
----
-
-## Команда YouDu
-
-Мы объединяем экспертизу в сервисном бизнесе, продуктовом IT и локальных операциях в Дубае. Комбинируем инженерное мышление, понятный UI и модели доверия: верификация, рейтинг, прозрачный чат.
-
----
-
+const aboutClosingRu = `
 ### Коротко
 
 **Elevator pitch**  
@@ -71,10 +66,10 @@ YouDu — маркетплейс услуг в ОАЭ: клиент публик
 3. Клиент выбирает исполнителя → работа → реальный отзыв.
 `;
 
-const aboutContentEn = `
+const aboutIntroEn = `
 # About YouDu
 
-**YouDu** is a services marketplace covering Dubai and the wider UAE. Clients post jobs and specialists respond with their offers. We shorten the search for vetted providers, keep communication transparent, and build trust through verification badges and authentic reviews.
+**YouDu** (“Your Dubai”) is a marketplace of services from Russian-speaking specialists in the UAE. Clients post jobs, and specialists and companies respond with their offers. We shorten the search for vetted providers, keep communication transparent, and build trust through verification badges and authentic reviews.
 
 ## What YouDu Delivers
 
@@ -113,15 +108,9 @@ We are a technology platform, not a direct party to the contract between client 
 - Local categories: renovation, electrical, plumbing, cleaning, and more.
 
 Our values: transparency, reliability, local expertise, speed, and respect for user data.
+`;
 
----
-
-## Who We Are
-
-Our team combines experience in service businesses, product engineering, and hands-on operations in Dubai. We blend engineering mindset, intuitive UI, and trust models—verification, ratings, transparent chat.
-
----
-
+const aboutClosingEn = `
 ### At a Glance
 
 **Elevator pitch**  
@@ -139,9 +128,60 @@ YouDu is the UAE services marketplace where clients post a job and specialists c
 3. The client selects a provider → work is delivered → genuine review.
 `;
 
+const TEAM_PHOTO_BASE = '/static/about/team';
+const TEAM_PHOTO_ABSOLUTE = 'https://youdu.ae/static/about/team';
+
+const getTeamMembers = isRu => [
+  {
+    id: 'aleksandr-gross',
+    name: isRu ? 'Александр Гросс' : 'Aleksandr Gross',
+    role: isRu ? 'Основатель' : 'Founder',
+    bio: isRu
+      ? 'Основатель и идейный вдохновитель YouDu («Твой Дубай») — цифровой платформы для русскоязычных заказчиков и специалистов в ОАЭ. Миссия проекта — помогать соотечественникам находить работу и надёжных исполнителей, поддерживая доверие через прозрачные профили и честные отзывы о качестве услуг.'
+      : 'Founder and visionary behind YouDu (“Your Dubai”) — a digital platform for Russian-speaking clients and specialists in the UAE. The project helps compatriots find work and reliable providers, building trust through transparent profiles and honest reviews of service quality.',
+    photo: `${TEAM_PHOTO_BASE}/aleksandr-gross.jpg`,
+    photoAbsolute: `${TEAM_PHOTO_ABSOLUTE}/aleksandr-gross.jpg`,
+    photoAlt: isRu ? 'Александр Гросс, основатель YouDu' : 'Aleksandr Gross, founder of YouDu',
+    linkedin: 'https://www.linkedin.com/in/aleksandr-gross-aa2155383',
+  },
+  {
+    id: 'yulia-shen',
+    name: isRu ? 'Юлия Шен' : 'Yulia Shen',
+    role: isRu
+      ? 'Проектный менеджер по привлечению пользователей'
+      : 'User Acquisition Project Manager',
+    bio: isRu
+      ? 'Отвечает за рост пользовательской базы YouDu и развитие сообщества платформы. Работает над привлечением клиентов и специалистов, создавая условия для устойчивого развития маркетплейса.'
+      : 'Responsible for growing YouDu’s user base and developing the platform community. Attracts clients and specialists, creating conditions for sustainable marketplace growth.',
+    photo: `${TEAM_PHOTO_BASE}/yulia-shen.jpg`,
+    photoAbsolute: `${TEAM_PHOTO_ABSOLUTE}/yulia-shen.jpg`,
+    photoAlt: isRu
+      ? 'Юлия Шен, проектный менеджер YouDu'
+      : 'Yulia Shen, user acquisition project manager at YouDu',
+    linkedin: null,
+  },
+  {
+    id: 'ruslan-yakubov',
+    name: isRu ? 'Руслан Якубов' : 'Ruslan Yakubov',
+    role: isRu
+      ? 'Специалист по верификации пользователей YouDu'
+      : 'User Verification Specialist',
+    bio: isRu
+      ? 'Проводит проверку специалистов, компаний и документов, подтверждая достоверность предоставленной информации. Выполняет выездные проверки, собирает необходимые материалы и оформляет результаты платной верификации.'
+      : 'Verifies specialists, companies, and documents, confirming the authenticity of submitted information. Conducts on-site checks, collects required materials, and prepares the results of paid verification.',
+    photo: `${TEAM_PHOTO_BASE}/ruslan-yakubov.jpg`,
+    photoAbsolute: `${TEAM_PHOTO_ABSOLUTE}/ruslan-yakubov.jpg`,
+    photoAlt: isRu
+      ? 'Руслан Якубов, специалист по верификации YouDu'
+      : 'Ruslan Yakubov, user verification specialist at YouDu',
+    linkedin: null,
+  },
+];
+
 const buildAboutPage = locale => {
   const isRu = locale?.toLowerCase().startsWith('ru');
-  const content = isRu ? aboutContentRu : aboutContentEn;
+  const intro = isRu ? aboutIntroRu : aboutIntroEn;
+  const closing = isRu ? aboutClosingRu : aboutClosingEn;
   const meta = isRu
     ? {
         title: 'О нас — YouDu',
@@ -163,10 +203,35 @@ const buildAboutPage = locale => {
         blocks: [
           {
             blockType: 'defaultBlock',
-            blockId: 'about-content',
+            blockId: 'about-intro-content',
             text: {
               fieldType: 'markdown',
-              content,
+              content: intro,
+            },
+          },
+        ],
+      },
+      {
+        sectionType: 'team',
+        sectionId: 'about-team',
+        appearance: { fieldType: 'customAppearance', backgroundColor: '#ffffff' },
+        title: isRu ? 'Команда YouDu' : 'Our Team',
+        description: isRu
+          ? 'Мы объединяем экспертизу в сервисном бизнесе, продуктовом IT и локальных операциях в Дубае.'
+          : 'We combine expertise in service businesses, product engineering, and hands-on operations in Dubai.',
+        members: getTeamMembers(isRu),
+      },
+      {
+        sectionType: 'article',
+        sectionId: 'about-closing',
+        appearance: { fieldType: 'customAppearance', backgroundColor: '#ffffff' },
+        blocks: [
+          {
+            blockType: 'defaultBlock',
+            blockId: 'about-closing-content',
+            text: {
+              fieldType: 'markdown',
+              content: closing,
             },
           },
         ],
@@ -190,12 +255,25 @@ const buildAboutPage = locale => {
   };
 };
 
+const aboutPageOptions = {
+  sectionComponents: {
+    team: { component: SectionTeam },
+  },
+};
+
 const AboutPage = () => {
   const intl = useIntl();
   const locale = intl?.locale || 'en';
   const pageData = useMemo(() => buildAboutPage(locale), [locale]);
 
-  return <PageBuilder pageAssetsData={pageData} schemaType="Article" inProgress={false} />;
+  return (
+    <PageBuilder
+      pageAssetsData={pageData}
+      schemaType="AboutPage"
+      inProgress={false}
+      options={aboutPageOptions}
+    />
+  );
 };
 
 export default AboutPage;
