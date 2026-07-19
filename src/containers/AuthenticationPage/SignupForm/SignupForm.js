@@ -1,13 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Form as FinalForm, Field } from 'react-final-form';
 import arrayMutators from 'final-form-arrays';
 import classNames from 'classnames';
+import { Prompt } from 'react-router-dom';
 
 import { FormattedMessage, useIntl } from '../../../util/reactIntl';
 import { propTypes } from '../../../util/types';
 import * as validators from '../../../util/validators';
 import { getPropsForCustomUserFieldInputs } from '../../../util/userHelpers';
 import { sendEmailOtp, verifyEmailOtp } from '../../../util/api';
+import * as log from '../../../util/log';
 
 import {
   Form,
@@ -32,6 +34,7 @@ const SignupFormFields = props => {
     rootClassName,
     className,
     formId,
+    form,
     handleSubmit,
     inProgress,
     invalid,
@@ -54,8 +57,21 @@ const SignupFormFields = props => {
     info: null,
     lastSentAt: null,
   });
+  const autoSubmitAfterOtpRef = useRef(false);
 
   const { userType, email } = values || {};
+
+  const hasStartedSignup = !!(
+    (email && String(email).trim()) ||
+    (values?.fname && String(values.fname).trim()) ||
+    (values?.lname && String(values.lname).trim()) ||
+    (values?.password && String(values.password).length > 0) ||
+    values?.phoneNumber ||
+    otpState.sent ||
+    otpState.verified
+  );
+  // Block leave while drafting signup (not during submit / after success redirect)
+  const blockLeaveWithoutSignup = hasStartedSignup && !inProgress;
 
       // email
       const emailRequired = validators.required(
@@ -206,6 +222,7 @@ const SignupFormFields = props => {
       }));
     } catch (error) {
       console.error('Failed to send email OTP:', error);
+      log.error(error, 'signup-otp-send-failed', { email });
       setOtpState(prev => ({
         ...prev,
         sending: false,
@@ -228,16 +245,22 @@ const SignupFormFields = props => {
 
     try {
       const response = await verifyEmailOtp({ challengeToken: otpState.challengeToken, code });
+      // Put token into Final Form so signup can proceed without an extra click
+      if (form?.change) {
+        form.change('verifiedToken', response.verifiedToken);
+      }
+      autoSubmitAfterOtpRef.current = true;
       setOtpState(prev => ({
         ...prev,
         verified: true,
         verifying: false,
         verifiedToken: response.verifiedToken,
-        info: null,
+        info: intl.formatMessage({ id: 'SignupForm.emailOtpVerifiedAutoSubmit' }),
         error: null,
       }));
     } catch (error) {
       console.error('Failed to verify email OTP:', error);
+      log.error(error, 'signup-otp-verify-failed', { email });
       setOtpState(prev => ({
         ...prev,
         verifying: false,
@@ -246,9 +269,47 @@ const SignupFormFields = props => {
     }
   };
 
+  // After OTP success → finish signup automatically (account is created only here)
+  useEffect(() => {
+    if (!autoSubmitAfterOtpRef.current || !otpState.verified || !otpState.verifiedToken) {
+      return undefined;
+    }
+    // Allow form.change('verifiedToken') to settle before checking validity
+    const t = setTimeout(() => {
+      if (!autoSubmitAfterOtpRef.current) {
+        return;
+      }
+      if (invalid || inProgress) {
+        autoSubmitAfterOtpRef.current = false;
+        setOtpState(prev => ({
+          ...prev,
+          info: intl.formatMessage({ id: 'SignupForm.emailOtpVerifiedFillAndSubmit' }),
+        }));
+        return;
+      }
+      autoSubmitAfterOtpRef.current = false;
+      handleSubmit();
+    }, 50);
+    return () => clearTimeout(t);
+  }, [otpState.verified, otpState.verifiedToken, invalid, inProgress, handleSubmit, intl]);
+
+  // Warn on browser close / refresh
+  useEffect(() => {
+    if (!blockLeaveWithoutSignup) {
+      return undefined;
+    }
+    const onBeforeUnload = e => {
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', onBeforeUnload);
+    return () => window.removeEventListener('beforeunload', onBeforeUnload);
+  }, [blockLeaveWithoutSignup]);
+
   // Watch email changes and reset OTP state if email changes after verification
   useEffect(() => {
     if (otpState.sent || otpState.verified) {
+      autoSubmitAfterOtpRef.current = false;
       setOtpState(prev => ({
         ...prev,
         sent: false,
@@ -263,6 +324,10 @@ const SignupFormFields = props => {
 
   return (
     <Form className={classes} onSubmit={handleSubmit}>
+      <Prompt
+        when={blockLeaveWithoutSignup}
+        message={intl.formatMessage({ id: 'SignupForm.leaveWithoutSignupConfirm' })}
+      />
       {!preselectedUserType && (
         <FieldSelectUserType
           name="userType"
@@ -390,9 +455,12 @@ const SignupFormFields = props => {
       <div className={css.bottomWrapper}>
         {termsAndConditions}
         
-        {/* Блок OTP - перемещён сюда, чтобы быть над кнопкой */}
+        {/* OTP pending: account is not created until code is confirmed */}
         {otpState.sent && !otpState.verified && (
           <div className={css.otpCodeFieldContainer}>
+            <div className={classNames(css.emailOtpStatus, css.emailOtpStatusPending)}>
+              <FormattedMessage id="SignupForm.emailOtpPendingAccountNotice" />
+            </div>
             <FieldTextInput
               type="text"
               id={formId ? `${formId}.emailOtpCode` : 'emailOtpCode'}
@@ -403,7 +471,6 @@ const SignupFormFields = props => {
               label={intl.formatMessage({ id: 'SignupForm.emailOtpCodeLabel' })}
               placeholder={intl.formatMessage({ id: 'SignupForm.emailOtpCodePlaceholder' })}
             />
-            {/* Кнопка "Отправить повторно" - как текстовая ссылка */}
             <button
               type="button"
               className={css.resendOtpButton}

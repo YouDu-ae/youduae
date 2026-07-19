@@ -56,6 +56,29 @@ const hashCode = code => {
   return hmac.digest('base64url');
 };
 
+/** Mask email for logs: a***@domain.com */
+const maskEmail = email => {
+  if (!email || typeof email !== 'string') return '(none)';
+  const [local, domain] = email.split('@');
+  if (!domain) return '***';
+  const visible = local.slice(0, Math.min(2, local.length));
+  return `${visible}***@${domain}`;
+};
+
+const logOtpEvent = (level, event, details = {}) => {
+  const payload = {
+    event,
+    ...details,
+    email: details.email ? maskEmail(details.email) : undefined,
+    at: new Date().toISOString(),
+  };
+  if (level === 'error') {
+    console.error('[otp]', JSON.stringify(payload));
+  } else {
+    console.log('[otp]', JSON.stringify(payload));
+  }
+};
+
 const signJwt = async (payload, expiresInSeconds) => {
   const now = Math.floor(Date.now() / 1000);
   return new SignJWT(payload)
@@ -156,16 +179,17 @@ const sendEmailOtp = async (req, res) => {
   try {
     if (!isConfigured) {
       const { status, body } = configurationError();
+      logOtpEvent('error', 'otp_send_config_missing');
       res.status(status).json(body);
       return;
     }
 
     const { email, locale } = req.body || {};
 
-    console.log('📧 OTP send request:', { email, locale, bodyType: typeof req.body, body: req.body });
+    logOtpEvent('info', 'otp_send_requested', { email, locale });
 
     if (!email || typeof email !== 'string' || !emailRegex.test(email)) {
-      console.error('❌ Invalid email:', { email, type: typeof email, regex: emailRegex.test(email || '') });
+      logOtpEvent('error', 'otp_send_invalid_email', { email });
       res.status(400).json({ error: 'invalidEmail' });
       return;
     }
@@ -185,6 +209,8 @@ const sendEmailOtp = async (req, res) => {
 
     await sendEmailViaSendGrid(email, html, text, subject);
 
+    logOtpEvent('info', 'otp_send_success', { email });
+
     res.json({
       success: true,
       challengeToken,
@@ -192,7 +218,12 @@ const sendEmailOtp = async (req, res) => {
       resendDelaySeconds: resendCooldownSeconds,
     });
   } catch (e) {
-    console.error('Failed to send email OTP:', e);
+    logOtpEvent('error', 'otp_send_failed', {
+      email: req.body?.email,
+      message: e.message,
+      sendgridCode: e.code,
+      sendgridBody: e.response?.body,
+    });
     res.status(502).json({ error: 'emailSendFailed' });
   }
 };
@@ -201,6 +232,7 @@ const verifyEmailOtp = async (req, res) => {
   try {
     if (!isConfigured) {
       const { status, body } = configurationError();
+      logOtpEvent('error', 'otp_verify_config_missing');
       res.status(status).json(body);
       return;
     }
@@ -208,6 +240,7 @@ const verifyEmailOtp = async (req, res) => {
     const { challengeToken, code } = req.body || {};
 
     if (!challengeToken || !code) {
+      logOtpEvent('error', 'otp_verify_missing_params');
       res.status(400).json({ error: 'missingParameters' });
       return;
     }
@@ -217,17 +250,20 @@ const verifyEmailOtp = async (req, res) => {
       const verified = await verifyJwt(challengeToken);
       payload = verified.payload;
     } catch (e) {
+      logOtpEvent('error', 'otp_verify_invalid_or_expired_token');
       res.status(400).json({ error: 'invalidOrExpiredToken' });
       return;
     }
 
     if (payload.purpose !== 'email-otp') {
+      logOtpEvent('error', 'otp_verify_invalid_purpose', { email: payload.email });
       res.status(400).json({ error: 'invalidTokenPurpose' });
       return;
     }
 
     const inputCodeHash = hashCode(code);
     if (inputCodeHash !== payload.codeHash) {
+      logOtpEvent('error', 'otp_verify_incorrect_code', { email: payload.email });
       res.status(400).json({ error: 'incorrectCode' });
       return;
     }
@@ -240,6 +276,8 @@ const verifyEmailOtp = async (req, res) => {
       verifiedTtlSeconds
     );
 
+    logOtpEvent('info', 'otp_verify_success', { email: payload.email });
+
     res.json({
       success: true,
       email: payload.email,
@@ -247,7 +285,7 @@ const verifyEmailOtp = async (req, res) => {
       expiresAt: new Date(Date.now() + verifiedTtlSeconds * 1000).toISOString(),
     });
   } catch (e) {
-    console.error('Failed to verify email OTP:', e);
+    logOtpEvent('error', 'otp_verify_failed', { message: e.message });
     res.status(500).json({ error: 'verificationFailed' });
   }
 };

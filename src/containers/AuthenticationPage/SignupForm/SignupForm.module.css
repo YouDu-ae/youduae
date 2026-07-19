@@ -119,6 +119,16 @@
   border: 1px solid #bee5eb;
 }
 
+.emailOtpStatusPending {
+  background-color: #fff8e6;
+  color: #7a5c00;
+  border: 1px solid #ffe08a;
+  font-weight: 600;
+  text-align: center;
+  width: 100%;
+  box-sizing: border-box;
+}
+
 /* Контейнер для поля ввода кода */
 .otpCodeFieldContainer {
   display: flex;

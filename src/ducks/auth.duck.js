@@ -182,7 +182,10 @@ export const login = (username, password) => (dispatch, getState, sdk) => {
     .login({ username, password })
     .then(() => dispatch(fetchCurrentUser({ afterLogin: true })))
     .then(() => dispatch(loginSuccess()))
-    .catch(e => dispatch(loginError(storableError(e))));
+    .catch(e => {
+      log.error(e, 'login-failed', { email: username });
+      return dispatch(loginError(storableError(e)));
+    });
 };
 
 export const logout = () => (dispatch, getState, sdk) => {

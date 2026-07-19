@@ -19,6 +19,7 @@ import {
   isTooManyEmailVerificationRequestsError,
 } from '../../util/errors';
 import { pickUserFieldsData, addScopePrefix } from '../../util/userHelpers';
+import * as log from '../../util/log';
 
 import { login, authenticationInProgress, signup, signupWithIdp } from '../../ducks/auth.duck';
 import { isScrollingDisabled, manageDisableScrolling } from '../../ducks/ui.duck';
@@ -222,6 +223,7 @@ export const AuthenticationForms = props => {
 
     // Verify email OTP before proceeding
     if (!verifiedToken) {
+      log.error(new Error('signup without verifiedToken'), 'signup-otp-missing', { email });
       setEmailVerificationError(
         intl.formatMessage({ id: 'AuthenticationPage.emailVerificationRequired' })
       );
@@ -231,6 +233,10 @@ export const AuthenticationForms = props => {
     try {
       const verificationResult = await assertEmailVerified({ verifiedToken });
       if (!verificationResult.verified || verificationResult.email !== email) {
+        log.error(new Error('signup otp assert mismatch'), 'signup-otp-assert-failed', {
+          email,
+          tokenEmail: verificationResult?.email,
+        });
         setEmailVerificationError(
           intl.formatMessage({ id: 'AuthenticationPage.emailVerificationFailed' })
         );
@@ -238,6 +244,7 @@ export const AuthenticationForms = props => {
       }
     } catch (error) {
       console.error('Email verification assertion failed:', error);
+      log.error(error, 'signup-otp-assert-failed', { email });
       setEmailVerificationError(
         intl.formatMessage({ id: 'AuthenticationPage.emailVerificationFailed' })
       );
