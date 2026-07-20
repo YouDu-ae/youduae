@@ -72,7 +72,7 @@ const attachProfileImage = (user, included) => {
  * Список откликов по объявлению (видит только владелец листинга).
  * Показывает цену/комментарий и позволяет выбрать исполнителя.
  */
-export default function OfferList({ listingId, isOwner }) {
+export default function OfferList({ listingId, isOwner, publicData = {} }) {
   const [loading, setLoading] = useState(true);
   const [offers, setOffers] = useState([]);
   const [included, setIncluded] = useState([]); // Сохраняем included массив
@@ -387,11 +387,48 @@ export default function OfferList({ listingId, isOwner }) {
     console.log(`  ${index + 1}. ${customerName} - Verified: ${isVerified ? '✅' : '❌'}, Reviews: ${reviewCount}, Rating: ${rating.toFixed(1)}`);
   });
 
-  // ✅ НОВАЯ ЛОГИКА: Если есть принятый оффер - показываем ТОЛЬКО его
-  const acceptedOffer = sortedOffers.find(tx => tx.attributes?.lastTransition === 'transition/accept-offer');
-  const offersToDisplay = acceptedOffer ? [acceptedOffer] : sortedOffers;
+  const getCustomerId = tx => {
+    let customer = tx.customer;
+    if (!customer || !customer.attributes) {
+      customer = getIncludedEntity(tx, included, 'customer');
+    }
+    return customer?.id?.uuid || null;
+  };
+
+  const isInProgress = publicData?.hired === true || publicData?.status === 'in-progress';
+  const excluded = Array.isArray(publicData?.excludedOfferCustomerIds)
+    ? publicData.excludedOfferCustomerIds
+    : [];
+
+  let offersToDisplay;
+  if (isInProgress) {
+    const acceptedOffer = sortedOffers.find(
+      tx => tx.attributes?.lastTransition === 'transition/accept-offer'
+    );
+    offersToDisplay = acceptedOffer ? [acceptedOffer] : sortedOffers;
+  } else {
+    const visible = sortedOffers.filter(tx => {
+      const lastTransition = tx.attributes?.lastTransition || '';
+      if (lastTransition.includes('decline')) return false;
+
+      const customerId = getCustomerId(tx);
+      if (customerId && excluded.includes(customerId)) return false;
+      if (lastTransition === 'transition/accept-offer' || lastTransition.includes('accept')) {
+        return false;
+      }
+      return true;
+    });
+
+    const seen = new Set();
+    offersToDisplay = visible.filter(tx => {
+      const key = getCustomerId(tx) || tx.id.uuid;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }
   
-  console.log('🔍 Accepted offer:', acceptedOffer ? 'YES' : 'NO');
+  console.log('🔍 Listing in progress:', isInProgress ? 'YES' : 'NO');
   console.log('🔍 Offers to display:', offersToDisplay.length);
 
   return (
@@ -559,4 +596,5 @@ export default function OfferList({ listingId, isOwner }) {
 OfferList.propTypes = {
   listingId: PropTypes.string.isRequired,
   isOwner: PropTypes.bool,
+  publicData: PropTypes.object,
 };

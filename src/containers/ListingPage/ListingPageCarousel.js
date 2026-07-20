@@ -41,7 +41,7 @@ import {
   isPurchaseProcess,
   resolveLatestProcessName,
 } from '../../transactions/transaction';
-import { getListingStatus } from '../../util/api';
+import { getListingStatus, updateListingStatus } from '../../util/api';
 
 // Global ducks (for Redux actions and thunks)
 import { getMarketplaceEntities } from '../../ducks/marketplaceData.duck';
@@ -102,6 +102,7 @@ export const ListingPageComponent = props => {
   );
   const [mounted, setMounted] = useState(false);
   const [listingStatus, setListingStatus] = useState(null);
+  const [isClearingExecutor, setIsClearingExecutor] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -275,8 +276,11 @@ const processName = transactionProcessAlias ? resolveLatestProcessName(transacti
 const isAssignmentProcess = processName === 'assignment-flow-v3';
 
 // Проверяем статус листинга - если "в работе", то форму не показываем
-// Используем listingStatus из state (загруженный с backend)
-const listingInProgress = listingStatus === 'in-progress';
+// publicData.status === 'open' — приоритет после смены исполнителя
+const listingInProgress =
+  publicData.status === 'open'
+    ? false
+    : listingStatus === 'in-progress' || publicData.hired === true;
 const listingClosed = listingStatus === 'closed';
 const assignedTo = publicData.assignedTo;
 // Дополнительная проверка - если publicData.hired=true, значит исполнитель уже выбран
@@ -302,6 +306,28 @@ const canShowOfferForm =
 // - provider (Исполнитель): {customer: false, provider: true} → МОЖЕТ откликаться
 // - customer (Заказчик): {customer: true, provider: false} → НЕ МОЖЕТ откликаться
 const isOnlyCustomer = !userRoles.customer && userRoles.provider; // Исполнитель
+
+  const handleChangeExecutor = async () => {
+    if (
+      !window.confirm(intl.formatMessage({ id: 'ListingPage.confirmChangeExecutor' }))
+    ) {
+      return;
+    }
+
+    setIsClearingExecutor(true);
+    try {
+      await updateListingStatus({
+        listingId: currentListing.id.uuid,
+        status: 'open',
+        ...(assignedTo ? { removedCustomerId: assignedTo } : {}),
+      });
+      window.location.reload();
+    } catch (error) {
+      console.error('Failed to change executor:', error);
+      window.alert(intl.formatMessage({ id: 'ListingPage.changeExecutorError' }));
+      setIsClearingExecutor(false);
+    }
+  };
 
   const isBooking = isBookingProcess(processName);
   const isPurchase = isPurchaseProcess(processName);
@@ -547,7 +573,7 @@ const isOnlyCustomer = !userRoles.customer && userRoles.provider; // Испол�
 
   {/* Список откликов — только владельцу, и только если не в работе */}
   {isOwner && hasListing && !listingInProgress && (
-    <OfferList listingId={currentListing.id.uuid} isOwner />
+    <OfferList listingId={currentListing.id.uuid} isOwner publicData={publicData} />
   )}
   
   {/* Если листинг в работе, показываем владельцу инфо */}
@@ -562,11 +588,33 @@ const isOnlyCustomer = !userRoles.customer && userRoles.provider; // Испол�
       }}
     >
       <div style={{ fontSize: 18, fontWeight: 600, color: '#16a34a', marginBottom: 8 }}>
-        🟢 Работа в процессе
+        <FormattedMessage id="ListingPage.workInProgressTitle" />
       </div>
-      <div style={{ color: '#64748b' }}>
-        Исполнитель выбран. Вы можете связаться с ним через раздел "Входящие".
+      <div style={{ color: '#64748b', marginBottom: 16 }}>
+        <FormattedMessage id="ListingPage.workInProgressMessage" />
       </div>
+      <button
+        type="button"
+        onClick={handleChangeExecutor}
+        disabled={isClearingExecutor}
+        style={{
+          padding: '10px 20px',
+          backgroundColor: '#fff',
+          color: '#16a34a',
+          border: '1px solid #22c55e',
+          borderRadius: 8,
+          fontWeight: 600,
+          cursor: isClearingExecutor ? 'wait' : 'pointer',
+        }}
+      >
+        <FormattedMessage
+          id={
+            isClearingExecutor
+              ? 'ListingPage.changeExecutorInProgress'
+              : 'ListingPage.changeExecutor'
+          }
+        />
+      </button>
     </div>
   )}
 

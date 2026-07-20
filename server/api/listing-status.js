@@ -10,6 +10,32 @@ module.exports = async (req, res) => {
   try {
     const sdk = getSdk(req, res);
 
+    const listingUUID =
+      typeof listingId === 'string'
+        ? { _sdkType: 'UUID', uuid: listingId }
+        : listingId;
+
+    // publicData — источник правды после смены исполнителя
+    let publicData = {};
+    try {
+      const listingResponse = await sdk.listings.show({ id: listingUUID });
+      publicData = listingResponse?.data?.data?.attributes?.publicData || {};
+    } catch (listingError) {
+      console.warn('⚠️ listing-status: could not load listing publicData:', listingError?.message);
+    }
+
+    if (publicData.status === 'open' && !publicData.hired) {
+      return res.status(200).json({ status: 'available' });
+    }
+
+    if (publicData.hired === true || publicData.status === 'in-progress') {
+      return res.status(200).json({ status: 'in-progress' });
+    }
+
+    if (publicData.status === 'cancelled' || publicData.cancelled === true) {
+      return res.status(200).json({ status: 'closed' });
+    }
+
     // Загружаем транзакции для листинга
     const response = await sdk.transactions.query({
       listingId,

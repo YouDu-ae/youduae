@@ -230,10 +230,25 @@ export const checkMyOffer = listingId => {
   return get(`/api/check-my-offer?listingId=${listingId}`);
 };
 
-// Update listing status after accept-offer
-// This marks the listing as "in-progress" and assigns it to a specific customer
-export const updateListingStatus = ({ listingId, assignedTo, status }) => {
-  return post('/api/update-listing-status', { listingId, assignedTo, status });
+// Update listing publicData status (accept-offer, reopen, change executor, etc.)
+export const updateListingStatus = ({
+  listingId,
+  assignedTo,
+  status,
+  transactionId,
+  executorName,
+  reviewSubmitted,
+  removedCustomerId,
+}) => {
+  return post('/api/update-listing-status', {
+    listingId,
+    assignedTo,
+    status,
+    transactionId,
+    executorName,
+    reviewSubmitted,
+    removedCustomerId,
+  });
 };
 
 // Get user review statistics (average rating and count)

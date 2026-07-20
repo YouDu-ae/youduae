@@ -4,6 +4,7 @@ import { createImageVariantConfig } from '../../util/sdkLoader';
 import { parse } from '../../util/urlHelpers';
 
 import { fetchCurrentUser } from '../../ducks/user.duck';
+import { updateListingStatus } from '../../util/api';
 
 // Pagination page size might need to be dynamic on responsive page layouts
 // Current design has max 3 columns 42 is divisible by 2 and 3
@@ -315,8 +316,17 @@ export const closeListing = listingId => (dispatch, getState, sdk) => {
 export const openListing = listingId => (dispatch, getState, sdk) => {
   dispatch(openListingRequest(listingId));
 
-  return sdk.ownListings
-    .open({ id: listingId }, { expand: true })
+  const listingUuid = listingId?.uuid || listingId;
+  const { ownEntities } = getState().ManageListingsPage;
+  const listing = ownEntities?.ownListing?.[listingUuid];
+  const removedCustomerId = listing?.attributes?.publicData?.assignedTo || null;
+
+  return updateListingStatus({
+    listingId: listingUuid,
+    status: 'open',
+    ...(removedCustomerId ? { removedCustomerId } : {}),
+  })
+    .then(() => sdk.ownListings.show({ id: listingId }, { expand: true }))
     .then(response => {
       dispatch(openListingSuccess(response));
       return response;
