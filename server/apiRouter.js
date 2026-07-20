@@ -40,6 +40,7 @@ const telegramBot = require('./api/telegram-bot');
 const viewedTransactions = require('./api/viewed-transactions');
 
 const createUserWithIdp = require('./api/auth/createUserWithIdp');
+const mobileIdp = require('./api/auth/mobile-idp');
 const { sendEmailOtp, verifyEmailOtp, assertEmailVerified } = require('./api/email-otp');
 
 const { authenticateFacebook, authenticateFacebookCallback } = require('./api/auth/facebook');
@@ -132,6 +133,9 @@ router.post('/otp/email/assert', assertEmailVerified);
 // This endpoint is called to create a new user after user has confirmed
 // they want to continue with the data fetched from IdP (e.g. name and email)
 router.post('/auth/create-user-with-idp', createUserWithIdp);
+
+// Mobile Google / Apple Sign-In: native ID token → Sharetribe tokens (JSON)
+router.post('/auth/mobile-idp', mobileIdp);
 
 // Facebook authentication endpoints
 
