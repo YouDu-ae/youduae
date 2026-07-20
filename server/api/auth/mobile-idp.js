@@ -37,16 +37,38 @@ const isMissingUserError = err => {
 
 const isEmailTakenError = err => {
   const status = err?.status || err?.response?.status;
-  if (status === 409) return true;
   const errors = err?.data?.errors || err?.response?.data?.errors || [];
-  return errors.some(
-    e =>
-      e?.code === 'email-taken' ||
-      e?.code === 'idp-profile-already-exists' ||
-      String(e?.title || '')
+  if (errors.some(e => e?.code === 'email-taken')) return true;
+  // 409 without a specific code — only treat as email-taken if title says so
+  if (status === 409) {
+    return errors.some(e =>
+      String(e?.code || e?.title || '')
         .toLowerCase()
-        .includes('conflict')
-  );
+        .includes('email')
+    );
+  }
+  return false;
+};
+
+const isIdpProfileExistsError = err => {
+  const errors = err?.data?.errors || err?.response?.data?.errors || [];
+  return errors.some(e => e?.code === 'idp-profile-already-exists');
+};
+
+const sharetribeErrorSummary = err => {
+  const errors = err?.data?.errors || err?.response?.data?.errors || [];
+  if (!errors.length) {
+    return {
+      status: err?.status || err?.response?.status,
+      message: err?.statusText || err?.message || 'Unknown error',
+    };
+  }
+  return {
+    status: err?.status || err?.response?.status || errors[0]?.status,
+    code: errors[0]?.code,
+    message: errors[0]?.title || errors[0]?.details || err?.message,
+    errors,
+  };
 };
 
 const roleMismatchMessage = (actualUserType) => {
@@ -153,7 +175,10 @@ module.exports = async (req, res) => {
     return res.status(500).json({ error: 'IdP client ID is not configured' }).end();
   }
 
-  const resolvedEmail = emailFromBody || emailFromIdToken(idpToken);
+  const tokenEmail = emailFromIdToken(idpToken);
+  // Prefer email from IdP token; client-provided email can disagree (Apple Hide My Email)
+  // and cause false Conflict on createWithIdp.
+  const resolvedEmail = tokenEmail || emailFromBody || null;
 
   const tokenStore = sharetribeSdk.tokenStore.memoryStore();
   const sdk = sharetribeSdk.createInstance({
@@ -177,7 +202,8 @@ module.exports = async (req, res) => {
     idpId,
     idpClientId,
     expectedUserType,
-    hasEmail: !!resolvedEmail,
+    tokenEmail: tokenEmail ? `${tokenEmail.slice(0, 3)}…` : null,
+    bodyEmail: emailFromBody ? `${String(emailFromBody).slice(0, 3)}…` : null,
   });
 
   let isNewUser = false;
@@ -196,7 +222,6 @@ module.exports = async (req, res) => {
         const existingType = await lookupUserTypeByEmail(resolvedEmail);
         if (existingType && existingType !== expectedUserType) {
           console.warn('⚠️ mobile-idp: existing account role mismatch', {
-            email: resolvedEmail,
             existingType,
           });
           return res
@@ -216,9 +241,10 @@ module.exports = async (req, res) => {
       });
       isNewUser = true;
 
+      // Do NOT pass client email — Sharetribe takes verified email from IdP token.
+      // Passing a mismatched email (common with Apple) causes false Conflict.
       const createParams = {
         ...loginParams,
-        ...(resolvedEmail ? { email: resolvedEmail } : {}),
         ...(firstName ? { firstName } : {}),
         ...(lastName ? { lastName } : {}),
         ...(displayName ? { displayName } : {}),
@@ -234,7 +260,16 @@ module.exports = async (req, res) => {
         await sdk.currentUser.createWithIdp(createParams);
         console.log('✅ mobile-idp: createWithIdp success');
       } catch (createErr) {
-        if (isEmailTakenError(createErr)) {
+        const summary = sharetribeErrorSummary(createErr);
+        console.warn('⚠️ mobile-idp: createWithIdp failed', summary);
+
+        // IdP identity already linked — try login again instead of "email taken"
+        if (isIdpProfileExistsError(createErr)) {
+          console.log('📱 mobile-idp: idp-profile-already-exists → retry loginWithIdp');
+          isNewUser = false;
+          await sdk.loginWithIdp(loginParams);
+          console.log('✅ mobile-idp: loginWithIdp after idp-profile-exists success');
+        } else if (isEmailTakenError(createErr)) {
           const existingType = resolvedEmail
             ? await lookupUserTypeByEmail(resolvedEmail)
             : null;
@@ -249,21 +284,41 @@ module.exports = async (req, res) => {
               })
               .end();
           }
-          console.warn('⚠️ mobile-idp: email already registered (provider or unknown)');
+          // Email taken in API but Integration lookup empty → still show taken message
+          // with actual Sharetribe code for support
+          console.warn('⚠️ mobile-idp: email-taken', {
+            code: summary.code,
+            lookupType: existingType,
+          });
           return res
             .status(409)
             .json({
               error: 'email_taken',
               userType: existingType || null,
               message: emailTakenMessage(),
+              details: summary,
+            })
+            .end();
+        } else {
+          const status = summary.status || 500;
+          return res
+            .status(status >= 400 && status < 600 ? status : 500)
+            .json({
+              error: 'idp_create_failed',
+              message:
+                summary.message ||
+                'Не удалось создать аккаунт через Apple/Google. Попробуйте ещё раз.',
+              details: summary,
             })
             .end();
         }
-        throw createErr;
       }
 
-      await sdk.loginWithIdp(loginParams);
-      console.log('✅ mobile-idp: loginWithIdp after create success');
+      // Only needed when create succeeded (idp-exists path already logged in above)
+      if (isNewUser) {
+        await sdk.loginWithIdp(loginParams);
+        console.log('✅ mobile-idp: loginWithIdp after create success');
+      }
     }
 
     const token = tokenStore.getToken();
