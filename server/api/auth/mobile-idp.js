@@ -1,17 +1,23 @@
 const http = require('http');
 const https = require('https');
 const sharetribeSdk = require('sharetribe-flex-sdk');
+const sharetribeIntegrationSdk = require('sharetribe-flex-integration-sdk');
 const { typeHandlers } = require('../../api-util/sdk');
 
 const CLIENT_ID = process.env.REACT_APP_SHARETRIBE_SDK_CLIENT_ID;
 const CLIENT_SECRET = process.env.SHARETRIBE_SDK_CLIENT_SECRET;
 const TRANSIT_VERBOSE = process.env.REACT_APP_SHARETRIBE_SDK_TRANSIT_VERBOSE === 'true';
 const BASE_URL = process.env.REACT_APP_SHARETRIBE_SDK_BASE_URL;
+const INTEGRATION_CLIENT_ID = process.env.INTEGRATION_API_CLIENT_ID;
+const INTEGRATION_CLIENT_SECRET = process.env.INTEGRATION_API_CLIENT_SECRET;
 
 const GOOGLE_CLIENT_ID = process.env.REACT_APP_GOOGLE_CLIENT_ID;
 const APPLE_CLIENT_ID = process.env.APPLE_CLIENT_ID || 'com.youdu.mobile';
 
 const ALLOWED_IDP_IDS = new Set(['google', 'apple']);
+
+/** YouDuMobile is for заказчики only (Sharetribe userType = provider) */
+const MOBILE_ALLOWED_USER_TYPE = 'provider';
 
 const httpAgent = new http.Agent({ keepAlive: true });
 const httpsAgent = new https.Agent({ keepAlive: true });
@@ -26,7 +32,6 @@ const resolveIdpClientId = (idpId, fromBody) => {
 
 const isMissingUserError = err => {
   const status = err?.status || err?.response?.status;
-  // loginWithIdp fails when IdP identity is not linked and email does not match a verified user
   return status === 401 || status === 404;
 };
 
@@ -44,31 +49,63 @@ const isEmailTakenError = err => {
   );
 };
 
-const friendlyErrorMessage = err => {
-  if (isEmailTakenError(err)) {
+const roleMismatchMessage = (actualUserType) => {
+  if (actualUserType === 'customer') {
     return (
-      'Аккаунт с этим email уже существует. Войдите через email и пароль ' +
-      '(или убедитесь, что email в профиле подтверждён — тогда вход через Apple/Google подхватит аккаунт).'
+      'Это приложение для заказчиков. Аккаунт исполнителя войдёт в отдельном приложении YouDu для специалистов. Пока пользуйтесь сайтом youdu.ae.'
     );
   }
-  const errors = err?.data?.errors || err?.response?.data?.errors || [];
-  const first = errors[0];
-  if (first?.title) return first.title;
-  return err?.statusText || err?.message || 'Unknown error';
+  return (
+    'Тип аккаунта не подходит для этого приложения. Войдите через другой аккаунт или сайт youdu.ae.'
+  );
+};
+
+const emailTakenMessage = () =>
+  'Аккаунт с этим email уже существует. Войдите через email и пароль ' +
+  '(или убедитесь, что email в профиле подтверждён — тогда вход через Apple/Google подхватит аккаунт).';
+
+/** Decode email claim from JWT without verifying signature (lookup only). */
+const emailFromIdToken = idpToken => {
+  try {
+    const parts = String(idpToken).split('.');
+    if (parts.length < 2) return null;
+    const payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString('utf8'));
+    return payload.email || null;
+  } catch {
+    return null;
+  }
+};
+
+const getIntegrationSdk = () => {
+  if (!INTEGRATION_CLIENT_ID || !INTEGRATION_CLIENT_SECRET) return null;
+  return sharetribeIntegrationSdk.createInstance({
+    clientId: INTEGRATION_CLIENT_ID,
+    clientSecret: INTEGRATION_CLIENT_SECRET,
+  });
+};
+
+const lookupUserTypeByEmail = async email => {
+  if (!email) return null;
+  const integrationSdk = getIntegrationSdk();
+  if (!integrationSdk) {
+    console.warn('⚠️ mobile-idp: Integration API not configured, skip email lookup');
+    return null;
+  }
+  try {
+    const res = await integrationSdk.users.show({ email });
+    const user = res?.data?.data;
+    return user?.attributes?.profile?.publicData?.userType || null;
+  } catch (err) {
+    const status = err?.status || err?.response?.status;
+    if (status === 404) return null;
+    console.warn('⚠️ mobile-idp: users.show by email failed:', status, err?.message);
+    return null;
+  }
 };
 
 /**
  * Mobile IdP auth (Google / Apple).
- * Body (JSON):
- *  - idpId: 'google' | 'apple'
- *  - idpToken: ID token from native SDK
- *  - idpClientId?: override (defaults: Google Web client / com.youdu.mobile)
- *  - firstName?, lastName?, email?, displayName?
- *  - userType?: defaults to 'provider' (заказчик / YouDuMobile)
- *  - publicData?, protectedData?, privateData?
- *
- * Response JSON:
- *  { access_token, refresh_token, expires_in, token_type, scope, isNewUser, userType }
+ * Only allows Sharetribe userType === 'provider' (заказчик) into YouDuMobile.
  */
 module.exports = async (req, res) => {
   const {
@@ -77,9 +114,9 @@ module.exports = async (req, res) => {
     idpClientId: idpClientIdFromBody,
     firstName,
     lastName,
-    email,
+    email: emailFromBody,
     displayName,
-    userType = 'provider',
+    userType = MOBILE_ALLOWED_USER_TYPE,
     publicData = {},
     protectedData = {},
     privateData = {},
@@ -93,6 +130,19 @@ module.exports = async (req, res) => {
     return res.status(400).json({ error: 'Unsupported idpId. Use google or apple.' }).end();
   }
 
+  // Mobile app always expects заказчик accounts
+  const expectedUserType = MOBILE_ALLOWED_USER_TYPE;
+  if (userType && userType !== expectedUserType) {
+    return res
+      .status(403)
+      .json({
+        error: 'role_mismatch',
+        userType,
+        message: roleMismatchMessage(userType),
+      })
+      .end();
+  }
+
   if (!CLIENT_ID || !CLIENT_SECRET) {
     console.error('❌ mobile-idp: missing Sharetribe client credentials');
     return res.status(500).json({ error: 'Server auth is not configured' }).end();
@@ -102,6 +152,8 @@ module.exports = async (req, res) => {
   if (!idpClientId) {
     return res.status(500).json({ error: 'IdP client ID is not configured' }).end();
   }
+
+  const resolvedEmail = emailFromBody || emailFromIdToken(idpToken);
 
   const tokenStore = sharetribeSdk.tokenStore.memoryStore();
   const sdk = sharetribeSdk.createInstance({
@@ -121,7 +173,12 @@ module.exports = async (req, res) => {
     idpToken: String(idpToken),
   };
 
-  console.log('📱 mobile-idp: start', { idpId, idpClientId, userType });
+  console.log('📱 mobile-idp: start', {
+    idpId,
+    idpClientId,
+    expectedUserType,
+    hasEmail: !!resolvedEmail,
+  });
 
   let isNewUser = false;
 
@@ -134,6 +191,25 @@ module.exports = async (req, res) => {
         throw loginErr;
       }
 
+      // Before creating: if email belongs to an executor, reject with role_mismatch
+      if (resolvedEmail) {
+        const existingType = await lookupUserTypeByEmail(resolvedEmail);
+        if (existingType && existingType !== expectedUserType) {
+          console.warn('⚠️ mobile-idp: existing account role mismatch', {
+            email: resolvedEmail,
+            existingType,
+          });
+          return res
+            .status(403)
+            .json({
+              error: 'role_mismatch',
+              userType: existingType,
+              message: roleMismatchMessage(existingType),
+            })
+            .end();
+        }
+      }
+
       console.log('📱 mobile-idp: no existing IdP link / verified email match, creating…', {
         status: loginErr?.status,
         message: loginErr?.statusText || loginErr?.message,
@@ -142,12 +218,12 @@ module.exports = async (req, res) => {
 
       const createParams = {
         ...loginParams,
-        ...(email ? { email } : {}),
+        ...(resolvedEmail ? { email: resolvedEmail } : {}),
         ...(firstName ? { firstName } : {}),
         ...(lastName ? { lastName } : {}),
         ...(displayName ? { displayName } : {}),
         publicData: {
-          userType,
+          userType: expectedUserType,
           ...publicData,
         },
         ...(Object.keys(protectedData).length ? { protectedData } : {}),
@@ -159,12 +235,29 @@ module.exports = async (req, res) => {
         console.log('✅ mobile-idp: createWithIdp success');
       } catch (createErr) {
         if (isEmailTakenError(createErr)) {
-          console.warn('⚠️ mobile-idp: email already registered, create skipped');
-          const conflict = new Error(friendlyErrorMessage(createErr));
-          conflict.status = 409;
-          conflict.statusText = 'Conflict';
-          conflict.data = createErr?.data || createErr?.response?.data;
-          throw conflict;
+          const existingType = resolvedEmail
+            ? await lookupUserTypeByEmail(resolvedEmail)
+            : null;
+          if (existingType && existingType !== expectedUserType) {
+            console.warn('⚠️ mobile-idp: conflict + role mismatch', { existingType });
+            return res
+              .status(403)
+              .json({
+                error: 'role_mismatch',
+                userType: existingType,
+                message: roleMismatchMessage(existingType),
+              })
+              .end();
+          }
+          console.warn('⚠️ mobile-idp: email already registered (provider or unknown)');
+          return res
+            .status(409)
+            .json({
+              error: 'email_taken',
+              userType: existingType || null,
+              message: emailTakenMessage(),
+            })
+            .end();
         }
         throw createErr;
       }
@@ -187,6 +280,20 @@ module.exports = async (req, res) => {
       console.warn('⚠️ mobile-idp: could not load currentUser:', showErr?.message);
     }
 
+    // Gate: only заказчики (provider) may use this mobile app
+    if (resolvedUserType && resolvedUserType !== expectedUserType) {
+      console.warn('⚠️ mobile-idp: rejecting login — role mismatch', { resolvedUserType });
+      tokenStore.setToken(null);
+      return res
+        .status(403)
+        .json({
+          error: 'role_mismatch',
+          userType: resolvedUserType,
+          message: roleMismatchMessage(resolvedUserType),
+        })
+        .end();
+    }
+
     return res
       .status(200)
       .json({
@@ -196,19 +303,21 @@ module.exports = async (req, res) => {
         token_type: token.token_type || 'bearer',
         scope: token.scope || 'user',
         isNewUser,
-        userType: resolvedUserType || userType,
+        userType: resolvedUserType || expectedUserType,
       })
       .end();
   } catch (e) {
     const status = e?.status || e?.response?.status || 500;
     const data = e?.data || e?.response?.data || null;
-    const message = friendlyErrorMessage(e);
+    const errors = data?.errors || [];
+    const message =
+      errors[0]?.title || e?.statusText || e?.message || 'Unknown error';
     console.error('❌ mobile-idp error:', status, message, data);
 
     return res
       .status(status >= 400 && status < 600 ? status : 500)
       .json({
-        error: isEmailTakenError(e) ? 'email_taken' : 'IdP authentication failed',
+        error: 'IdP authentication failed',
         message,
         details: data,
       })
