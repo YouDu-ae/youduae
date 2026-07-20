@@ -86,16 +86,44 @@ const emailTakenMessage = () =>
   'Аккаунт с этим email уже существует. Войдите через email и пароль ' +
   '(или убедитесь, что email в профиле подтверждён — тогда вход через Apple/Google подхватит аккаунт).';
 
-/** Decode email claim from JWT without verifying signature (lookup only). */
-const emailFromIdToken = idpToken => {
+const missingKeyMessage = () =>
+  'Apple не передал имя или email (часто бывает при повторном входе). ' +
+  'В iPhone: Настройки → Apple ID → Вход с Apple → YouDu → «Прекратить использование», ' +
+  'затем войдите снова и разрешите доступ к имени и email.';
+
+/** Decode claims from JWT without verifying signature (lookup / fallbacks only). */
+const claimsFromIdToken = idpToken => {
   try {
     const parts = String(idpToken).split('.');
-    if (parts.length < 2) return null;
-    const payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString('utf8'));
-    return payload.email || null;
+    if (parts.length < 2) return {};
+    return JSON.parse(Buffer.from(parts[1], 'base64url').toString('utf8')) || {};
   } catch {
-    return null;
+    return {};
   }
+};
+
+const emailFromIdToken = idpToken => claimsFromIdToken(idpToken).email || null;
+
+/** Apple ID tokens never include name — only the first native credential response does. */
+const fallbackNameFromEmail = email => {
+  if (!email) return null;
+  const local = String(email)
+    .split('@')[0]
+    .replace(/[.+].*$/, '')
+    .replace(/[^a-zA-Zа-яА-ЯёЁ0-9_-]/g, '');
+  if (!local) return null;
+  return local.charAt(0).toUpperCase() + local.slice(1);
+};
+
+const isConflictMissingKeyError = err => {
+  const errors = err?.data?.errors || err?.response?.data?.errors || [];
+  return errors.some(
+    e =>
+      e?.code === 'conflict-missing-key' ||
+      String(e?.title || '')
+        .toLowerCase()
+        .includes('required key is missing')
+  );
 };
 
 const getIntegrationSdk = () => {
@@ -241,13 +269,31 @@ module.exports = async (req, res) => {
       });
       isNewUser = true;
 
-      // Do NOT pass client email — Sharetribe takes verified email from IdP token.
-      // Passing a mismatched email (common with Apple) causes false Conflict.
+      // Apple only sends name/email in the first native credential response; the ID token
+      // never includes name. Sharetribe requires firstName/lastName → supply fallbacks.
+      // Prefer token email over client email (Hide My Email mismatch).
+      const resolvedFirstName =
+        (typeof firstName === 'string' && firstName.trim()) ||
+        fallbackNameFromEmail(resolvedEmail) ||
+        'YouDu';
+      const resolvedLastName =
+        (typeof lastName === 'string' && lastName.trim()) || 'User';
+      const resolvedDisplayName =
+        (typeof displayName === 'string' && displayName.trim()) ||
+        `${resolvedFirstName} ${resolvedLastName}`.trim();
+
       const createParams = {
         ...loginParams,
-        ...(firstName ? { firstName } : {}),
-        ...(lastName ? { lastName } : {}),
-        ...(displayName ? { displayName } : {}),
+        firstName: resolvedFirstName,
+        lastName: resolvedLastName,
+        displayName: resolvedDisplayName,
+        // Prefer verified email from IdP token. Client email only if token has none
+        // (Apple may omit email after the first authorization).
+        ...(tokenEmail
+          ? { email: tokenEmail }
+          : emailFromBody
+          ? { email: String(emailFromBody).trim() }
+          : {}),
         publicData: {
           userType: expectedUserType,
           ...publicData,
@@ -255,6 +301,12 @@ module.exports = async (req, res) => {
         ...(Object.keys(protectedData).length ? { protectedData } : {}),
         ...(Object.keys(privateData).length ? { privateData } : {}),
       };
+
+      console.log('📱 mobile-idp: createWithIdp params', {
+        hasTokenEmail: !!tokenEmail,
+        firstName: resolvedFirstName,
+        lastName: resolvedLastName,
+      });
 
       try {
         await sdk.currentUser.createWithIdp(createParams);
@@ -269,6 +321,16 @@ module.exports = async (req, res) => {
           isNewUser = false;
           await sdk.loginWithIdp(loginParams);
           console.log('✅ mobile-idp: loginWithIdp after idp-profile-exists success');
+        } else if (isConflictMissingKeyError(createErr)) {
+          console.warn('⚠️ mobile-idp: conflict-missing-key', summary);
+          return res
+            .status(409)
+            .json({
+              error: 'conflict_missing_key',
+              message: missingKeyMessage(),
+              details: summary,
+            })
+            .end();
         } else if (isEmailTakenError(createErr)) {
           const existingType = resolvedEmail
             ? await lookupUserTypeByEmail(resolvedEmail)
