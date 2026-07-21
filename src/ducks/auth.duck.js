@@ -1,7 +1,7 @@
 import * as log from '../util/log';
 import { storableError } from '../util/errors';
 import { clearCurrentUser, fetchCurrentUser } from './user.duck';
-import { createUserWithIdp } from '../util/api';
+import { createUser, createUserWithIdp } from '../util/api';
 import { clearViewedTransactionsCache } from '../util/transactionNotifications';
 
 const authenticated = authInfo => authInfo?.isAnonymous === false;
@@ -215,14 +215,15 @@ export const signup = params => (dispatch, getState, sdk) => {
   }
   dispatch(signupRequest());
 
+  const { verifiedToken, ...signupParams } = params;
   const normalizedParams = {
-    ...params,
-    email: String(params.email || '')
+    ...signupParams,
+    email: String(signupParams.email || '')
       .trim()
       .toLowerCase(),
   };
 
-  const signupTimeoutMs = 45000;
+  const signupTimeoutMs = 90000;
   const withTimeout = (promise, label) =>
     Promise.race([
       promise,
@@ -231,16 +232,11 @@ export const signup = params => (dispatch, getState, sdk) => {
       }),
     ]);
 
-  // Note: params are already structured on AuthenticationPage (handleSubmitSignup)
-  // We must login the user if signup succeeds since the API doesn't do that automatically.
-  return withTimeout(sdk.currentUser.create(normalizedParams), 'Signup')
+  // Server-side signup avoids browser→Sharetribe timeouts (Heroku has stable connectivity).
+  return withTimeout(createUser({ verifiedToken, ...normalizedParams }), 'Signup')
     .then(() => dispatch(signupSuccess()))
-    .then(() =>
-      withTimeout(
-        dispatch(login(normalizedParams.email, normalizedParams.password)),
-        'Login after signup'
-      )
-    )
+    .then(() => dispatch(fetchCurrentUser({ afterLogin: true })))
+    .then(() => dispatch(loginSuccess()))
     .catch(e => {
       dispatch(signupError(storableError(e)));
       log.error(e, 'signup-failed', {

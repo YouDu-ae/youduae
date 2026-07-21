@@ -1,10 +1,12 @@
 import * as log from '../util/log';
 import { storableError } from '../util/errors';
 import { createCurrentUser } from '../util/testData';
+import * as api from '../util/api';
 import {
   clearCurrentUser,
   currentUserShowRequest,
   currentUserShowSuccess,
+  fetchCurrentUser,
   fetchCurrentUserNotificationsRequest,
   fetchCurrentUserNotificationsSuccess,
 } from './user.duck';
@@ -26,6 +28,11 @@ import reducer, {
   signupError,
   userLogout,
 } from './auth.duck';
+
+jest.mock('../util/api', () => ({
+  createUser: jest.fn(),
+  createUserWithIdp: jest.fn(),
+}));
 
 // Create a dispatch function that correctly calls the thunk functions
 // with itself
@@ -350,25 +357,25 @@ describe('auth duck', () => {
   });
 
   describe('signup thunk', () => {
+    beforeEach(() => {
+      jest.spyOn(require('./user.duck'), 'fetchCurrentUser').mockImplementation(
+        () => () => Promise.resolve({})
+      );
+    });
+
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
     it('should dispatch success and login', () => {
-      const fakeCurrentUser = createCurrentUser({ id: 'test-user' });
-      const fakeCurrentUserResponse = { data: { data: fakeCurrentUser, include: [] } };
-      const fakeTransactionsResponse = { data: { data: [], include: [] } };
-      const sdk = {
-        currentUser: {
-          create: jest.fn(() => Promise.resolve({})),
-          show: jest.fn(() => Promise.resolve(fakeCurrentUserResponse)),
-        },
-        login: jest.fn(() => Promise.resolve({})),
-        authInfo: jest.fn(() => Promise.resolve({})),
-        transactions: { query: jest.fn(() => Promise.resolve(fakeTransactionsResponse)) },
-      };
+      const sdk = {};
       const getState = () => ({ auth: state });
       const dispatch = createFakeDispatch(getState, sdk);
       const state = reducer();
       const email = 'pekka@example.com';
       const password = 'some pass';
       const params = {
+        verifiedToken: 'verified-token',
         email,
         password,
         firstName: 'Pekka',
@@ -378,36 +385,24 @@ describe('auth duck', () => {
         },
       };
 
+      api.createUser.mockImplementation(() => Promise.resolve({ status: 200 }));
+
       return signup(params)(dispatch, getState, sdk).then(() => {
-        expect(sdk.currentUser.create.mock.calls).toEqual([[params]]);
-        expect(sdk.login.mock.calls).toEqual([[{ username: email, password }]]);
-        expect(dispatchedActions(dispatch)).toEqual([
-          signupRequest(),
-          signupSuccess(),
-          loginRequest(),
-          currentUserShowRequest(),
-          currentUserShowSuccess(fakeCurrentUser),
-          fetchCurrentUserNotificationsRequest(),
-          authInfoRequest(),
-          fetchCurrentUserNotificationsSuccess([]),
-          authInfoSuccess({}),
-          loginSuccess(),
-        ]);
+        expect(api.createUser.mock.calls).toEqual([[params]]);
+        expect(fetchCurrentUser).toHaveBeenCalledWith({ afterLogin: true });
+        expect(dispatchedActions(dispatch)).toEqual([signupRequest(), signupSuccess(), loginSuccess()]);
       });
     });
     it('should dispatch error', () => {
       const error = new Error('test signup error');
-      const sdk = {
-        currentUser: {
-          create: jest.fn(() => Promise.reject(error)),
-        },
-      };
+      const sdk = {};
       const getState = () => ({ auth: state });
       const dispatch = createFakeDispatch(getState, sdk);
       const state = reducer();
       const email = 'pekka@example.com';
       const password = 'some pass';
       const params = {
+        verifiedToken: 'verified-token',
         email,
         password,
         firstName: 'Pekka',
@@ -417,11 +412,13 @@ describe('auth duck', () => {
         },
       };
 
+      api.createUser.mockImplementation(() => Promise.reject(error));
+
       // disable error logging
       log.error = jest.fn();
 
-      return signup(params)(dispatch, getState, sdk).then(() => {
-        expect(sdk.currentUser.create.mock.calls).toEqual([[params]]);
+      return signup(params)(dispatch, getState, sdk).catch(() => {
+        expect(api.createUser.mock.calls).toEqual([[params]]);
         expect(dispatchedActions(dispatch)).toEqual([
           signupRequest(),
           signupError(storableError(error)),

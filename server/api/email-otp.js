@@ -329,9 +329,33 @@ const assertEmailVerified = async (req, res) => {
   }
 };
 
+const verifyEmailVerifiedToken = async verifiedToken => {
+  if (!isConfigured) {
+    throw new Error('otpConfigurationMissing');
+  }
+  if (!verifiedToken) {
+    throw new Error('missingToken');
+  }
+
+  let payload;
+  try {
+    const verified = await verifyJwt(verifiedToken);
+    payload = verified.payload;
+  } catch (e) {
+    throw new Error('invalidOrExpiredToken');
+  }
+
+  if (payload.purpose !== 'email-verified') {
+    throw new Error('invalidTokenPurpose');
+  }
+
+  return payload;
+};
+
 module.exports = {
   sendEmailOtp,
   verifyEmailOtp,
   assertEmailVerified,
+  verifyEmailVerifiedToken,
 };
 

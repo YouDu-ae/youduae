@@ -313,6 +313,7 @@ export const AuthenticationForms = props => {
     }
 
     const params = {
+      verifiedToken,
       email: normalizedEmail,
       password,
       firstName: normalizedFirstName,
