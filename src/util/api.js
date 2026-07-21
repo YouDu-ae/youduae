@@ -58,7 +58,14 @@ const getSdk = () => {
     return null;
   }
 
-  const baseUrlConfig = appSettings.sdk?.baseUrl ? { baseUrl: appSettings.sdk.baseUrl } : {};
+  const useApiProxy =
+    process.env.REACT_APP_SHARETRIBE_SDK_USE_PROXY === 'true' ||
+    process.env.REACT_APP_ENV === 'production';
+  const baseUrlConfig = useApiProxy
+    ? { baseUrl: `${window.location.origin}/api/st` }
+    : appSettings.sdk?.baseUrl
+    ? { baseUrl: appSettings.sdk.baseUrl }
+    : {};
   const assetCdnBaseUrl = appSettings.sdk?.assetCdnBaseUrl
     ? { assetCdnBaseUrl: appSettings.sdk.assetCdnBaseUrl }
     : {};

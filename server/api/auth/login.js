@@ -13,7 +13,9 @@ const LOGIN_TIMEOUT_MS = 60000;
 
 const httpAgent = new http.Agent({ keepAlive: true });
 const httpsAgent = new https.Agent({ keepAlive: true });
-const baseUrl = BASE_URL ? { baseUrl: BASE_URL } : {};
+const isBrowserProxyUrl = url =>
+  typeof url === 'string' && url.includes('/api/st');
+const baseUrl = BASE_URL && !isBrowserProxyUrl(BASE_URL) ? { baseUrl: BASE_URL } : {};
 
 const withTimeout = (promise, label) =>
   Promise.race([

@@ -154,6 +154,11 @@ if (TRUST_PROXY === 'true') {
   app.set('trust proxy', TRUST_PROXY);
 }
 
+// Sharetribe Marketplace API proxy (must be before compression + bodyParser)
+// Browser SDK uses /api/st as baseUrl so clients that cannot reach flex-api still work.
+const sharetribeProxy = require('./sharetribeProxy');
+app.use('/api/st', sharetribeProxy);
+
 app.use(compression());
 app.use('/static', express.static(path.join(buildPath, 'static')));
 // Serve static files from build root (og-banner.png, favicons, etc.)

@@ -123,7 +123,15 @@ if (typeof window !== 'undefined') {
   // set up logger with Sentry DSN client key and environment
   log.setup();
 
-  const baseUrl = appSettings.sdk.baseUrl ? { baseUrl: appSettings.sdk.baseUrl } : {};
+  // Route Marketplace API via same-origin proxy when clients cannot reach flex-api.sharetribe.com
+  const useApiProxy =
+    process.env.REACT_APP_SHARETRIBE_SDK_USE_PROXY === 'true' ||
+    process.env.REACT_APP_ENV === 'production';
+  const baseUrl = useApiProxy
+    ? { baseUrl: `${window.location.origin}/api/st` }
+    : appSettings.sdk.baseUrl
+    ? { baseUrl: appSettings.sdk.baseUrl }
+    : {};
   const assetCdnBaseUrl = appSettings.sdk.assetCdnBaseUrl
     ? { assetCdnBaseUrl: appSettings.sdk.assetCdnBaseUrl }
     : {};
