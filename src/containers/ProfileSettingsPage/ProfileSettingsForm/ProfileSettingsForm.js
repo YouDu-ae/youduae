@@ -277,8 +277,10 @@ class ProfileSettingsFormComponent extends Component {
           const submitInProgress = updateInProgress;
           const submittedOnce = Object.keys(this.submittedValues).length > 0;
           const pristineSinceLastSubmit = submittedOnce && isEqual(values, this.submittedValues);
+          // Allow submit if image was uploaded (profileImage prop has uploadedImage or new imageId)
+          const hasNewImage = profileImage?.uploadedImage || (profileImage?.imageId && profileImage?.file);
           const submitDisabled =
-            invalid || pristine || pristineSinceLastSubmit || uploadInProgress || submitInProgress;
+            invalid || (pristine && !hasNewImage) || pristineSinceLastSubmit || uploadInProgress || submitInProgress;
 
           const userFieldProps = getPropsForCustomUserFieldInputs(
             userFields,
