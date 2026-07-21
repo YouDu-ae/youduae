@@ -123,15 +123,10 @@ if (typeof window !== 'undefined') {
   // set up logger with Sentry DSN client key and environment
   log.setup();
 
-  // Route Marketplace API via same-origin proxy when clients cannot reach flex-api.sharetribe.com
-  const useApiProxy =
-    process.env.REACT_APP_SHARETRIBE_SDK_USE_PROXY === 'true' ||
-    process.env.REACT_APP_ENV === 'production';
-  const baseUrl = useApiProxy
-    ? { baseUrl: `${window.location.origin}/api/st` }
-    : appSettings.sdk.baseUrl
-    ? { baseUrl: appSettings.sdk.baseUrl }
-    : {};
+  // Always proxy Marketplace API through same origin in the browser.
+  // Direct flex-api.sharetribe.com calls time out for some clients (Safari/UAE networks).
+  // Do not gate this on REACT_APP_ENV — Heroku builds may not bake that value into the bundle.
+  const baseUrl = { baseUrl: `${window.location.origin}/api/st` };
   const assetCdnBaseUrl = appSettings.sdk.assetCdnBaseUrl
     ? { assetCdnBaseUrl: appSettings.sdk.assetCdnBaseUrl }
     : {};
