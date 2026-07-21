@@ -219,11 +219,20 @@ export const AuthenticationForms = props => {
   ];
 
   const handleSubmitSignup = async values => {
-    const { userType, email, password, fname, lname, displayName, verifiedToken, phoneNumber, ...rest } = values;
+    const { userType, email, password, fname, lname, displayName, verifiedToken, phoneNumber, ...rest } =
+      values;
+
+    setEmailVerificationError(null);
+
+    const normalizedEmail = String(email || '')
+      .trim()
+      .toLowerCase();
 
     // Verify email OTP before proceeding
     if (!verifiedToken) {
-      log.error(new Error('signup without verifiedToken'), 'signup-otp-missing', { email });
+      log.error(new Error('signup without verifiedToken'), 'signup-otp-missing', {
+        email: normalizedEmail,
+      });
       setEmailVerificationError(
         intl.formatMessage({ id: 'AuthenticationPage.emailVerificationRequired' })
       );
@@ -232,10 +241,13 @@ export const AuthenticationForms = props => {
 
     try {
       const verificationResult = await assertEmailVerified({ verifiedToken });
-      if (!verificationResult.verified || verificationResult.email !== email) {
+      const tokenEmail = verificationResult?.email
+        ? String(verificationResult.email).trim().toLowerCase()
+        : null;
+      if (!verificationResult.verified || tokenEmail !== normalizedEmail) {
         log.error(new Error('signup otp assert mismatch'), 'signup-otp-assert-failed', {
-          email,
-          tokenEmail: verificationResult?.email,
+          email: normalizedEmail,
+          tokenEmail,
         });
         setEmailVerificationError(
           intl.formatMessage({ id: 'AuthenticationPage.emailVerificationFailed' })
@@ -244,7 +256,7 @@ export const AuthenticationForms = props => {
       }
     } catch (error) {
       console.error('Email verification assertion failed:', error);
-      log.error(error, 'signup-otp-assert-failed', { email });
+      log.error(error, 'signup-otp-assert-failed', { email: normalizedEmail });
       setEmailVerificationError(
         intl.formatMessage({ id: 'AuthenticationPage.emailVerificationFailed' })
       );
@@ -279,8 +291,29 @@ export const AuthenticationForms = props => {
     const publicDataFields = pickUserFieldsData(restWithSerializedSubcategories, 'public', userType, userFields);
     console.log('🔍 [SIGNUP] Picked publicData fields:', publicDataFields);
 
+    // serviceCategories must be an array for Sharetribe multi-enum (hidden field bug used JSON string)
+    if (publicDataFields.serviceCategories != null) {
+      if (typeof publicDataFields.serviceCategories === 'string') {
+        try {
+          publicDataFields.serviceCategories = JSON.parse(publicDataFields.serviceCategories);
+        } catch {
+          publicDataFields.serviceCategories = [];
+        }
+      }
+      if (!Array.isArray(publicDataFields.serviceCategories)) {
+        publicDataFields.serviceCategories = [];
+      }
+    }
+
+    if (userType === 'customer' && (!publicDataFields.serviceCategories?.length)) {
+      setEmailVerificationError(
+        intl.formatMessage({ id: 'ServiceCategory.requiredMessage' })
+      );
+      return;
+    }
+
     const params = {
-      email,
+      email: normalizedEmail,
       password,
       firstName: normalizedFirstName,
       lastName: normalizedLastName,
@@ -333,6 +366,8 @@ export const AuthenticationForms = props => {
       ? loginErrorMessage
       : !!signupError
       ? signupErrorMessage
+      : !isLogin && !!loginError
+      ? loginErrorMessage
       : emailVerificationError
       ? <div className={css.error}>{emailVerificationError}</div>
       : null;

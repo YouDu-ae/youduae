@@ -114,26 +114,24 @@ const ServiceCategorySelector = props => {
         {intl.formatMessage({ id: 'ServiceCategory.selectDescription' })}
       </p>
 
-      {/* Hidden fields для Final Form */}
-      <Field name="serviceCategories">
-        {({ input }) => (
-          <input
-            {...input}
-            type="hidden"
-            value={JSON.stringify(selectedCategories)}
-            onChange={() => {}}
-          />
-        )}
+      {/* Hidden fields synced from local state into Final Form */}
+      <Field name="serviceCategories" subscription={{ value: true }}>
+        {({ input }) => {
+          const current = Array.isArray(input.value) ? input.value : [];
+          if (JSON.stringify(current) !== JSON.stringify(selectedCategories)) {
+            input.onChange(selectedCategories);
+          }
+          return null;
+        }}
       </Field>
-      <Field name="subcategories">
-        {({ input }) => (
-          <input
-            {...input}
-            type="hidden"
-            value={JSON.stringify(currentSubcategories)}
-            onChange={() => {}}
-          />
-        )}
+      <Field name="subcategories" subscription={{ value: true }}>
+        {({ input }) => {
+          const current = input.value && typeof input.value === 'object' ? input.value : {};
+          if (JSON.stringify(current) !== JSON.stringify(currentSubcategories)) {
+            input.onChange(currentSubcategories);
+          }
+          return null;
+        }}
       </Field>
 
       <div className={css.categoriesGrid}>

@@ -214,21 +214,41 @@ export const signup = params => (dispatch, getState, sdk) => {
     return Promise.reject(new Error('Login or logout already in progress'));
   }
   dispatch(signupRequest());
-  // Note: params are already structured on AuthenticationPage (handleSubmitSignup)
 
-  // We must login the user if signup succeeds since the API doesn't
-  // do that automatically.
-  return sdk.currentUser
-    .create(params)
+  const normalizedParams = {
+    ...params,
+    email: String(params.email || '')
+      .trim()
+      .toLowerCase(),
+  };
+
+  const signupTimeoutMs = 45000;
+  const withTimeout = (promise, label) =>
+    Promise.race([
+      promise,
+      new Promise((_, reject) => {
+        setTimeout(() => reject(new Error(`${label} timeout`)), signupTimeoutMs);
+      }),
+    ]);
+
+  // Note: params are already structured on AuthenticationPage (handleSubmitSignup)
+  // We must login the user if signup succeeds since the API doesn't do that automatically.
+  return withTimeout(sdk.currentUser.create(normalizedParams), 'Signup')
     .then(() => dispatch(signupSuccess()))
-    .then(() => dispatch(login(params.email, params.password)))
+    .then(() =>
+      withTimeout(
+        dispatch(login(normalizedParams.email, normalizedParams.password)),
+        'Login after signup'
+      )
+    )
     .catch(e => {
       dispatch(signupError(storableError(e)));
       log.error(e, 'signup-failed', {
-        email: params.email,
-        firstName: params.firstName,
-        lastName: params.lastName,
+        email: normalizedParams.email,
+        firstName: normalizedParams.firstName,
+        lastName: normalizedParams.lastName,
       });
+      throw e;
     });
 };
 

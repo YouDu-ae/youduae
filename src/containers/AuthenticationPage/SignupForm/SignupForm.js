@@ -58,8 +58,10 @@ const SignupFormFields = props => {
     lastSentAt: null,
   });
   const autoSubmitAfterOtpRef = useRef(false);
+  const prevEmailRef = useRef(null);
 
   const { userType, email } = values || {};
+  const normalizedEmail = email ? String(email).trim().toLowerCase() : '';
 
   const hasStartedSignup = !!(
     (email && String(email).trim()) ||
@@ -131,7 +133,11 @@ const SignupFormFields = props => {
 
   const classes = classNames(rootClassName || css.root, className);
   const submitInProgress = inProgress;
-  const submitDisabled = invalid || submitInProgress || !otpState.verified;
+  const hasServiceCategories =
+    userType !== 'customer' ||
+    (Array.isArray(values?.serviceCategories) && values.serviceCategories.length > 0);
+
+  const submitDisabled = invalid || submitInProgress || !otpState.verified || !hasServiceCategories;
 
   // Определяем состояние главной кнопки
   const getButtonState = () => {
@@ -211,7 +217,7 @@ const SignupFormFields = props => {
     setOtpState(prev => ({ ...prev, sending: true, error: null, info: null }));
 
     try {
-      const response = await sendEmailOtp({ email, locale: intl.locale });
+      const response = await sendEmailOtp({ email: normalizedEmail || email, locale: intl.locale });
       setOtpState(prev => ({
         ...prev,
         sent: true,
@@ -250,12 +256,17 @@ const SignupFormFields = props => {
         form.change('verifiedToken', response.verifiedToken);
       }
       autoSubmitAfterOtpRef.current = true;
+      const categoriesReady =
+        userType !== 'customer' ||
+        (Array.isArray(values?.serviceCategories) && values.serviceCategories.length > 0);
       setOtpState(prev => ({
         ...prev,
         verified: true,
         verifying: false,
         verifiedToken: response.verifiedToken,
-        info: intl.formatMessage({ id: 'SignupForm.emailOtpVerifiedAutoSubmit' }),
+        info: categoriesReady
+          ? intl.formatMessage({ id: 'SignupForm.emailOtpVerifiedAutoSubmit' })
+          : intl.formatMessage({ id: 'SignupForm.emailOtpVerifiedFillAndSubmit' }),
         error: null,
       }));
     } catch (error) {
@@ -274,7 +285,10 @@ const SignupFormFields = props => {
     if (!autoSubmitAfterOtpRef.current || !otpState.verified || !otpState.verifiedToken) {
       return undefined;
     }
-    // Allow form.change('verifiedToken') to settle before checking validity
+    // Wait until Final Form has verifiedToken + categories before auto-submit
+    if (!values?.verifiedToken || !hasServiceCategories) {
+      return undefined;
+    }
     const t = setTimeout(() => {
       if (!autoSubmitAfterOtpRef.current) {
         return;
@@ -289,9 +303,18 @@ const SignupFormFields = props => {
       }
       autoSubmitAfterOtpRef.current = false;
       handleSubmit();
-    }, 50);
+    }, 150);
     return () => clearTimeout(t);
-  }, [otpState.verified, otpState.verifiedToken, invalid, inProgress, handleSubmit, intl]);
+  }, [
+    otpState.verified,
+    otpState.verifiedToken,
+    values?.verifiedToken,
+    hasServiceCategories,
+    invalid,
+    inProgress,
+    handleSubmit,
+    intl,
+  ]);
 
   // Warn on browser close / refresh
   useEffect(() => {
@@ -306,8 +329,13 @@ const SignupFormFields = props => {
     return () => window.removeEventListener('beforeunload', onBeforeUnload);
   }, [blockLeaveWithoutSignup]);
 
-  // Watch email changes and reset OTP state if email changes after verification
+  // Reset OTP only when email actually changes (not on every render)
   useEffect(() => {
+    const prev = prevEmailRef.current;
+    prevEmailRef.current = normalizedEmail || null;
+    if (prev == null || prev === normalizedEmail) {
+      return;
+    }
     if (otpState.sent || otpState.verified) {
       autoSubmitAfterOtpRef.current = false;
       setOtpState(prev => ({
@@ -320,7 +348,7 @@ const SignupFormFields = props => {
         info: null,
       }));
     }
-  }, [email]);
+  }, [normalizedEmail, otpState.sent, otpState.verified]);
 
   return (
     <Form className={classes} onSubmit={handleSubmit}>
