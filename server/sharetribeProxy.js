@@ -38,8 +38,18 @@ const copyHeaders = (fromHeaders, hostname) => {
   Object.keys(fromHeaders || {}).forEach(key => {
     const lower = key.toLowerCase();
     if (HOP_BY_HOP.has(lower)) return;
-    // Avoid leaking cookies meant only for youdu.ae to Sharetribe
-    if (lower === 'cookie') return;
+    // Forward only Sharetribe auth cookies (st-*), not other site cookies
+    if (lower === 'cookie') {
+      const stCookies = (fromHeaders[key] || '')
+        .split(';')
+        .map(c => c.trim())
+        .filter(c => c.startsWith('st-'))
+        .join('; ');
+      if (stCookies) {
+        headers[key] = stCookies;
+      }
+      return;
+    }
     headers[key] = fromHeaders[key];
   });
   headers.host = hostname;
