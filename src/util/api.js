@@ -58,14 +58,8 @@ const getSdk = () => {
     return null;
   }
 
-  const useApiProxy =
-    process.env.REACT_APP_SHARETRIBE_SDK_USE_PROXY === 'true' ||
-    process.env.REACT_APP_ENV === 'production';
-  const baseUrlConfig = useApiProxy
-    ? { baseUrl: `${window.location.origin}/api/st` }
-    : appSettings.sdk?.baseUrl
-    ? { baseUrl: appSettings.sdk.baseUrl }
-    : {};
+  // Always proxy Marketplace API through same origin in the browser.
+  const baseUrlConfig = { baseUrl: `${window.location.origin}/api/st` };
   const assetCdnBaseUrl = appSettings.sdk?.assetCdnBaseUrl
     ? { assetCdnBaseUrl: appSettings.sdk.assetCdnBaseUrl }
     : {};
