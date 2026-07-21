@@ -22,7 +22,7 @@ const HOP_BY_HOP = new Set([
   'transfer-encoding',
   'upgrade',
   'host',
-  'content-length',
+  // Note: content-length is NOT hop-by-hop; we must forward it for uploads
 ]);
 
 const agent = new https.Agent({ keepAlive: true, maxSockets: 50 });
