@@ -41,6 +41,7 @@ const viewedTransactions = require('./api/viewed-transactions');
 
 const createUserWithIdp = require('./api/auth/createUserWithIdp');
 const createUser = require('./api/auth/createUser');
+const login = require('./api/auth/login');
 const mobileIdp = require('./api/auth/mobile-idp');
 const { sendEmailOtp, verifyEmailOtp, assertEmailVerified } = require('./api/email-otp');
 
@@ -135,6 +136,7 @@ router.post('/otp/email/assert', assertEmailVerified);
 // they want to continue with the data fetched from IdP (e.g. name and email)
 router.post('/auth/create-user-with-idp', createUserWithIdp);
 router.post('/auth/create-user', createUser);
+router.post('/auth/login', login);
 
 // Mobile Google / Apple Sign-In: native ID token → Sharetribe tokens (JSON)
 router.post('/auth/mobile-idp', mobileIdp);

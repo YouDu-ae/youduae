@@ -32,6 +32,7 @@ import reducer, {
 jest.mock('../util/api', () => ({
   createUser: jest.fn(),
   createUserWithIdp: jest.fn(),
+  loginWithPassword: jest.fn(),
 }));
 
 // Create a dispatch function that correctly calls the thunk functions
@@ -200,34 +201,29 @@ describe('auth duck', () => {
   });
 
   describe('login thunk', () => {
+    beforeEach(() => {
+      jest.spyOn(require('./user.duck'), 'fetchCurrentUser').mockImplementation(
+        () => () => Promise.resolve({})
+      );
+    });
+
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
     it('should dispatch success and fetch current user', () => {
       const initialState = reducer();
       const getState = () => ({ auth: initialState });
-      const fakeCurrentUser = createCurrentUser({ id: 'test-user' });
-      const fakeCurrentUserResponse = { data: { data: fakeCurrentUser, include: [] } };
-      const fakeTransactionsResponse = { data: { data: [], include: [] } };
-      const sdk = {
-        login: jest.fn(() => Promise.resolve({})),
-        authInfo: jest.fn(() => Promise.resolve({})),
-        currentUser: { show: jest.fn(() => Promise.resolve(fakeCurrentUserResponse)) },
-        transactions: { query: jest.fn(() => Promise.resolve(fakeTransactionsResponse)) },
-      };
+      const sdk = {};
       const dispatch = createFakeDispatch(getState, sdk);
       const username = 'x.x@example.com';
       const password = 'pass';
 
+      api.loginWithPassword.mockImplementation(() => Promise.resolve({ status: 200 }));
+
       return login(username, password)(dispatch, getState, sdk).then(() => {
-        expect(sdk.login.mock.calls).toEqual([[{ username, password }]]);
-        expect(dispatchedActions(dispatch)).toEqual([
-          loginRequest(),
-          currentUserShowRequest(),
-          currentUserShowSuccess(fakeCurrentUser),
-          fetchCurrentUserNotificationsRequest(),
-          authInfoRequest(),
-          fetchCurrentUserNotificationsSuccess([]),
-          authInfoSuccess({}),
-          loginSuccess(),
-        ]);
+        expect(api.loginWithPassword.mock.calls).toEqual([[{ username, password }]]);
+        expect(dispatchedActions(dispatch)).toEqual([loginRequest(), loginSuccess()]);
       });
     });
     it('should dispatch error', () => {
@@ -235,12 +231,15 @@ describe('auth duck', () => {
       const initialState = reducer();
       const getState = () => ({ auth: initialState });
       const error = new Error('could not login');
-      const sdk = { login: jest.fn(() => Promise.reject(error)) };
+      const sdk = {};
       const username = 'x.x@example.com';
       const password = 'pass';
 
+      api.loginWithPassword.mockImplementation(() => Promise.reject(error));
+      log.error = jest.fn();
+
       return login(username, password)(dispatch, getState, sdk).then(() => {
-        expect(sdk.login.mock.calls).toEqual([[{ username, password }]]);
+        expect(api.loginWithPassword.mock.calls).toEqual([[{ username, password }]]);
         expect(dispatch.mock.calls).toEqual([[loginRequest()], [loginError(storableError(error))]]);
       });
     });
@@ -249,7 +248,7 @@ describe('auth duck', () => {
       const initialState = reducer();
       const loginInProgressState = reducer(initialState, loginRequest());
       const getState = () => ({ auth: loginInProgressState });
-      const sdk = { login: jest.fn(() => Promise.resolve({})) };
+      const sdk = {};
       const username = 'x.x@example.com';
       const password = 'pass';
 
@@ -259,7 +258,7 @@ describe('auth duck', () => {
         },
         e => {
           expect(e.message).toEqual('Login or logout already in progress');
-          expect(sdk.login.mock.calls.length).toEqual(0);
+          expect(api.loginWithPassword.mock.calls.length).toEqual(0);
           expect(dispatch.mock.calls.length).toEqual(0);
         }
       );
@@ -269,7 +268,7 @@ describe('auth duck', () => {
       const initialState = reducer();
       const logoutInProgressState = reducer(initialState, logoutRequest());
       const getState = () => ({ auth: logoutInProgressState });
-      const sdk = { login: jest.fn(() => Promise.resolve({})) };
+      const sdk = {};
       const username = 'x.x@example.com';
       const password = 'pass';
 
@@ -279,7 +278,7 @@ describe('auth duck', () => {
         },
         e => {
           expect(e.message).toEqual('Login or logout already in progress');
-          expect(sdk.login.mock.calls.length).toEqual(0);
+          expect(api.loginWithPassword.mock.calls.length).toEqual(0);
           expect(dispatch.mock.calls.length).toEqual(0);
         }
       );

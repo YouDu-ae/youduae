@@ -404,6 +404,8 @@
   "EmailVerificationForm.verifyEmailAddress": "Verify your email address",
   "EmailVerificationForm.verifying": "Verifying…",
   "EmailVerificationPage.loadingUserInformation": "Loading user information…",
+  "EmailVerificationPage.loginRequiredTitle": "Log in to verify your email",
+  "EmailVerificationPage.loginRequired": "To finish email verification, log in first, then open the link from the email again.",
   "EmailVerificationPage.title": "Verify your email address",
   "VerificationPage.title": "Account Verification",
   "VerificationPage.schemaTitle": "Account Verification | {marketplaceName}",

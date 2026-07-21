@@ -1,7 +1,7 @@
 import * as log from '../util/log';
 import { storableError } from '../util/errors';
 import { clearCurrentUser, fetchCurrentUser } from './user.duck';
-import { createUser, createUserWithIdp } from '../util/api';
+import { createUser, createUserWithIdp, loginWithPassword } from '../util/api';
 import { clearViewedTransactionsCache } from '../util/transactionNotifications';
 
 const authenticated = authInfo => authInfo?.isAnonymous === false;
@@ -176,14 +176,16 @@ export const login = (username, password) => (dispatch, getState, sdk) => {
   }
   dispatch(loginRequest());
 
-  // Note that the thunk does not reject when the login fails, it
-  // just dispatches the login error action.
-  return sdk
-    .login({ username, password })
+  const normalizedUsername = String(username || '')
+    .trim()
+    .toLowerCase();
+
+  // Server-side login avoids browser→Sharetribe auth timeouts on unstable networks.
+  return loginWithPassword({ username: normalizedUsername, password })
     .then(() => dispatch(fetchCurrentUser({ afterLogin: true })))
     .then(() => dispatch(loginSuccess()))
     .catch(e => {
-      log.error(e, 'login-failed', { email: username });
+      log.error(e, 'login-failed', { email: normalizedUsername });
       return dispatch(loginError(storableError(e)));
     });
 };

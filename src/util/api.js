@@ -285,6 +285,10 @@ export const createUser = body => {
   return post('/api/auth/create-user', body);
 };
 
+export const loginWithPassword = body => {
+  return post('/api/auth/login', body);
+};
+
 // Email OTP verification endpoints
 export const sendEmailOtp = ({ email, locale }) => {
   return post('/api/otp/email/send', { email, locale }, {

@@ -20,6 +20,23 @@
   composes: marketplaceModalBaseStyles from global;
 }
 
+.title {
+  composes: marketplaceModalTitleStyles from global;
+}
+
+.loginRequiredText {
+  composes: marketplaceModalParagraphStyles from global;
+  margin-bottom: 24px;
+}
+
+.loginLink {
+  composes: buttonPrimary from global;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+}
+
 .error {
   composes: marketplaceModalPasswordMargins from global;
 }

@@ -14,7 +14,9 @@ import {
   Page,
   ResponsiveBackgroundImageContainer,
   NamedRedirect,
+  NamedLink,
   LayoutSingleColumn,
+  Heading,
 } from '../../components';
 
 import TopbarContainer from '../../containers/TopbarContainer/TopbarContainer';
@@ -48,24 +50,14 @@ const parseVerificationToken = search => {
 
 /**
  * The EmailVerificationPage component.
- *
- * @component
- * @param {Object} props
- * @param {propTypes.currentUser} props.currentUser - The current user
- * @param {boolean} props.scrollingDisabled - Whether scrolling is disabled
- * @param {Function} props.submitVerification - The submit verification function
- * @param {boolean} props.isVerified - Whether the email is verified
- * @param {boolean} props.emailVerificationInProgress - Whether the email verification is in progress
- * @param {propTypes.error} props.verificationError - The verification error
- * @param {Object} props.location - The location object
- * @param {string} props.location.search - The search object
- * @returns {JSX.Element} email verification page component
  */
 export const EmailVerificationPageComponent = props => {
   const config = useConfiguration();
   const intl = useIntl();
   const {
     currentUser,
+    currentUserLoaded,
+    isAuthenticated,
     scrollingDisabled,
     submitVerification,
     isVerified,
@@ -78,12 +70,46 @@ export const EmailVerificationPageComponent = props => {
     verificationToken: parseVerificationToken(location ? location.search : null),
   };
   const user = ensureCurrentUser(currentUser);
+  const fromPath = `${location?.pathname || '/verify-email'}${location?.search || ''}`;
 
   // The first attempt to verify email is done when the page is loaded
   // If the verify API call is successfull and the user has verified email
   // We can redirect user forward from email verification page.
   if (isVerified && user.attributes.emailVerified && user.attributes.pendingEmail == null) {
     return <NamedRedirect name="LandingPage" />;
+  }
+
+  let content = null;
+  if (user.id) {
+    content = (
+      <EmailVerificationForm
+        initialValues={initialValues}
+        onSubmit={submitVerification}
+        currentUser={user}
+        inProgress={emailVerificationInProgress}
+        verificationError={verificationError}
+      />
+    );
+  } else if (currentUserLoaded && !isAuthenticated) {
+    content = (
+      <div>
+        <Heading as="h1" rootClassName={css.title}>
+          <FormattedMessage id="EmailVerificationPage.loginRequiredTitle" />
+        </Heading>
+        <p className={css.loginRequiredText}>
+          <FormattedMessage id="EmailVerificationPage.loginRequired" />
+        </p>
+        <NamedLink
+          name="LoginPage"
+          to={{ state: { from: fromPath } }}
+          className={css.loginLink}
+        >
+          <FormattedMessage id="AuthenticationPage.loginLinkText" />
+        </NamedLink>
+      </div>
+    );
+  } else {
+    content = <FormattedMessage id="EmailVerificationPage.loadingUserInformation" />;
   }
 
   return (
@@ -107,19 +133,7 @@ export const EmailVerificationPageComponent = props => {
           sizes="100%"
           useOverlay
         >
-          <div className={css.content}>
-            {user.id ? (
-              <EmailVerificationForm
-                initialValues={initialValues}
-                onSubmit={submitVerification}
-                currentUser={user}
-                inProgress={emailVerificationInProgress}
-                verificationError={verificationError}
-              />
-            ) : (
-              <FormattedMessage id="EmailVerificationPage.loadingUserInformation" />
-            )}
-          </div>
+          <div className={css.content}>{content}</div>
         </ResponsiveBackgroundImageContainer>
       </LayoutSingleColumn>
     </Page>
@@ -127,13 +141,18 @@ export const EmailVerificationPageComponent = props => {
 };
 
 const mapStateToProps = state => {
-  const { currentUser } = state.user;
+  const { currentUser, currentUserShowError } = state.user;
+  const { isAuthenticated, authInfoLoaded } = state.auth;
   const { isVerified, verificationError, verificationInProgress } = state.emailVerification;
+  const currentUserLoaded =
+    authInfoLoaded && (!isAuthenticated || !!currentUser || !!currentUserShowError);
   return {
     isVerified,
     verificationError,
     emailVerificationInProgress: verificationInProgress,
     currentUser,
+    currentUserLoaded,
+    isAuthenticated,
     scrollingDisabled: isScrollingDisabled(state),
   };
 };
