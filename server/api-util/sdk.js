@@ -14,6 +14,20 @@ const MAX_SOCKETS_DEFAULT = 10;
 const BASE_URL = process.env.REACT_APP_SHARETRIBE_SDK_BASE_URL;
 const ASSET_CDN_BASE_URL = process.env.REACT_APP_SHARETRIBE_SDK_ASSET_CDN_BASE_URL;
 
+// Application type handlers for JS SDK.
+//
+// NOTE: keep in sync with `typeHandlers` in `src/util/api.js`
+const typeHandlers = [
+  // Use Decimal type instead of SDK's BigDecimal.
+  {
+    type: sharetribeSdk.types.BigDecimal,
+    customType: Decimal,
+    writer: v => new sharetribeSdk.types.BigDecimal(v.toString()),
+    reader: v => new Decimal(v.value),
+  },
+];
+exports.typeHandlers = typeHandlers;
+
 // Never point server-side SDK at the browser proxy (/api/st) — that would loop.
 const isBrowserProxyUrl = url => typeof url === 'string' && url.includes('/api/st');
 const baseUrlMaybe = BASE_URL && !isBrowserProxyUrl(BASE_URL) ? { baseUrl: BASE_URL } : {};
