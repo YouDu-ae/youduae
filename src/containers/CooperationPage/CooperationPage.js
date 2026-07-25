@@ -166,31 +166,27 @@ const toggle = i => {
     }))
   };
 
+  // OG images for social sharing
+  const ogImages = [
+    {
+      url: 'https://youdu.ae/static/icons/youdu-og-cooperation.png',
+      width: 1200,
+      height: 630,
+    }
+  ];
+
   return (
     <Page
       title={SEO_TITLE}
       description={SEO_DESCRIPTION}
       schema={schemaData}
+      facebookImages={ogImages}
+      twitterImages={ogImages}
     >
       <Helmet>
         <link rel="canonical" href={CANONICAL_URL} />
         <meta name="keywords" content={SEO_KEYWORDS} />
         <meta name="robots" content="index, follow" />
-        
-        {/* Open Graph */}
-        <meta property="og:type" content="website" />
-        <meta property="og:url" content={CANONICAL_URL} />
-        <meta property="og:title" content={SEO_TITLE} />
-        <meta property="og:description" content={SEO_DESCRIPTION} />
-        <meta property="og:image" content="https://youdu.ae/static/icons/youdu-og-cooperation.png" />
-        <meta property="og:locale" content="ru_RU" />
-        <meta property="og:site_name" content="YouDu" />
-        
-        {/* Twitter Card */}
-        <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content={SEO_TITLE} />
-        <meta name="twitter:description" content={SEO_DESCRIPTION} />
-        <meta name="twitter:image" content="https://youdu.ae/static/icons/youdu-og-cooperation.png" />
         
         {/* Additional SEO for AI assistants */}
         <meta name="subject" content="Работа для специалистов в ОАЭ" />
