@@ -1,6 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { compose } from 'redux';
-import { connect } from 'react-redux';
 import { useParams, useLocation, useHistory } from 'react-router-dom';
 import { FormattedMessage } from '../../util/reactIntl';
 import { Page, LayoutSingleColumn, NamedLink, VerificationBadge, SubcategoryFilter } from '../../components';
@@ -20,10 +18,9 @@ import css from './CategoryExecutorsPage.module.css';
  * URL: /category/:categoryId
  * Например: /category/repairs_main (Ремонт и строительство)
  *
- * Soft-gate: SEO-оболочка публичная, список исполнителей — только после входа.
+ * Публичная страница: список исполнителей доступен всем посетителям.
  */
-const CategoryExecutorsPageComponent = props => {
-  const { isAuthenticated } = props;
+const CategoryExecutorsPageComponent = () => {
   const { categoryId } = useParams();
   const location = useLocation();
   const history = useHistory();
@@ -34,8 +31,6 @@ const CategoryExecutorsPageComponent = props => {
 
   const categoryLabel = getCategoryLabel(categoryId, 'ru');
   const categoryExists = SERVICE_CATEGORIES.find(cat => cat.id === categoryId);
-  const returnFrom = `${location.pathname}${location.search}${location.hash}`;
-  const authLinkState = { from: returnFrom };
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -47,13 +42,6 @@ const CategoryExecutorsPageComponent = props => {
     if (!categoryExists) {
       setError('Категория не найдена');
       setLoading(false);
-      setExecutors([]);
-      return;
-    }
-
-    if (!isAuthenticated) {
-      setLoading(false);
-      setError(null);
       setExecutors([]);
       return;
     }
@@ -78,7 +66,7 @@ const CategoryExecutorsPageComponent = props => {
     return () => {
       cancelled = true;
     };
-  }, [categoryId, categoryExists, isAuthenticated]);
+  }, [categoryId, categoryExists]);
 
   const formatDate = dateString => {
     const date = new Date(dateString);
@@ -165,72 +153,6 @@ const CategoryExecutorsPageComponent = props => {
     );
   }
 
-  const subcategoryLabels = (categoryExists.subcategories || []).map(sub => sub.label.ru);
-
-  const renderAuthGate = () => (
-    <div className={css.authGate}>
-      <p className={css.authGateIcon} aria-hidden="true">
-        🔐
-      </p>
-      <h2 className={css.authGateTitle}>
-        <FormattedMessage id="CategoryExecutorsPage.authGateTitle" />
-      </h2>
-      <p className={css.authGateMessage}>
-        <FormattedMessage
-          id="CategoryExecutorsPage.authGateMessage"
-          values={{ category: categoryLabel }}
-        />
-      </p>
-      <div className={css.authGateActions}>
-        <NamedLink name="LoginPage" className={css.authGatePrimary} to={{ state: authLinkState }}>
-          <FormattedMessage id="CategoryExecutorsPage.authGateLogin" />
-        </NamedLink>
-        <NamedLink
-          name="SignupForUserTypePage"
-          params={{ userType: 'provider' }}
-          className={css.authGateSecondary}
-          to={{ state: authLinkState }}
-        >
-          <FormattedMessage id="CategoryExecutorsPage.authGateSignup" />
-        </NamedLink>
-      </div>
-    </div>
-  );
-
-  const renderSeoShell = () => (
-    <div className={css.seoShell}>
-      <p className={css.seoIntro}>
-        <FormattedMessage
-          id="CategoryExecutorsPage.seoIntro"
-          values={{ category: categoryLabel }}
-        />
-      </p>
-      {subcategoryLabels.length > 0 ? (
-        <div className={css.seoServices}>
-          <h2 className={css.seoServicesTitle}>
-            <FormattedMessage id="CategoryExecutorsPage.seoServicesTitle" />
-          </h2>
-          <ul className={css.seoServicesList}>
-            {subcategoryLabels.map(label => (
-              <li key={label}>{label}</li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
-      <ul className={css.seoBenefits}>
-        <li>
-          <FormattedMessage id="CategoryExecutorsPage.seoBenefit1" />
-        </li>
-        <li>
-          <FormattedMessage id="CategoryExecutorsPage.seoBenefit2" />
-        </li>
-        <li>
-          <FormattedMessage id="CategoryExecutorsPage.seoBenefit3" />
-        </li>
-      </ul>
-    </div>
-  );
-
   return (
     <Page
       title={`${categoryLabel} — исполнители в ОАЭ | YouDu`}
@@ -250,200 +172,185 @@ const CategoryExecutorsPageComponent = props => {
               ← Назад к категориям
             </button>
             <h1 className={css.title}>
-              {isAuthenticated ? (
-                <>
-                  Исполнители: {categoryLabel}
-                  {selectedSubcategory
-                    ? ` / ${getSubcategoryLabel(categoryId, selectedSubcategory, 'ru')}`
-                    : ''}
-                </>
-              ) : (
-                categoryLabel
-              )}
+              Исполнители: {categoryLabel}
+              {selectedSubcategory
+                ? ` / ${getSubcategoryLabel(categoryId, selectedSubcategory, 'ru')}`
+                : ''}
             </h1>
-            {isAuthenticated ? (
-              <p className={css.subtitle}>
-                Найдено {filteredExecutors.length}{' '}
-                {filteredExecutors.length === 1 ? 'исполнитель' : 'исполнителей'}
-              </p>
-            ) : (
-              <p className={css.subtitle}>
-                <FormattedMessage id="CategoryExecutorsPage.guestSubtitle" />
-              </p>
-            )}
+            <p className={css.subtitle}>
+              {loading ? (
+                'Загрузка...'
+              ) : (
+                <>
+                  Найдено {filteredExecutors.length}{' '}
+                  {filteredExecutors.length === 1 ? 'исполнитель' : 'исполнителей'}
+                </>
+              )}
+            </p>
           </div>
 
-          {!isAuthenticated ? (
-            <>
-              {renderSeoShell()}
-              {renderAuthGate()}
-            </>
-          ) : (
-            <>
-              {!loading && !error && executors.length > 0 && (
-                <SubcategoryFilter
-                  categoryId={categoryId}
-                  selectedSubcategory={selectedSubcategory}
-                  onSubcategoryChange={setSelectedSubcategory}
+          {!loading && !error && executors.length > 0 && (
+            <SubcategoryFilter
+              categoryId={categoryId}
+              selectedSubcategory={selectedSubcategory}
+              onSubcategoryChange={setSelectedSubcategory}
+            />
+          )}
+
+          {loading && (
+            <div className={css.loading}>
+              <div className={css.spinner}>⏳</div>
+              <p>Загрузка исполнителей...</p>
+            </div>
+          )}
+
+          {(error || (!loading && filteredExecutors.length === 0)) && (
+            <div className={css.empty}>
+              <p className={css.emptyIcon}>{error ? '⚠️' : '😔'}</p>
+              <h2>
+                <FormattedMessage
+                  id={
+                    error
+                      ? 'CategoryExecutorsPage.errorTitle'
+                      : selectedSubcategory
+                      ? 'CategoryExecutorsPage.noExecutorsInSubcategory'
+                      : 'CategoryExecutorsPage.noExecutorsTitle'
+                  }
                 />
+              </h2>
+              <p className={css.noExecutorsMessage}>
+                {error ? (
+                  <FormattedMessage id="CategoryExecutorsPage.errorMessage" />
+                ) : (
+                  <FormattedMessage
+                    id={
+                      selectedSubcategory
+                        ? 'CategoryExecutorsPage.tryAnotherSubcategory'
+                        : 'CategoryExecutorsPage.noExecutorsMessage'
+                    }
+                  />
+                )}
+              </p>
+              {selectedSubcategory && !error && (
+                <button
+                  onClick={() => setSelectedSubcategory(null)}
+                  className={css.resetFilterButton}
+                >
+                  Показать всех исполнителей
+                </button>
               )}
+              <p className={css.hint}>
+                <NamedLink name="LandingPage" className={css.backToHomeLink}>
+                  ← Вернуться на главную
+                </NamedLink>
+              </p>
+            </div>
+          )}
 
-              {loading && (
-                <div className={css.loading}>
-                  <div className={css.spinner}>⏳</div>
-                  <p>Загрузка исполнителей...</p>
-                </div>
-              )}
+          {!loading && !error && filteredExecutors.length > 0 && (
+            <div className={css.tableContainer}>
+              <table className={css.table}>
+                <thead>
+                  <tr>
+                    <th className={css.thAvatar}></th>
+                    <th className={css.thName}>Имя</th>
+                    <th className={css.thVerification}>Верификация</th>
+                    <th className={css.thRegistration}>Регистрация</th>
+                    <th className={css.thReviews}>Отзывы</th>
+                    <th className={css.thRating}>Рейтинг</th>
+                    <th className={css.thActions}></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredExecutors.map(executor => {
+                    const isVerified = executor.isVerified === true;
 
-              {(error || (!loading && filteredExecutors.length === 0)) && (
-                <div className={css.empty}>
-                  <p className={css.emptyIcon}>{error ? '⚠️' : '😔'}</p>
-                  <h2>
-                    <FormattedMessage
-                      id={
-                        error
-                          ? 'CategoryExecutorsPage.errorTitle'
-                          : selectedSubcategory
-                          ? 'CategoryExecutorsPage.noExecutorsInSubcategory'
-                          : 'CategoryExecutorsPage.noExecutorsTitle'
-                      }
-                    />
-                  </h2>
-                  <p className={css.noExecutorsMessage}>
-                    {error ? (
-                      <FormattedMessage id="CategoryExecutorsPage.errorMessage" />
-                    ) : (
-                      <FormattedMessage
-                        id={
-                          selectedSubcategory
-                            ? 'CategoryExecutorsPage.tryAnotherSubcategory'
-                            : 'CategoryExecutorsPage.noExecutorsMessage'
-                        }
-                      />
-                    )}
-                  </p>
-                  {selectedSubcategory && !error && (
-                    <button
-                      onClick={() => setSelectedSubcategory(null)}
-                      className={css.resetFilterButton}
-                    >
-                      Показать всех исполнителей
-                    </button>
-                  )}
-                  <p className={css.hint}>
-                    <NamedLink name="LandingPage" className={css.backToHomeLink}>
-                      ← Вернуться на главную
-                    </NamedLink>
-                  </p>
-                </div>
-              )}
+                    return (
+                      <tr key={executor.id} className={css.executorRow}>
+                        <td className={css.tdAvatar}>
+                          <NamedLink name="ProfilePage" params={{ id: executor.id }}>
+                            {executor.profileImage ? (
+                              <img
+                                src={
+                                  executor.profileImage.attributes?.variants?.['square-small']
+                                    ?.url ||
+                                  executor.profileImage.attributes?.variants?.default?.url ||
+                                  executor.profileImage.attributes?.variants?.['square-small2x']
+                                    ?.url
+                                }
+                                alt={executor.displayName}
+                                className={css.avatar}
+                              />
+                            ) : (
+                              <div className={css.avatarPlaceholder}>
+                                {executor.abbreviatedName ||
+                                  executor.displayName?.charAt(0) ||
+                                  '?'}
+                              </div>
+                            )}
+                          </NamedLink>
+                        </td>
 
-              {!loading && !error && filteredExecutors.length > 0 && (
-                <div className={css.tableContainer}>
-                  <table className={css.table}>
-                    <thead>
-                      <tr>
-                        <th className={css.thAvatar}></th>
-                        <th className={css.thName}>Имя</th>
-                        <th className={css.thVerification}>Верификация</th>
-                        <th className={css.thRegistration}>Регистрация</th>
-                        <th className={css.thReviews}>Отзывы</th>
-                        <th className={css.thRating}>Рейтинг</th>
-                        <th className={css.thActions}></th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {filteredExecutors.map(executor => {
-                        const isVerified = executor.isVerified === true;
+                        <td className={css.tdName}>
+                          <NamedLink
+                            name="ProfilePage"
+                            params={{ id: executor.id }}
+                            className={css.nameLink}
+                          >
+                            {executor.displayName}
+                          </NamedLink>
+                        </td>
 
-                        return (
-                          <tr key={executor.id} className={css.executorRow}>
-                            <td className={css.tdAvatar}>
-                              <NamedLink name="ProfilePage" params={{ id: executor.id }}>
-                                {executor.profileImage ? (
-                                  <img
-                                    src={
-                                      executor.profileImage.attributes?.variants?.['square-small']
-                                        ?.url ||
-                                      executor.profileImage.attributes?.variants?.default?.url ||
-                                      executor.profileImage.attributes?.variants?.['square-small2x']
-                                        ?.url
-                                    }
-                                    alt={executor.displayName}
-                                    className={css.avatar}
-                                  />
-                                ) : (
-                                  <div className={css.avatarPlaceholder}>
-                                    {executor.abbreviatedName ||
-                                      executor.displayName?.charAt(0) ||
-                                      '?'}
-                                  </div>
-                                )}
-                              </NamedLink>
-                            </td>
+                        <td className={css.tdVerification}>
+                          {isVerified ? (
+                            <span className={css.verified}>
+                              <VerificationBadge isVerified={true} />
+                              <span className={css.verifiedText}>Да</span>
+                            </span>
+                          ) : (
+                            <span className={css.notVerified}>Нет</span>
+                          )}
+                        </td>
 
-                            <td className={css.tdName}>
-                              <NamedLink
-                                name="ProfilePage"
-                                params={{ id: executor.id }}
-                                className={css.nameLink}
-                              >
-                                {executor.displayName}
-                              </NamedLink>
-                            </td>
+                        <td className={css.tdRegistration}>{formatDate(executor.createdAt)}</td>
 
-                            <td className={css.tdVerification}>
-                              {isVerified ? (
-                                <span className={css.verified}>
-                                  <VerificationBadge isVerified={true} />
-                                  <span className={css.verifiedText}>Да</span>
-                                </span>
-                              ) : (
-                                <span className={css.notVerified}>Нет</span>
-                              )}
-                            </td>
+                        <td className={css.tdReviews}>
+                          <span className={css.reviewsCount}>
+                            {executor.reviews.count}{' '}
+                            {executor.reviews.count === 1 ? 'отзыв' : 'отзывов'}
+                          </span>
+                        </td>
 
-                            <td className={css.tdRegistration}>{formatDate(executor.createdAt)}</td>
-
-                            <td className={css.tdReviews}>
-                              <span className={css.reviewsCount}>
-                                {executor.reviews.count}{' '}
-                                {executor.reviews.count === 1 ? 'отзыв' : 'отзывов'}
+                        <td className={css.tdRating}>
+                          {executor.reviews.count > 0 ? (
+                            <div className={css.rating}>
+                              <div className={css.stars}>
+                                {renderStars(executor.reviews.averageRating)}
+                              </div>
+                              <span className={css.ratingNumber}>
+                                {executor.reviews.averageRating.toFixed(1)}
                               </span>
-                            </td>
+                            </div>
+                          ) : (
+                            <span className={css.noRating}>—</span>
+                          )}
+                        </td>
 
-                            <td className={css.tdRating}>
-                              {executor.reviews.count > 0 ? (
-                                <div className={css.rating}>
-                                  <div className={css.stars}>
-                                    {renderStars(executor.reviews.averageRating)}
-                                  </div>
-                                  <span className={css.ratingNumber}>
-                                    {executor.reviews.averageRating.toFixed(1)}
-                                  </span>
-                                </div>
-                              ) : (
-                                <span className={css.noRating}>—</span>
-                              )}
-                            </td>
-
-                            <td className={css.tdActions}>
-                              <NamedLink
-                                name="ProfilePage"
-                                params={{ id: executor.id }}
-                                className={css.viewProfileButton}
-                              >
-                                Профиль
-                              </NamedLink>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </>
+                        <td className={css.tdActions}>
+                          <NamedLink
+                            name="ProfilePage"
+                            params={{ id: executor.id }}
+                            className={css.viewProfileButton}
+                          >
+                            Профиль
+                          </NamedLink>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
       </LayoutSingleColumn>
@@ -451,11 +358,4 @@ const CategoryExecutorsPageComponent = props => {
   );
 };
 
-const mapStateToProps = state => {
-  const { isAuthenticated } = state.auth;
-  return { isAuthenticated };
-};
-
-const CategoryExecutorsPage = compose(connect(mapStateToProps))(CategoryExecutorsPageComponent);
-
-export default CategoryExecutorsPage;
+export default CategoryExecutorsPageComponent;
