@@ -310,7 +310,7 @@ const toggle = i => {
                         <div className={css.statValue}>
                           {animatedTasks.toLocaleString('ru-RU')}
                         </div>
-                        <div className={css.statLabel}>выполненных заданий</div>
+                        <div className={css.statLabel}>заданий на платформе</div>
                       </div>
                       <div className={css.statDivider} />
                       <div className={css.statItem}>

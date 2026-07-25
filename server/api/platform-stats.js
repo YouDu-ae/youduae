@@ -43,56 +43,45 @@ module.exports = (req, res) => {
       
       console.log('📊 [Platform Stats] Total transactions fetched:', allTransactions.length);
       
-      // Filter completed transactions
-      // In assignment-flow-v3, completed tasks have these transitions:
-      // - transition/complete (to state/completed)
-      // - transition/review-1-by-provider (from state/completed)
-      // - transition/review-1-by-customer (from state/completed)
-      // - transition/review-2-by-provider, transition/review-2-by-customer (to state/reviewed)
-      // - transition/expire-review-period (to state/reviewed)
-      const completedTransactions = allTransactions.filter(tx => {
+      // Filter active transactions (exclude only canceled/declined/expired ones)
+      // We count all tasks that are in progress or completed
+      const excludedTransitions = [
+        'transition/decline',
+        'transition/cancel',
+        'transition/expire',
+        'transition/operator-cancel',
+        'transition/payment-expired',
+      ];
+      
+      const activeTransactions = allTransactions.filter(tx => {
         const lastTransition = tx.attributes.lastTransition;
-        
-        console.log('Transaction ID:', tx.id.uuid, 'lastTransition:', lastTransition);
-        
-        // Check if transaction is in completed or reviewed state
-        return lastTransition === 'transition/complete' || 
-               lastTransition === 'transition/review-1-by-provider' ||
-               lastTransition === 'transition/review-1-by-customer' ||
-               lastTransition === 'transition/review-2-by-provider' ||
-               lastTransition === 'transition/review-2-by-customer' ||
-               lastTransition === 'transition/expire-review-period' ||
-               lastTransition === 'transition/expire-provider-review-period' ||
-               lastTransition === 'transition/expire-customer-review-period';
+        return !excludedTransitions.some(excluded => lastTransition === excluded);
       });
       
-      const totalCount = completedTransactions.length;
+      const totalCount = activeTransactions.length;
 
-      // Calculate total sum
+      // Calculate total sum from all active transactions
       // In assignment-flow-v3 (inquiry process), price is in protectedData.offer.price (already in AED)
       // In purchase/booking processes, price is in payinTotal (in cents)
       let totalSum = 0;
-      let transactionsWithPrice = 0;
       
-      completedTransactions.forEach((tx) => {
+      activeTransactions.forEach((tx) => {
         const payinTotal = tx.attributes.payinTotal;
         const protectedData = tx.attributes.protectedData || {};
         
         // Try payinTotal first (for purchase/booking processes)
         if (payinTotal && payinTotal.currency === 'AED') {
           totalSum += payinTotal.amount / 100; // Convert cents to AED
-          transactionsWithPrice++;
         }
         // For inquiry process (assignment-flow-v3), price is in protectedData.offer.price
         else if (protectedData.offer && protectedData.offer.price && protectedData.offer.currency === 'AED') {
           totalSum += protectedData.offer.price; // Already in AED
-          transactionsWithPrice++;
         }
       });
 
       const totalSumAED = totalSum;
       
-      console.log('📊 [Platform Stats] Completed:', totalCount, 'tasks, Total:', totalSumAED.toFixed(2), 'AED');
+      console.log('📊 [Platform Stats] Active:', totalCount, 'tasks, Total:', totalSumAED.toFixed(2), 'AED');
 
       res.status(200).send({
         data: {
@@ -100,7 +89,7 @@ module.exports = (req, res) => {
           totalSumAED: totalSumAED,
           _debug: {
             totalTransactionsFetched: allTransactions.length,
-            completedCount: totalCount,
+            activeCount: totalCount,
           }
         },
       });
