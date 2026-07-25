@@ -29,10 +29,21 @@ const LandingPage = () => {
     }
   };
 
+  // OG images for social sharing
+  const ogImages = [
+    {
+      url: 'https://youdu.ae/og-banner.png',
+      width: 1200,
+      height: 630,
+    }
+  ];
+
   return (
     <Page
       title={siteTitle}
       description={schemaDescription}
+      facebookImages={ogImages}
+      twitterImages={ogImages}
       schema={{
         '@context': 'http://schema.org',
         '@type': 'WebSite',
