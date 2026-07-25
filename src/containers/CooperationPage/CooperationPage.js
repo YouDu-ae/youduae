@@ -6,9 +6,49 @@ import { getPlatformStats } from '../../util/api';
 
 import css from './CooperationPage.module.css';
 
+// Animated counter hook
+const useAnimatedCounter = (targetValue, duration = 2000, enabled = true) => {
+  const [count, setCount] = useState(0);
+  
+  useEffect(() => {
+    if (!enabled || targetValue === 0) {
+      setCount(targetValue);
+      return;
+    }
+    
+    const startTime = Date.now();
+    const startValue = 0;
+    
+    const animate = () => {
+      const elapsed = Date.now() - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      
+      // Ease-out function for smoother animation
+      const easeOut = 1 - Math.pow(1 - progress, 3);
+      const currentValue = Math.floor(startValue + (targetValue - startValue) * easeOut);
+      
+      setCount(currentValue);
+      
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      } else {
+        setCount(targetValue);
+      }
+    };
+    
+    requestAnimationFrame(animate);
+  }, [targetValue, duration, enabled]);
+  
+  return count;
+};
+
 const CooperationPage = () => {
   const [stats, setStats] = useState({ totalCompletedTasks: 0, totalSumAED: 0 });
   const [statsLoading, setStatsLoading] = useState(true);
+  
+  // Animated counters
+  const animatedTasks = useAnimatedCounter(stats.totalCompletedTasks, 1500, !statsLoading);
+  const animatedSum = useAnimatedCounter(stats.totalSumAED, 2000, !statsLoading);
 
   useEffect(() => {
     getPlatformStats()
@@ -268,14 +308,14 @@ const toggle = i => {
                     <div className={css.statsBlock}>
                       <div className={css.statItem}>
                         <div className={css.statValue}>
-                          {stats.totalCompletedTasks.toLocaleString('ru-RU')}
+                          {animatedTasks.toLocaleString('ru-RU')}
                         </div>
                         <div className={css.statLabel}>выполненных заданий</div>
                       </div>
                       <div className={css.statDivider} />
                       <div className={css.statItem}>
                         <div className={css.statValue}>
-                          {stats.totalSumAED.toLocaleString('ru-RU', { 
+                          {animatedSum.toLocaleString('ru-RU', { 
                             minimumFractionDigits: 0, 
                             maximumFractionDigits: 0 
                           })} AED
