@@ -1138,9 +1138,76 @@ background: none;
  
 
   
+  
 
 
+/* ========================= */
+/*        PRESENTATION       */
+/* ========================= */
 
+.presentationSection {
+  margin-top: 120px;
+  padding: 0 20px;
+  text-align: center;
+}
+
+.presentationTitle {
+  font-size: 45px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: #1a1a1a;
+  margin-bottom: 10px;
+}
+
+.presentationSubtitle {
+  font-size: 18px;
+  color: #666;
+  margin-bottom: 40px;
+}
+
+.presentationContent {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.pdfViewer {
+  width: 100%;
+  background: #f5f5f5;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  margin-bottom: 24px;
+}
+
+.pdfFrame {
+  width: 100%;
+  height: 600px;
+  border: none;
+}
+
+.downloadBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 32px;
+  background: #1a1a1a;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 600;
+  border-radius: 12px;
+  text-decoration: none;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.downloadBtn:hover {
+  background: #333;
+  transform: translateY(-2px);
+}
+
+.downloadIcon {
+  width: 20px;
+  height: 20px;
+}
 
 
 /* ========================= */
@@ -1202,6 +1269,9 @@ background: none;
 .reviewRightAlt { order: 2; }
 .faqSection { margin-top: 80px; margin-bottom: 70px; }
 .faqHeading { text-align: center; }
+.presentationSection { margin-top: 80px; }
+.presentationTitle { font-size: 35px; }
+.pdfFrame { height: 500px; }
 }
 
 
@@ -1239,6 +1309,11 @@ background: none;
 .reviewsSection { margin-top: 85px; }
 .reviewSectionAlt { margin-top: 80px; }
 .reviewsSection3 { margin-top: 80px; }
+.presentationSection { margin-top: 60px; }
+.presentationTitle { font-size: 25px; }
+.presentationSubtitle { font-size: 14px; margin-bottom: 25px; }
+.pdfFrame { height: 400px; }
+.downloadBtn { width: 100%; justify-content: center; font-size: 14px; padding: 14px 24px; }
 
 }
 
