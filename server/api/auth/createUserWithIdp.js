@@ -11,7 +11,7 @@ const BASE_URL = process.env.REACT_APP_SHARETRIBE_SDK_BASE_URL;
 
 const FACBOOK_APP_ID = process.env.REACT_APP_FACEBOOK_APP_ID;
 const GOOGLE_CLIENT_ID = process.env.REACT_APP_GOOGLE_CLIENT_ID;
-const APPLE_CLIENT_ID = process.env.APPLE_CLIENT_ID || 'com.youdu.mobile';
+const APPLE_CLIENT_ID = process.env.REACT_APP_APPLE_CLIENT_ID;
 
 const FACEBOOK_IDP_ID = 'facebook';
 const GOOGLE_IDP_ID = 'google';

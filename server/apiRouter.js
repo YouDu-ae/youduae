@@ -47,6 +47,7 @@ const { sendEmailOtp, verifyEmailOtp, assertEmailVerified } = require('./api/ema
 
 const { authenticateFacebook, authenticateFacebookCallback } = require('./api/auth/facebook');
 const { authenticateGoogle, authenticateGoogleCallback } = require('./api/auth/google');
+const { authenticateApple, authenticateAppleCallback } = require('./api/auth/apple');
 
 const router = express.Router();
 
@@ -160,5 +161,14 @@ router.get('/auth/google', authenticateGoogle);
 // with Google. In this route a Passport.js custom callback is used for calling
 // loginWithIdp endpoint in Sharetribe Auth API to authenticate user to the marketplace
 router.get('/auth/google/callback', authenticateGoogleCallback);
+
+// Apple authentication endpoints
+
+// This endpoint is called when user wants to initiate authentication with Apple
+router.get('/auth/apple', authenticateApple);
+
+// This is the route for callback URL the user is redirected after authenticating
+// with Apple. Note: Apple sends a POST request to the callback URL.
+router.post('/auth/apple/callback', authenticateAppleCallback);
 
 module.exports = router;
