@@ -103,20 +103,15 @@ const ConfirmSignupFormComponent = props => {
 
       return (
         <Form className={classes} onSubmit={handleSubmit}>
-          {/* Скрываем выбор типа пользователя для Google OAuth (автоматически Provider) */}
+          {/* Информационное сообщение для пользователей, которые пришли с /login */}
           {!preselectedUserType && (
-          <FieldSelectUserType
-            name="userType"
-            userTypes={userTypes}
-              hasExistingUserType={false}
-            intl={intl}
-          />
+            <div className={css.infoMessage}>
+              <FormattedMessage id="ConfirmSignupForm.accountNotCreated" />
+            </div>
           )}
           
-          {/* Скрытое поле для автоматического выбора Provider при Google OAuth */}
-          {preselectedUserType && (
-            <input type="hidden" name="userType" value={autoSelectedUserType} />
-          )}
+          {/* Скрытое поле - всегда Provider для IdP регистрации */}
+          <input type="hidden" name="userType" value={autoSelectedUserType} />
 
           {showDefaultUserFields ? (
             <div className={css.defaultUserFields}>

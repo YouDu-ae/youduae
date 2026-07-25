@@ -120,6 +120,7 @@
   "ConfirmSignupForm.lastNamePlaceholder": "Иванов",
   "ConfirmSignupForm.lastNameRequired": "Необходимо добавить фамилию.",
   "ConfirmSignupForm.loadingAuthInfo": "Загрузка данных для регистрации...",
+  "ConfirmSignupForm.accountNotCreated": "Аккаунт не создан — завершите регистрацию",
   "ConfirmSignupForm.phoneNumberLabel": "Номер телефона",
   "ConfirmSignupForm.phoneNumberPlaceholder": "Введите ваш номер телефона.",
   "ConfirmSignupForm.phoneNumberRequired": "Необходимо добавить номер телефона.",
