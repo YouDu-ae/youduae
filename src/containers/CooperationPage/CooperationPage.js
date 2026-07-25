@@ -1,10 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { NamedLink } from '../../components';
+import { Helmet } from 'react-helmet-async';
+import { NamedLink, Page } from '../../components';
 import TopbarContainer from '../../containers/TopbarContainer/TopbarContainer';
 import FooterCustom from '../FooterCustom/FooterCustom';
 import { getPlatformStats } from '../../util/api';
 
 import css from './CooperationPage.module.css';
+
+// SEO content
+const SEO_TITLE = 'Стать специалистом YouDu | Работа в ОАЭ без комиссии';
+const SEO_DESCRIPTION = 'Зарабатывайте на своих навыках с YouDu в Дубае и ОАЭ. Находите заказы рядом, предлагайте свою цену, работайте по гибкому графику. Без комиссии и скрытых платежей. Регистрация бесплатна.';
+const SEO_KEYWORDS = 'работа в ОАЭ, подработка Дубай, фриланс ОАЭ, найти работу Дубай, специалист YouDu, заработок в Эмиратах, услуги Дубай, мастер на час, ремонт Дубай, клининг ОАЭ';
+const CANONICAL_URL = 'https://youdu.ae/cooperation';
 
 // Animated counter hook
 const useAnimatedCounter = (targetValue, duration = 2000, enabled = true) => {
@@ -107,19 +114,108 @@ const toggle = i => {
   setOpenIndex(prev => (prev === i ? null : i));
 };
 
+  // JSON-LD structured data for search engines and AI
+  const schemaData = {
+    '@context': 'https://schema.org',
+    '@type': 'WebPage',
+    name: SEO_TITLE,
+    description: SEO_DESCRIPTION,
+    url: CANONICAL_URL,
+    mainEntity: {
+      '@type': 'Organization',
+      name: 'YouDu',
+      url: 'https://youdu.ae',
+      logo: 'https://youdu.ae/static/icons/youdu-logo.png',
+      description: 'Платформа для поиска специалистов и заказов в ОАЭ',
+      areaServed: {
+        '@type': 'Country',
+        name: 'United Arab Emirates'
+      },
+      serviceType: ['Ремонт', 'Клининг', 'Репетиторы', 'Красота', 'Доставка', 'IT услуги']
+    },
+    breadcrumb: {
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        {
+          '@type': 'ListItem',
+          position: 1,
+          name: 'Главная',
+          item: 'https://youdu.ae'
+        },
+        {
+          '@type': 'ListItem',
+          position: 2,
+          name: 'Для специалистов',
+          item: CANONICAL_URL
+        }
+      ]
+    }
+  };
+
+  // FAQ Schema for rich snippets
+  const faqSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: faqData.map(item => ({
+      '@type': 'Question',
+      name: item.question,
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: item.answer
+      }
+    }))
+  };
+
   return (
-    <div className={css.shell}>
-      <TopbarContainer />
+    <Page
+      title={SEO_TITLE}
+      description={SEO_DESCRIPTION}
+      schema={schemaData}
+    >
+      <Helmet>
+        <link rel="canonical" href={CANONICAL_URL} />
+        <meta name="keywords" content={SEO_KEYWORDS} />
+        <meta name="robots" content="index, follow" />
+        
+        {/* Open Graph */}
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content={CANONICAL_URL} />
+        <meta property="og:title" content={SEO_TITLE} />
+        <meta property="og:description" content={SEO_DESCRIPTION} />
+        <meta property="og:image" content="https://youdu.ae/static/icons/youdu-og-cooperation.png" />
+        <meta property="og:locale" content="ru_RU" />
+        <meta property="og:site_name" content="YouDu" />
+        
+        {/* Twitter Card */}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={SEO_TITLE} />
+        <meta name="twitter:description" content={SEO_DESCRIPTION} />
+        <meta name="twitter:image" content="https://youdu.ae/static/icons/youdu-og-cooperation.png" />
+        
+        {/* Additional SEO for AI assistants */}
+        <meta name="subject" content="Работа для специалистов в ОАЭ" />
+        <meta name="topic" content="Фриланс и подработка в Дубае" />
+        <meta name="coverage" content="UAE, Dubai, Abu Dhabi, Sharjah" />
+        <meta name="distribution" content="global" />
+        
+        {/* FAQ Schema */}
+        <script type="application/ld+json">
+          {JSON.stringify(faqSchema)}
+        </script>
+      </Helmet>
+      
+      <div className={css.shell}>
+        <TopbarContainer />
 
-      <main className={css.page}>
-        <div className={css.coverBg} aria-hidden="true" />
+        <main className={css.page}>
+          <div className={css.coverBg} aria-hidden="true" />
 
-        <div className={css.container}>
+          <div className={css.container}>
 
-          {/* ===== HERO ===== */}
-          <section className={css.hero}>
-            <h1 className={css.heroTitle}>
-              Зарабатывайте на своих навыках с YouDu
+            {/* ===== HERO ===== */}
+            <section className={css.hero}>
+              <h1 className={css.heroTitle}>
+                Зарабатывайте на своих навыках с YouDu
             </h1>
 
             <p className={css.heroSubtitle}>
@@ -513,11 +609,12 @@ const toggle = i => {
   </div>
 </section>
 
-        </div>
-      </main>
+          </div>
+        </main>
 
-      <FooterCustom />
-    </div>
+        <FooterCustom />
+      </div>
+    </Page>
   );
 };
 
