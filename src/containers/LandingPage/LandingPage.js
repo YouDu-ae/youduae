@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useHistory } from 'react-router-dom';
 import { FormattedMessage, useIntl } from '../../util/reactIntl';
-import { NamedLink } from '../../components';
+import { NamedLink, Page } from '../../components';
 import css from './LandingPage.module.css';
 import TopbarContainer from '../../containers/TopbarContainer/TopbarContainer';
 import FooterCustom from '../FooterCustom/FooterCustom';
@@ -10,6 +10,9 @@ const LandingPage = () => {
   const history = useHistory();
   const intl = useIntl();
   const [taskTitle, setTaskTitle] = useState('');
+
+  const siteTitle = intl.formatMessage({ id: 'LandingPage.schemaTitle' });
+  const schemaDescription = intl.formatMessage({ id: 'LandingPage.schemaDescription' });
 
   const handleSearchClick = (e) => {
     e.preventDefault();
@@ -27,8 +30,19 @@ const LandingPage = () => {
   };
 
   return (
-    <div className={css.shell}>
-      <TopbarContainer />
+    <Page
+      title={siteTitle}
+      description={schemaDescription}
+      schema={{
+        '@context': 'http://schema.org',
+        '@type': 'WebSite',
+        name: siteTitle,
+        description: schemaDescription,
+        url: 'https://youdu.ae',
+      }}
+    >
+      <div className={css.shell}>
+        <TopbarContainer />
 
       <main className={css.page}>
         {/* фоны */}
@@ -447,7 +461,8 @@ const LandingPage = () => {
       </main>
 
       <FooterCustom />
-    </div>
+      </div>
+    </Page>
   );
 };
 
