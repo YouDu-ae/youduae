@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { compose } from 'redux';
 import { connect } from 'react-redux';
 import { useHistory } from 'react-router-dom';
@@ -20,6 +20,13 @@ export const WelcomePageComponent = props => {
   const config = useConfiguration();
   const intl = useIntl();
   const history = useHistory();
+  
+  // Mark that user has seen welcome page (for redirect logic)
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('hasSeenWelcome', 'true');
+    }
+  }, []);
 
   const user = ensureCurrentUser(currentUser);
   const userRoles = getCurrentUserTypeRoles(config, user);
@@ -73,19 +80,25 @@ export const WelcomePageComponent = props => {
 
             {/* Telegram Section - First thing user sees */}
             <div className={css.telegramSection}>
-              <div className={css.telegramIcon}>📱</div>
+              <div className={css.telegramIcon}>
+                <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" className={css.telegramSvg}>
+                  <path d="M24 4C12.954 4 4 12.954 4 24s8.954 20 20 20 20-8.954 20-20S35.046 4 24 4z" fill="#fff"/>
+                  <path d="M34.143 15.176L30.1 33.667c-.305 1.342-1.1 1.675-2.231 1.043l-6.16-4.54-2.97 2.86c-.329.33-.604.604-1.237.604l.441-6.274 11.402-10.305c.496-.44-.108-.686-.77-.247L14.42 25.714l-6.08-1.9c-1.321-.414-1.346-1.321.275-1.956l23.768-9.16c1.1-.414 2.063.247 1.76 2.478z" fill="#0088cc"/>
+                </svg>
+              </div>
               <div className={css.telegramContent}>
                 <h3 className={css.telegramTitle}>
-                  {isProvider ? 'Не пропустите отклики!' : 'Не пропустите новые задания!'}
+                  <FormattedMessage 
+                    id={isProvider ? 'WelcomePage.telegramTitleProvider' : 'WelcomePage.telegramTitleCustomer'} 
+                  />
                 </h3>
                 <p className={css.telegramDescription}>
-                  {isProvider 
-                    ? 'Подключите Telegram-бот и получайте мгновенные уведомления о новых откликах на ваши задания.'
-                    : 'Подключите Telegram-бот и получайте мгновенные уведомления о новых заданиях в ваших категориях.'
-                  }
+                  <FormattedMessage 
+                    id={isProvider ? 'WelcomePage.telegramDescriptionProvider' : 'WelcomePage.telegramDescriptionCustomer'} 
+                  />
                 </p>
                 <ExternalLink href={TELEGRAM_BOT_URL} className={css.telegramButton}>
-                  Подключить Telegram
+                  <FormattedMessage id="WelcomePage.telegramConnect" />
                 </ExternalLink>
               </div>
             </div>

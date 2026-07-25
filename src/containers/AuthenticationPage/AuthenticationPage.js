@@ -746,9 +746,17 @@ export const AuthenticationPageComponent = props => {
   const shouldRedirectToFrom = isAuthenticated && from;
   // PRIORITY: Guest listing creation has priority over email verification
   const shouldRedirectToCreateListing = isAuthenticated && currentUserLoaded && hasCreateListingIntent;
-  // Redirect to welcome page after successful signup (when email is not yet verified by Sharetribe)
+  
+  // Check if user just signed up (hasn't seen welcome page yet)
+  const hasSeenWelcome = typeof window !== 'undefined' && localStorage.getItem('hasSeenWelcome');
+  const isNewUser = currentUserLoaded && !hasSeenWelcome;
+  
+  // Redirect to welcome page after successful signup
+  // - For regular signup: email not verified yet
+  // - For IdP signup (Apple/Google): email verified but user is new
   const shouldRedirectToWelcome =
-    isAuthenticated && currentUserLoaded && !user.attributes.emailVerified && !hasCreateListingIntent && !from;
+    isAuthenticated && currentUserLoaded && !hasCreateListingIntent && !from && 
+    (!user.attributes.emailVerified || isNewUser);
   const shouldRedirectToLandingPage =
     isAuthenticated && currentUserLoaded && !showEmailVerification && !hasCreateListingIntent && !shouldRedirectToWelcome;
   

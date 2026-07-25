@@ -154,8 +154,14 @@
 }
 
 .telegramIcon {
-  font-size: 48px;
   flex-shrink: 0;
+  width: 56px;
+  height: 56px;
+}
+
+.telegramSvg {
+  width: 100%;
+  height: 100%;
 }
 
 .telegramContent {
