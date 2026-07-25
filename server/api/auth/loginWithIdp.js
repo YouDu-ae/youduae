@@ -64,7 +64,9 @@ module.exports = (err, user, req, res, idpClientId, idpId) => {
       .redirect(`${rootUrl}/login#`);
   }
 
-  const { from, defaultReturn, defaultConfirm, userType } = user;
+  const { from, userType } = user;
+  const defaultReturn = user.defaultReturn || '/';
+  const defaultConfirm = user.defaultConfirm || '/signup/confirm';
 
   const tokenStore = sharetribeSdk.tokenStore.expressCookieStore({
     clientId: CLIENT_ID,

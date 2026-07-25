@@ -60,6 +60,7 @@ const verifyCallback = (req, accessToken, refreshToken, idToken, profile, done) 
   const lastName = appleUser?.name?.lastName || profile?.name?.lastName || '';
 
   // Get state from cookie (stored before redirect to Apple)
+  // Note: Apple sends POST callback, cookies with sameSite:lax may not be sent
   let state = {};
   try {
     const stateCookie = req.cookies?.['st-apple-state'];
@@ -70,7 +71,11 @@ const verifyCallback = (req, accessToken, refreshToken, idToken, profile, done) 
     console.warn('Failed to parse apple state cookie:', e.message);
   }
 
-  const { from, defaultReturn, defaultConfirm, userType } = state;
+  // Use defaults if state wasn't retrieved (cross-origin POST issue)
+  const from = state.from || null;
+  const defaultReturn = state.defaultReturn || '/';
+  const defaultConfirm = state.defaultConfirm || '/signup/confirm';
+  const userType = state.userType || null;
 
   // The idToken is what we pass to Sharetribe
   // It's a JWT that Sharetribe will verify against Apple's public keys
@@ -112,8 +117,8 @@ exports.authenticateApple = (req, res, next) => {
   res.cookie('st-apple-state', state, {
     maxAge: 15 * 60 * 1000, // 15 minutes
     httpOnly: true,
-    secure: USING_SSL,
-    sameSite: 'lax',
+    secure: true, // Required for sameSite: 'none'
+    sameSite: 'none', // Allow cross-origin POST from Apple
   });
 
   passport.authenticate('apple')(req, res, next);
