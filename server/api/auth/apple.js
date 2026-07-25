@@ -50,14 +50,38 @@ const strategyOptions = {
  */
 const verifyCallback = (req, accessToken, refreshToken, idToken, profile, done) => {
   // Apple sends user info in req.body on first sign-in only
-  const appleUser = req.body?.user ? JSON.parse(req.body.user) : null;
+  let appleUser = null;
+  try {
+    if (req.body?.user) {
+      appleUser = typeof req.body.user === 'string' ? JSON.parse(req.body.user) : req.body.user;
+    }
+  } catch (e) {
+    console.warn('Failed to parse Apple user data:', e.message);
+  }
 
-  // Get email from id_token claims or profile
-  const email = profile?.email || idToken?.email;
+  // Decode email from id_token JWT (it's a JWT string)
+  let emailFromToken = null;
+  try {
+    if (typeof idToken === 'string') {
+      const parts = idToken.split('.');
+      if (parts.length === 3) {
+        const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString('utf8'));
+        emailFromToken = payload.email;
+        console.log('📱 Apple id_token payload:', { email: payload.email, sub: payload.sub });
+      }
+    }
+  } catch (e) {
+    console.warn('Failed to decode Apple id_token:', e.message);
+  }
 
-  // Get name from first sign-in data or profile
+  // Get email from decoded token, profile, or idToken object
+  const email = emailFromToken || profile?.email || (typeof idToken === 'object' ? idToken?.email : null);
+
+  // Get name from first sign-in data or profile (Apple only sends name on FIRST auth)
   const firstName = appleUser?.name?.firstName || profile?.name?.firstName || '';
   const lastName = appleUser?.name?.lastName || profile?.name?.lastName || '';
+
+  console.log('📱 Apple auth data:', { email, firstName, lastName, hasAppleUser: !!appleUser });
 
   // Get state from cookie (stored before redirect to Apple)
   // Note: Apple sends POST callback, cookies with sameSite:lax may not be sent
@@ -78,8 +102,9 @@ const verifyCallback = (req, accessToken, refreshToken, idToken, profile, done) 
   const userType = state.userType || null;
 
   // The idToken is what we pass to Sharetribe
-  // It's a JWT that Sharetribe will verify against Apple's public keys
-  const idpToken = idToken;
+  // It's a JWT string that Sharetribe will verify against Apple's public keys
+  // passport-apple may return it as string or object depending on version
+  const idpToken = typeof idToken === 'string' ? idToken : idToken?.id_token || idToken;
 
   const userData = {
     email,
