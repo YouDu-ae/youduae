@@ -35,14 +35,24 @@
 .avatar {
   margin: 30px 26px 29px 0;
   flex-shrink: 0;
+  
+  /* Larger avatar for profile page */
+  width: 120px;
+  height: 120px;
+
+  @media (--viewportMedium) {
+    width: 150px;
+    height: 150px;
+  }
 
   @media (--viewportLarge) {
     margin: 0 96px 48px 0;
+    width: 180px;
+    height: 180px;
   }
 }
 .avatarPlaceholder {
   composes: avatar;
-  width: 96px;
 }
 
 .mobileHeading {
