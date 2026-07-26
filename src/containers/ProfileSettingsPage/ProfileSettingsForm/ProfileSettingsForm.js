@@ -166,6 +166,7 @@ class ProfileSettingsFormComponent extends Component {
             values,
             userFields,
             userTypeConfig,
+            showSuccess,
           } = fieldRenderProps;
 
           const user = ensureCurrentUser(currentUser);
@@ -462,12 +463,17 @@ class ProfileSettingsFormComponent extends Component {
                 })}
               </div>
               {submitError}
+              {showSuccess && (
+                <div className={css.successMessage}>
+                  <FormattedMessage id="ProfileSettingsForm.saveSuccess" />
+                </div>
+              )}
               <Button
                 className={css.submitButton}
                 type="submit"
                 inProgress={submitInProgress}
                 disabled={submitDisabled}
-                ready={pristineSinceLastSubmit}
+                ready={pristineSinceLastSubmit || showSuccess}
               >
                 <FormattedMessage id="ProfileSettingsForm.saveChanges" />
               </Button>

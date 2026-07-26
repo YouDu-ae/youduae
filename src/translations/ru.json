@@ -866,6 +866,7 @@
 "ProfileSettingsForm.lastNamePlaceholder": "Иванов",
   "ProfileSettingsForm.lastNameRequired": "This field is required.",
 "ProfileSettingsForm.saveChanges": "Сохранить изменения",
+"ProfileSettingsForm.saveSuccess": "Изменения успешно сохранены!",
 "ProfileSettingsForm.tip": "Совет: используйте фотографию, на которой ваше лицо узнаваемо.",
   "ProfileSettingsForm.updateProfileFailed": "Oops, something went wrong. Please try again.",
 "ProfileSettingsForm.yourName": "Данные профиля",

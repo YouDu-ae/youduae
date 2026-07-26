@@ -73,6 +73,8 @@ export const ProfileSettingsPageComponent = props => {
   const config = useConfiguration();
   const intl = useIntl();
   const [removedPortfolioIds, setRemovedPortfolioIds] = React.useState([]);
+  const [showSuccess, setShowSuccess] = React.useState(false);
+  const prevUpdateInProgress = React.useRef(false);
 
   const {
     currentUser,
@@ -92,6 +94,16 @@ export const ProfileSettingsPageComponent = props => {
   } = props;
 
   const { userFields, userTypes = [] } = config.user;
+
+  // Track successful save
+  React.useEffect(() => {
+    if (prevUpdateInProgress.current && !updateInProgress && !updateProfileError) {
+      setShowSuccess(true);
+      const timer = setTimeout(() => setShowSuccess(false), 3000);
+      return () => clearTimeout(timer);
+    }
+    prevUpdateInProgress.current = updateInProgress;
+  }, [updateInProgress, updateProfileError]);
 
   const handlePortfolioRemoveExisting = imageId => {
     setRemovedPortfolioIds(prev => [...prev, imageId]);
@@ -246,6 +258,7 @@ export const ProfileSettingsPageComponent = props => {
       onPortfolioRemoveExisting={handlePortfolioRemoveExisting}
       portfolioUploadInProgress={portfolioUploadInProgress}
       portfolioUploadError={portfolioUploadError}
+      showSuccess={showSuccess}
     />
   ) : null;
 

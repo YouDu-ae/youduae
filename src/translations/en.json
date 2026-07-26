@@ -872,6 +872,7 @@
   "ProfileSettingsForm.lastNamePlaceholder": "Doe",
   "ProfileSettingsForm.lastNameRequired": "This field is required.",
   "ProfileSettingsForm.saveChanges": "Save changes",
+  "ProfileSettingsForm.saveSuccess": "Changes saved successfully!",
   "ProfileSettingsForm.tip": "Tip: Use a photo where your face is recognizable.",
   "ProfileSettingsForm.updateProfileFailed": "Oops, something went wrong. Please try again.",
   "ProfileSettingsForm.yourName": "Profile Data",
