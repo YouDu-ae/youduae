@@ -836,6 +836,8 @@
   "ProfilePage.loadingReviewsFailed": "Loading reviews failed.",
   "ProfilePage.memberSince": "Member since",
   "ProfilePage.mobileHeading": "{name}",
+  "ProfilePage.verified": "Verified",
+  "ProfilePage.notVerified": "Not verified",
   "ProfilePage.reviewsAsACustomerTitle": "Reviews as a customer ({count})",
   "ProfilePage.reviewsFromMyCustomersTitle": "Reviews from customers ({count})",
   "ProfilePage.serviceCategoriesTitle": "Service Categories",
