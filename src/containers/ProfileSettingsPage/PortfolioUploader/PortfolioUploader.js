@@ -1,6 +1,6 @@
 import React, { useRef } from 'react';
 import { FormattedMessage } from '../../../util/reactIntl';
-import { IconSpinner, ResponsiveImage } from '../../../components';
+import { IconSpinner, Button } from '../../../components';
 
 import css from './PortfolioUploader.module.css';
 
@@ -16,6 +16,9 @@ const PortfolioUploader = props => {
     onRemoveExisting,
     uploadInProgress,
     uploadError,
+    onSave,
+    saveInProgress,
+    saveDisabled,
   } = props;
 
   const fileInputRef = useRef(null);
@@ -130,9 +133,23 @@ const PortfolioUploader = props => {
         </p>
       )}
       
-      <p className={css.counter}>
-        {allImages.length} / {MAX_PORTFOLIO_IMAGES}
-      </p>
+      <div className={css.footer}>
+        <p className={css.counter}>
+          {allImages.length} / {MAX_PORTFOLIO_IMAGES}
+        </p>
+        
+        {/* Show save button when there are new portfolio images */}
+        {portfolioImages.length > 0 && (
+          <Button
+            className={css.saveButton}
+            type="submit"
+            inProgress={saveInProgress}
+            disabled={saveDisabled || uploadInProgress}
+          >
+            <FormattedMessage id="ProfileSettingsForm.savePortfolio" />
+          </Button>
+        )}
+      </div>
     </div>
   );
 };

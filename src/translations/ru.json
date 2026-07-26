@@ -849,6 +849,7 @@
 "ProfileSettingsForm.portfolioAddPhoto": "Добавить фото",
 "ProfileSettingsForm.portfolioPending": "На проверке",
 "ProfileSettingsForm.portfolioUploadError": "Не удалось загрузить изображение. Попробуйте еще раз.",
+"ProfileSettingsForm.savePortfolio": "Сохранить портфолио",
   "ProfileSettingsForm.changeAvatar": "Change",
 "ProfileSettingsForm.displayNameHeading": "Организация или никнейм",
 "ProfileSettingsForm.displayNameInfo": "Отображаемое имя по умолчанию равно имени плюс инициалу фамилии.",

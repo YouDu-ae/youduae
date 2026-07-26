@@ -287,8 +287,10 @@ class ProfileSettingsFormComponent extends Component {
           const pristineSinceLastSubmit = submittedOnce && isEqual(values, this.submittedValues);
           // Allow submit if image was uploaded (profileImage prop has uploadedImage or new imageId)
           const hasNewImage = profileImage?.uploadedImage || (profileImage?.imageId && profileImage?.file);
+          // Allow submit if portfolio images were added
+          const hasNewPortfolioImages = portfolioImages && portfolioImages.length > 0;
           const submitDisabled =
-            invalid || (pristine && !hasNewImage) || pristineSinceLastSubmit || uploadInProgress || submitInProgress;
+            invalid || (pristine && !hasNewImage && !hasNewPortfolioImages) || pristineSinceLastSubmit || uploadInProgress || submitInProgress || portfolioUploadInProgress;
 
           const userFieldProps = getPropsForCustomUserFieldInputs(
             userFields,
@@ -431,6 +433,8 @@ class ProfileSettingsFormComponent extends Component {
                     onRemoveExisting={fieldRenderProps.onPortfolioRemoveExisting}
                     uploadInProgress={portfolioUploadInProgress}
                     uploadError={portfolioUploadError}
+                    saveInProgress={submitInProgress}
+                    saveDisabled={invalid || portfolioUploadInProgress}
                   />
                 </div>
               )}

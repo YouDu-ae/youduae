@@ -855,6 +855,7 @@
   "ProfileSettingsForm.portfolioAddPhoto": "Add photo",
   "ProfileSettingsForm.portfolioPending": "Pending",
   "ProfileSettingsForm.portfolioUploadError": "Failed to upload image. Please try again.",
+  "ProfileSettingsForm.savePortfolio": "Save portfolio",
   "ProfileSettingsForm.changeAvatar": "Change",
   "ProfileSettingsForm.displayNameHeading": "Your display name",
   "ProfileSettingsForm.displayNameInfo": "The display name defaults to first name plus initial of last name.",
