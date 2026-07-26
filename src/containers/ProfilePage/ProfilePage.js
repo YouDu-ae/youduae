@@ -470,6 +470,10 @@ export const CustomUserFields = props => {
         if (key === 'serviceCategories') {
           return null;
         }
+        // Пропускаем instagram - показываем в AsideContent под аватаром
+        if (key === 'instagram') {
+          return null;
+        }
         return schemaType === SCHEMA_TYPE_MULTI_ENUM ? (
           <SectionMultiEnumMaybe key={key} {...fieldProps} />
         ) : schemaType === SCHEMA_TYPE_TEXT ? (
