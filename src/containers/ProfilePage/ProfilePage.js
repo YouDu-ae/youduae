@@ -530,6 +530,21 @@ export const MainContent = props => {
       </H2>
       {hasBio ? <p className={css.bio}>{bioWithLinks}</p> : null}
 
+      {/* Отзывы - сразу после Bio */}
+      {hideReviews ? null : isMobileLayout ? (
+        <MobileReviews
+          reviews={reviews}
+          queryReviewsError={queryReviewsError}
+          userTypeRoles={userTypeRoles}
+        />
+      ) : (
+        <DesktopReviews
+          reviews={reviews}
+          queryReviewsError={queryReviewsError}
+          userTypeRoles={userTypeRoles}
+        />
+      )}
+
       {/* Статистика владельца заданий */}
       <ListingOwnerStats
         reviews={reviews}
@@ -633,19 +648,6 @@ export const MainContent = props => {
           </p>
         </div>
       ) : null}
-      {hideReviews ? null : isMobileLayout ? (
-        <MobileReviews
-          reviews={reviews}
-          queryReviewsError={queryReviewsError}
-          userTypeRoles={userTypeRoles}
-        />
-      ) : (
-        <DesktopReviews
-          reviews={reviews}
-          queryReviewsError={queryReviewsError}
-          userTypeRoles={userTypeRoles}
-        />
-      )}
     </div>
   );
 };
