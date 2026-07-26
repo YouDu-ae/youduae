@@ -47,6 +47,7 @@ import {
   TimeRange,
   UserDisplayName,
   VerificationBadge,
+  TelegramBanner,
 } from '../../components';
 
 import TopbarContainer from '../../containers/TopbarContainer/TopbarContainer';
@@ -402,6 +403,9 @@ export const InboxPageComponent = props => {
             />
           </div>
         </div>
+
+        {/* Telegram Banner */}
+        <TelegramBanner userType={currentUser?.attributes?.profile?.publicData?.userType} />
 
         {/* Основной контент */}
         <div className={css.content}>

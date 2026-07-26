@@ -1,0 +1,160 @@
+.banner {
+  background: linear-gradient(135deg, #e8f4fd 0%, #d4ecfb 100%);
+  border: 1px solid #b8dff5;
+  border-radius: 12px;
+  margin-bottom: 24px;
+  overflow: hidden;
+}
+
+.content {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 20px;
+  position: relative;
+}
+
+.iconWrapper {
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  background: #0088cc;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.telegramIcon {
+  width: 32px;
+  height: 32px;
+}
+
+.textContent {
+  flex: 1;
+  min-width: 0;
+}
+
+.title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin: 0 0 6px 0;
+  padding-right: 30px;
+}
+
+.description {
+  font-size: 14px;
+  color: #4a5568;
+  margin: 0 0 12px 0;
+  line-height: 1.4;
+}
+
+.links {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.primaryLink {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 16px;
+  background: #0088cc;
+  color: #fff !important;
+  font-size: 14px;
+  font-weight: 500;
+  border-radius: 8px;
+  text-decoration: none;
+  transition: background 0.2s ease;
+}
+
+.primaryLink:hover {
+  background: #006da3;
+  text-decoration: none;
+}
+
+.secondaryLink {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 16px;
+  background: #fff;
+  color: #0088cc !important;
+  font-size: 14px;
+  font-weight: 500;
+  border-radius: 8px;
+  border: 1px solid #0088cc;
+  text-decoration: none;
+  transition: background 0.2s ease;
+}
+
+.secondaryLink:hover {
+  background: #f0f9ff;
+  text-decoration: none;
+}
+
+.closeButton {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  transition: background 0.2s ease;
+}
+
+.closeButton:hover {
+  background: rgba(0, 0, 0, 0.08);
+}
+
+.closeIcon {
+  width: 18px;
+  height: 18px;
+  color: #718096;
+}
+
+/* Mobile styles */
+@media (max-width: 767px) {
+  .content {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 16px;
+  }
+  
+  .iconWrapper {
+    width: 40px;
+    height: 40px;
+  }
+  
+  .telegramIcon {
+    width: 26px;
+    height: 26px;
+  }
+  
+  .title {
+    font-size: 15px;
+    padding-right: 24px;
+  }
+  
+  .description {
+    font-size: 13px;
+  }
+  
+  .links {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .primaryLink,
+  .secondaryLink {
+    justify-content: center;
+    width: 100%;
+  }
+}
