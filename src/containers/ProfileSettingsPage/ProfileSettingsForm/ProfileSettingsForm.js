@@ -433,8 +433,6 @@ class ProfileSettingsFormComponent extends Component {
                     onRemoveExisting={fieldRenderProps.onPortfolioRemoveExisting}
                     uploadInProgress={portfolioUploadInProgress}
                     uploadError={portfolioUploadError}
-                    saveInProgress={submitInProgress}
-                    saveDisabled={invalid || portfolioUploadInProgress}
                   />
                 </div>
               )}

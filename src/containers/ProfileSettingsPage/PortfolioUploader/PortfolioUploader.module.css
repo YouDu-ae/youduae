@@ -138,23 +138,9 @@
   margin: 8px 0 0 0;
 }
 
-.footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  margin-top: 12px;
-}
-
 .counter {
   font-size: 13px;
   color: var(--colorGrey500);
-  margin: 0;
-}
-
-.saveButton {
-  min-width: 180px;
-  padding: 10px 24px;
-  font-size: 14px;
-  font-weight: 600;
+  margin: 8px 0 0 0;
+  text-align: right;
 }
