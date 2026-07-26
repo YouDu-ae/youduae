@@ -56,6 +56,7 @@ import NotFoundPage from '../../containers/NotFoundPage/NotFoundPage';
 import css from './ProfilePage.module.css';
 import SectionDetailsMaybe from './SectionDetailsMaybe';
 import SectionTextMaybe from './SectionTextMaybe';
+import SectionPortfolio from './SectionPortfolio';
 import SectionMultiEnumMaybe from './SectionMultiEnumMaybe';
 import SectionYoutubeVideoMaybe from './SectionYoutubeVideoMaybe';
 import SectionServiceCategories from './SectionServiceCategories';
@@ -567,6 +568,11 @@ export const MainContent = props => {
         <VerificationBadge isVerified={isVerified} />
       </H2>
       {hasBio ? <p className={css.bio}>{bioWithLinks}</p> : null}
+
+      {/* Портфолио - после Bio, только для специалистов (Customer) */}
+      {userTypeRoles.customer && publicData?.portfolio?.length > 0 && (
+        <SectionPortfolio portfolio={publicData.portfolio} />
+      )}
 
       {/* Отзывы - сразу после Bio */}
       {hideReviews ? null : isMobileLayout ? (

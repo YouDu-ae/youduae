@@ -24,6 +24,8 @@ import {
   ServiceCategorySelector,
 } from '../../../components';
 
+import { PortfolioUploader } from '../PortfolioUploader';
+
 import css from './ProfileSettingsForm.module.css';
 
 const ACCEPT_IMAGES = 'image/*';
@@ -145,8 +147,14 @@ class ProfileSettingsFormComponent extends Component {
             intl,
             invalid,
             onImageUpload,
+            onPortfolioUpload,
+            onPortfolioRemove,
+            onPortfolioRemoveExisting,
             pristine,
             profileImage,
+            portfolioImages,
+            portfolioUploadInProgress,
+            portfolioUploadError,
             rootClassName,
             updateInProgress,
             updateProfileError,
@@ -411,6 +419,22 @@ class ProfileSettingsFormComponent extends Component {
                   <FormattedMessage id="ProfileSettingsForm.bioInfo" values={{ marketplaceName }} />
                 </p>
               </div>
+
+              {/* Portfolio section - only for Customer (specialists) */}
+              {userTypeConfig?.userType === 'customer' && (
+                <div className={css.sectionContainer}>
+                  <PortfolioUploader
+                    portfolioImages={portfolioImages || []}
+                    existingPortfolio={fieldRenderProps.existingPortfolio || []}
+                    onUpload={onPortfolioUpload}
+                    onRemove={onPortfolioRemove}
+                    onRemoveExisting={fieldRenderProps.onPortfolioRemoveExisting}
+                    uploadInProgress={portfolioUploadInProgress}
+                    uploadError={portfolioUploadError}
+                  />
+                </div>
+              )}
+
               <div className={classNames(css.sectionContainer, css.lastSection)}>
                 {/* Кастомный селектор для Customer */}
                 {userTypeConfig?.userType === 'customer' && (

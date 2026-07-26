@@ -10,6 +10,11 @@ export const UPLOAD_IMAGE_REQUEST = 'app/ProfileSettingsPage/UPLOAD_IMAGE_REQUES
 export const UPLOAD_IMAGE_SUCCESS = 'app/ProfileSettingsPage/UPLOAD_IMAGE_SUCCESS';
 export const UPLOAD_IMAGE_ERROR = 'app/ProfileSettingsPage/UPLOAD_IMAGE_ERROR';
 
+export const UPLOAD_PORTFOLIO_IMAGE_REQUEST = 'app/ProfileSettingsPage/UPLOAD_PORTFOLIO_IMAGE_REQUEST';
+export const UPLOAD_PORTFOLIO_IMAGE_SUCCESS = 'app/ProfileSettingsPage/UPLOAD_PORTFOLIO_IMAGE_SUCCESS';
+export const UPLOAD_PORTFOLIO_IMAGE_ERROR = 'app/ProfileSettingsPage/UPLOAD_PORTFOLIO_IMAGE_ERROR';
+export const REMOVE_PORTFOLIO_IMAGE = 'app/ProfileSettingsPage/REMOVE_PORTFOLIO_IMAGE';
+
 export const UPDATE_PROFILE_REQUEST = 'app/ProfileSettingsPage/UPDATE_PROFILE_REQUEST';
 export const UPDATE_PROFILE_SUCCESS = 'app/ProfileSettingsPage/UPDATE_PROFILE_SUCCESS';
 export const UPDATE_PROFILE_ERROR = 'app/ProfileSettingsPage/UPDATE_PROFILE_ERROR';
@@ -22,6 +27,9 @@ const initialState = {
   uploadInProgress: false,
   updateInProgress: false,
   updateProfileError: null,
+  portfolioImages: [],
+  portfolioUploadInProgress: false,
+  portfolioUploadError: null,
 };
 
 export default function reducer(state = initialState, action = {}) {
@@ -68,7 +76,36 @@ export default function reducer(state = initialState, action = {}) {
       };
 
     case CLEAR_UPDATED_FORM:
-      return { ...state, updateProfileError: null, uploadImageError: null };
+      return { ...state, updateProfileError: null, uploadImageError: null, portfolioUploadError: null };
+
+    case UPLOAD_PORTFOLIO_IMAGE_REQUEST:
+      return {
+        ...state,
+        portfolioUploadInProgress: true,
+        portfolioUploadError: null,
+      };
+    case UPLOAD_PORTFOLIO_IMAGE_SUCCESS: {
+      const { tempId, imageId, imageUrl } = payload;
+      const newImage = { tempId, imageId, imageUrl, status: 'pending' };
+      return {
+        ...state,
+        portfolioImages: [...state.portfolioImages, newImage],
+        portfolioUploadInProgress: false,
+      };
+    }
+    case UPLOAD_PORTFOLIO_IMAGE_ERROR:
+      return {
+        ...state,
+        portfolioUploadInProgress: false,
+        portfolioUploadError: payload.error,
+      };
+    case REMOVE_PORTFOLIO_IMAGE: {
+      const { imageId } = payload;
+      return {
+        ...state,
+        portfolioImages: state.portfolioImages.filter(img => img.imageId !== imageId),
+      };
+    }
 
     default:
       return state;
@@ -91,6 +128,16 @@ export const uploadImageError = error => ({
   payload: error,
   error: true,
 });
+
+// Portfolio image actions
+export const uploadPortfolioImageRequest = () => ({ type: UPLOAD_PORTFOLIO_IMAGE_REQUEST });
+export const uploadPortfolioImageSuccess = data => ({ type: UPLOAD_PORTFOLIO_IMAGE_SUCCESS, payload: data });
+export const uploadPortfolioImageError = error => ({
+  type: UPLOAD_PORTFOLIO_IMAGE_ERROR,
+  payload: error,
+  error: true,
+});
+export const removePortfolioImageAction = imageId => ({ type: REMOVE_PORTFOLIO_IMAGE, payload: { imageId } });
 
 // SDK method: sdk.currentUser.updateProfile
 export const updateProfileRequest = params => ({
@@ -130,6 +177,41 @@ export function uploadImage(actionPayload) {
         dispatch(uploadImageSuccess({ data: { id, uploadedImage } }));
       })
       .catch(e => dispatch(uploadImageError({ id, error: storableError(e) })));
+  };
+}
+
+// Upload portfolio image
+export function uploadPortfolioImage(file) {
+  return (dispatch, getState, sdk) => {
+    const tempId = `portfolio_${Date.now()}`;
+    dispatch(uploadPortfolioImageRequest());
+
+    const bodyParams = {
+      image: file,
+    };
+    const queryParams = {
+      expand: true,
+      'fields.image': ['variants.default', 'variants.landscape-crop', 'variants.landscape-crop2x'],
+    };
+
+    return sdk.images
+      .upload(bodyParams, queryParams)
+      .then(resp => {
+        const uploadedImage = resp.data.data;
+        const imageId = uploadedImage.id.uuid;
+        const imageUrl = uploadedImage.attributes?.variants?.['landscape-crop']?.url ||
+                        uploadedImage.attributes?.variants?.default?.url;
+        dispatch(uploadPortfolioImageSuccess({ tempId, imageId, imageUrl }));
+        return { imageId, imageUrl };
+      })
+      .catch(e => dispatch(uploadPortfolioImageError({ error: storableError(e) })));
+  };
+}
+
+// Remove portfolio image from state
+export function removePortfolioImage(imageId) {
+  return dispatch => {
+    dispatch(removePortfolioImageAction(imageId));
   };
 }
 

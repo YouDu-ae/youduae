@@ -22,7 +22,7 @@ import FooterContainer from '../../containers/FooterContainer/FooterContainer';
 
 import ProfileSettingsForm from './ProfileSettingsForm/ProfileSettingsForm';
 
-import { updateProfile, uploadImage } from './ProfileSettingsPage.duck';
+import { updateProfile, uploadImage, uploadPortfolioImage, removePortfolioImage } from './ProfileSettingsPage.duck';
 import css from './ProfileSettingsPage.module.css';
 
 const onImageUploadHandler = (values, fn) => {
@@ -72,19 +72,30 @@ const ViewProfileLink = props => {
 export const ProfileSettingsPageComponent = props => {
   const config = useConfiguration();
   const intl = useIntl();
+  const [removedPortfolioIds, setRemovedPortfolioIds] = React.useState([]);
+
   const {
     currentUser,
     image,
     onImageUpload,
     onUpdateProfile,
+    onPortfolioUpload,
+    onPortfolioRemove,
     scrollingDisabled,
     updateInProgress,
     updateProfileError,
     uploadImageError,
     uploadInProgress,
+    portfolioImages,
+    portfolioUploadInProgress,
+    portfolioUploadError,
   } = props;
 
   const { userFields, userTypes = [] } = config.user;
+
+  const handlePortfolioRemoveExisting = imageId => {
+    setRemovedPortfolioIds(prev => [...prev, imageId]);
+  };
 
   const handleSubmit = (values, userType) => {
     // DEBUG: Проверяем ВСЕ значения формы
@@ -125,6 +136,18 @@ export const ProfileSettingsPageComponent = props => {
 
     console.log('🚀 [ProfileSettings SAVE] Final publicData:', publicDataFields);
 
+    // Portfolio handling
+    const existingPortfolio = currentUser?.attributes?.profile?.publicData?.portfolio || [];
+    const filteredExistingPortfolio = existingPortfolio.filter(
+      img => !removedPortfolioIds.includes(img.imageId)
+    );
+    const newPortfolioImages = (portfolioImages || []).map(img => ({
+      imageId: img.imageId,
+      imageUrl: img.imageUrl,
+      status: 'pending',
+    }));
+    const updatedPortfolio = [...filteredExistingPortfolio, ...newPortfolioImages];
+
     const profile = {
       firstName: firstName.trim(),
       lastName: lastName.trim(),
@@ -132,6 +155,7 @@ export const ProfileSettingsPageComponent = props => {
       bio,
       publicData: {
         ...publicDataFields,
+        portfolio: updatedPortfolio.length > 0 ? updatedPortfolio : null,
       },
       protectedData: {
         ...protectedDataFields,
@@ -183,6 +207,11 @@ export const ProfileSettingsPageComponent = props => {
     }
   }
 
+  // Filter existing portfolio excluding removed ones
+  const existingPortfolioForForm = (publicData?.portfolio || []).filter(
+    img => !removedPortfolioIds.includes(img.imageId)
+  );
+
   const profileSettingsForm = user.id ? (
     <ProfileSettingsForm
       className={css.form}
@@ -210,6 +239,13 @@ export const ProfileSettingsPageComponent = props => {
       marketplaceName={config.marketplaceName}
       userFields={userFields}
       userTypeConfig={userTypeConfig}
+      portfolioImages={portfolioImages}
+      existingPortfolio={existingPortfolioForForm}
+      onPortfolioUpload={onPortfolioUpload}
+      onPortfolioRemove={onPortfolioRemove}
+      onPortfolioRemoveExisting={handlePortfolioRemoveExisting}
+      portfolioUploadInProgress={portfolioUploadInProgress}
+      portfolioUploadError={portfolioUploadError}
     />
   ) : null;
 
@@ -254,6 +290,9 @@ const mapStateToProps = state => {
     uploadInProgress,
     updateInProgress,
     updateProfileError,
+    portfolioImages,
+    portfolioUploadInProgress,
+    portfolioUploadError,
   } = state.ProfileSettingsPage;
   return {
     currentUser,
@@ -263,12 +302,17 @@ const mapStateToProps = state => {
     updateProfileError,
     uploadImageError,
     uploadInProgress,
+    portfolioImages,
+    portfolioUploadInProgress,
+    portfolioUploadError,
   };
 };
 
 const mapDispatchToProps = dispatch => ({
   onImageUpload: data => dispatch(uploadImage(data)),
   onUpdateProfile: data => dispatch(updateProfile(data)),
+  onPortfolioUpload: file => dispatch(uploadPortfolioImage(file)),
+  onPortfolioRemove: imageId => dispatch(removePortfolioImage(imageId)),
 });
 
 const ProfileSettingsPage = compose(
