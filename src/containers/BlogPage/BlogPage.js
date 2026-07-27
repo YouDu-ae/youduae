@@ -1,11 +1,10 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useIntl } from '../../util/reactIntl';
 import { useLocation, useHistory } from 'react-router-dom';
 import { Page, LayoutSingleColumn, NamedLink } from '../../components';
 import TopbarContainer from '../TopbarContainer/TopbarContainer';
 import FooterContainer from '../FooterContainer/FooterContainer';
 
-import blogData from '../../data/blog/articles.json';
 import css from './BlogPage.module.css';
 
 const BlogPage = () => {
@@ -17,14 +16,31 @@ const BlogPage = () => {
   const searchParams = new URLSearchParams(location.search);
   const activeCategory = searchParams.get('category') || 'all';
 
-  const { categories, articles } = blogData;
+  const [categories, setCategories] = useState([]);
+  const [articles, setArticles] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const filteredArticles = useMemo(() => {
-    if (activeCategory === 'all') {
-      return articles;
-    }
-    return articles.filter(article => article.category === activeCategory);
-  }, [activeCategory, articles]);
+  useEffect(() => {
+    const fetchArticles = async () => {
+      try {
+        setLoading(true);
+        const url = activeCategory === 'all' 
+          ? '/api/blog/articles'
+          : `/api/blog/articles?category=${activeCategory}`;
+        const response = await fetch(url);
+        const data = await response.json();
+        setCategories(data.categories || []);
+        setArticles(data.articles || []);
+      } catch (error) {
+        console.error('Error loading articles:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchArticles();
+  }, [activeCategory]);
+
+  const filteredArticles = articles;
 
   const handleCategoryChange = (categoryId) => {
     if (categoryId === 'all') {

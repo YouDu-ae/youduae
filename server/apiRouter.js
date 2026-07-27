@@ -39,6 +39,7 @@ const presenceBatch = require('./api/presence-batch');
 const placesProxy = require('./api/places-proxy');
 const telegramBot = require('./api/telegram-bot');
 const telegramBlogWebhook = require('./api/telegram-blog-webhook');
+const blogArticles = require('./api/blog-articles');
 const viewedTransactions = require('./api/viewed-transactions');
 
 const createUserWithIdp = require('./api/auth/createUserWithIdp');
@@ -130,6 +131,10 @@ router.post('/telegram/blog-webhook', telegramBlogWebhook.handleBlogWebhook);
 router.get('/blog/pending', telegramBlogWebhook.getPendingPosts);
 router.post('/blog/approve', telegramBlogWebhook.approvePost);
 router.post('/blog/reject', telegramBlogWebhook.rejectPost);
+
+// Blog articles API
+router.get('/blog/articles', blogArticles.getArticles);
+router.get('/blog/articles/:slug', blogArticles.getArticleBySlug);
 
 // Viewed transactions (for syncing read/unread state across devices)
 router.get('/viewed-transactions', viewedTransactions.getViewedTransactions);

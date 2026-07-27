@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { useIntl } from '../../util/reactIntl';
 import { Page, LayoutSingleColumn, NamedLink } from '../../components';
@@ -6,7 +6,6 @@ import TopbarContainer from '../TopbarContainer/TopbarContainer';
 import FooterContainer from '../FooterContainer/FooterContainer';
 import NotFoundPage from '../NotFoundPage/NotFoundPage';
 
-import blogData from '../../data/blog/articles.json';
 import css from './BlogArticlePage.module.css';
 
 const BlogArticlePage = () => {
@@ -14,13 +13,48 @@ const BlogArticlePage = () => {
   const intl = useIntl();
   const locale = intl.locale || 'ru';
 
-  const { categories, articles } = blogData;
+  const [article, setArticle] = useState(null);
+  const [categories, setCategories] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
 
-  const article = useMemo(() => {
-    return articles.find(a => a.slug === slug);
-  }, [slug, articles]);
+  useEffect(() => {
+    const fetchArticle = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch(`/api/blog/articles/${slug}`);
+        if (!response.ok) {
+          setNotFound(true);
+          return;
+        }
+        const data = await response.json();
+        setArticle(data);
+        setCategories(data.categories || []);
+      } catch (error) {
+        console.error('Error loading article:', error);
+        setNotFound(true);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchArticle();
+  }, [slug]);
 
-  if (!article) {
+  if (loading) {
+    return (
+      <Page title="Loading...">
+        <LayoutSingleColumn topbar={<TopbarContainer />} footer={<FooterContainer />}>
+          <div className={css.pageWrapper}>
+            <div className={css.container} style={{ textAlign: 'center', padding: '100px 20px' }}>
+              {locale === 'ru' ? 'Загрузка...' : 'Loading...'}
+            </div>
+          </div>
+        </LayoutSingleColumn>
+      </Page>
+    );
+  }
+
+  if (notFound || !article) {
     return <NotFoundPage />;
   }
 
@@ -93,15 +127,13 @@ const BlogArticlePage = () => {
     ]
   };
 
-  const relatedArticles = articles
-    .filter(a => a.category === article.category && a.id !== article.id)
-    .slice(0, 3);
+  const relatedArticles = []; // TODO: fetch related articles
 
   let articleContent = null;
-  try {
-    const contentModule = require(`../../data/blog/articles/${article.slug}.json`);
-    articleContent = contentModule.content?.[locale] || contentModule.content?.ru;
-  } catch (e) {
+  if (article.content) {
+    articleContent = article.content[locale] || article.content.ru;
+  }
+  if (!articleContent) {
     articleContent = `<p>${articleDescription}</p><p>${locale === 'ru' ? 'Полный текст статьи скоро появится.' : 'Full article text coming soon.'}</p>`;
   }
 
