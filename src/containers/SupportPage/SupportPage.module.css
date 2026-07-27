@@ -13,8 +13,49 @@
 
 .pageTitle {
   text-align: center;
-  margin-bottom: 32px;
+  margin-bottom: 24px;
   color: #333;
+}
+
+.telegramBlock {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-bottom: 32px;
+  padding: 20px;
+  background: linear-gradient(135deg, #0088cc 0%, #00a0dc 100%);
+  border-radius: 12px;
+}
+
+.telegramText {
+  color: white;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.telegramButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  background: white;
+  color: #0088cc;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 16px;
+  text-decoration: none;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.telegramButton:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.telegramIcon {
+  width: 20px;
+  height: 20px;
 }
 
 .form {
