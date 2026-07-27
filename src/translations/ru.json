@@ -1493,7 +1493,6 @@
   "WelcomePage.telegramTitleCustomer": "Не пропустите новые задания!",
   "WelcomePage.telegramDescriptionCustomer": "Подключите Telegram-бот и получайте мгновенные уведомления о новых заданиях в ваших категориях.",
   "WelcomePage.telegramConnect": "Подключить Telegram",
-  "ProfilePage.portfolioTitle": "Портфолио ({count})",
   "ProfilePage.portfolioCompletedOn": "Выполнено {date}",
   "ProfilePage.completedTasksTitle": "Выполненные задания ({count})",
   "ProfilePage.emptyCompletedTasks": "Выполненные задания появятся здесь после завершения первых работ.",

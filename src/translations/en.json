@@ -1493,7 +1493,6 @@
   "WelcomePage.telegramTitleCustomer": "Don't miss new tasks!",
   "WelcomePage.telegramDescriptionCustomer": "Connect the Telegram bot and get instant notifications about new tasks in your categories.",
   "WelcomePage.telegramConnect": "Connect Telegram",
-  "ProfilePage.portfolioTitle": "Portfolio ({count})",
   "ProfilePage.portfolioCompletedOn": "Completed on {date}",
   "ProfilePage.completedTasksTitle": "Completed tasks ({count})",
   "ProfilePage.emptyCompletedTasks": "Completed tasks will appear here after finishing your first jobs.",
