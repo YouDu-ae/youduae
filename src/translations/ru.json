@@ -848,6 +848,7 @@
 "ProfileSettingsForm.portfolioModerationNote": "Фотографии будут опубликованы после модерации",
 "ProfileSettingsForm.portfolioAddPhoto": "Добавить фото",
 "ProfileSettingsForm.portfolioPending": "На проверке",
+"ProfileSettingsForm.portfolioApproved": "Одобрено",
 "ProfileSettingsForm.portfolioUploadError": "Не удалось загрузить изображение. Попробуйте еще раз.",
 "ProfileSettingsForm.savePortfolio": "Сохранить портфолио",
   "ProfileSettingsForm.changeAvatar": "Change",

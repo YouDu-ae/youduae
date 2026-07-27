@@ -68,7 +68,8 @@ const PortfolioUploader = props => {
 
       <div className={css.imagesGrid}>
         {allImages.map((image, index) => {
-          const isPending = image.status === 'pending';
+          const isPending = image.status === 'pending' || !image.status;
+          const isApproved = image.status === 'approved';
           return (
             <div key={image.imageId || index} className={css.imageWrapper}>
               {image.imageUrl ? (
@@ -85,6 +86,11 @@ const PortfolioUploader = props => {
               {isPending && (
                 <div className={css.pendingBadge}>
                   <FormattedMessage id="ProfileSettingsForm.portfolioPending" />
+                </div>
+              )}
+              {isApproved && (
+                <div className={css.approvedBadge}>
+                  <FormattedMessage id="ProfileSettingsForm.portfolioApproved" />
                 </div>
               )}
               <button

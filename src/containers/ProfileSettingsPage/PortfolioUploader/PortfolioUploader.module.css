@@ -32,9 +32,11 @@
   grid-template-columns: repeat(3, 1fr);
   gap: 12px;
   margin-bottom: 12px;
+  min-height: 100px;
 
   @media (--viewportMedium) {
     grid-template-columns: repeat(5, 1fr);
+    min-height: 120px;
   }
 }
 
@@ -67,6 +69,19 @@
   left: 0;
   right: 0;
   background-color: rgba(255, 152, 0, 0.9);
+  color: white;
+  font-size: 10px;
+  font-weight: 500;
+  padding: 3px 6px;
+  text-align: center;
+}
+
+.approvedBadge {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background-color: rgba(76, 175, 80, 0.9);
   color: white;
   font-size: 10px;
   font-weight: 500;
