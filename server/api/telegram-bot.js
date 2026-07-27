@@ -265,12 +265,10 @@ async function handleWebhook(req, res) {
         await sendTelegramMessage(chatId, 
           `✅ Ответ отправлен пользователю\n\n🎫 Тикет: ${result.ticketId}\n📧 Email: ${result.userEmail}`
         );
-      } else {
-        // Not a ticket reply, continue normal processing
-        console.log('Reply not matched to ticket, processing as normal message');
+        return res.sendStatus(200);
       }
-      
-      return res.sendStatus(200);
+      // If not matched to ticket, continue to process as normal message
+      console.log('Reply not matched to ticket, processing as normal message');
     }
     
     // Handle /start command with deep link
