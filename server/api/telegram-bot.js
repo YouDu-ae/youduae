@@ -16,6 +16,9 @@ const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_ADMIN_CHAT_ID = process.env.TELEGRAM_ADMIN_CHAT_ID;
 const TELEGRAM_API = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}`;
 
+// SEO optimizer
+const { optimizeForSEO } = require('./seo-optimizer');
+
 // Blog integration settings
 const TELEGRAM_BLOG_ADMIN_IDS = process.env.TELEGRAM_BLOG_ADMIN_IDS 
   ? process.env.TELEGRAM_BLOG_ADMIN_IDS.split(',').map(id => parseInt(id.trim()))
@@ -67,30 +70,40 @@ function slugify(text) {
 
 /**
  * Publish blog post from Telegram group directly (auto-publish for admins)
+ * Includes AI-powered SEO optimization
  */
 async function publishBlogPostFromTelegram(message) {
   try {
     const text = message.text || message.caption || '';
     const from = message.from;
     
-    const title = text.split('\n')[0].replace(/[#*_]/g, '').trim().substring(0, 100) || 'Новость из Telegram';
-    const slug = slugify(title) + '-' + Date.now().toString(36);
-    const description = text.substring(0, 200);
-    const content = `<p>${text.replace(/\n\n/g, '</p><p>').replace(/\n/g, '<br>')}</p>`;
+    console.log('📝 Starting SEO optimization for blog post...');
+    
+    // AI-powered SEO optimization
+    const seoData = await optimizeForSEO(text);
+    
+    const title = seoData.title;
+    const description = seoData.description;
+    const content = seoData.content;
+    const keywords = seoData.keywords;
+    
+    const slug = slugify(title.ru) + '-' + Date.now().toString(36);
     const readTime = Math.max(1, Math.ceil(text.length / 1000));
     const articleId = `tg-${message.message_id}-${Date.now()}`;
+    
+    console.log(`📝 SEO optimized by: ${seoData.optimizedBy}`);
     
     const database = getDb();
     
     if (database) {
-      // Publish directly to database
+      // Publish directly to database with SEO-optimized content
       await database.createArticle({
         id: articleId,
         slug: slug,
         category: 'telegram-news',
-        title: { ru: title, en: title },
-        description: { ru: description, en: description },
-        content: { ru: content, en: content },
+        title: title,
+        description: description,
+        content: content,
         image: '/static/blog/default-telegram.jpg',
         readTime: readTime,
         featured: false,
@@ -98,8 +111,8 @@ async function publishBlogPostFromTelegram(message) {
         telegramMessageId: message.message_id.toString(),
       });
       
-      console.log(`✅ Blog post AUTO-PUBLISHED to database: ${slug}`);
-      return { success: true, slug, method: 'database' };
+      console.log(`✅ Blog post AUTO-PUBLISHED to database: ${slug} (SEO: ${seoData.optimizedBy})`);
+      return { success: true, slug, method: 'database', seoOptimizedBy: seoData.optimizedBy };
     } else {
       // Fallback to file-based storage
       const articlesPath = path.join(__dirname, '../../src/data/blog/articles.json');
@@ -109,8 +122,8 @@ async function publishBlogPostFromTelegram(message) {
         id: articleId,
         slug: slug,
         category: 'telegram-news',
-        title: { ru: title, en: title },
-        description: { ru: description, en: description },
+        title: title,
+        description: description,
         image: '/static/blog/default-telegram.jpg',
         readTime: readTime,
         createdAt: new Date().toISOString().split('T')[0],
@@ -125,12 +138,12 @@ async function publishBlogPostFromTelegram(message) {
       const contentPath = path.join(__dirname, '../../src/data/blog/articles', `${slug}.json`);
       const contentData = {
         id: articleId,
-        content: { ru: content, en: content }
+        content: content
       };
       fs.writeFileSync(contentPath, JSON.stringify(contentData, null, 2), 'utf8');
       
-      console.log(`✅ Blog post AUTO-PUBLISHED to files: ${slug}`);
-      return { success: true, slug, method: 'file' };
+      console.log(`✅ Blog post AUTO-PUBLISHED to files: ${slug} (SEO: ${seoData.optimizedBy})`);
+      return { success: true, slug, method: 'file', seoOptimizedBy: seoData.optimizedBy };
     }
   } catch (error) {
     console.error('Error publishing blog post:', error);
