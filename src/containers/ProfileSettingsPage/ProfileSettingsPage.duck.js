@@ -191,7 +191,7 @@ export function uploadPortfolioImage(file) {
     };
     const queryParams = {
       expand: true,
-      'fields.image': ['variants.default', 'variants.landscape-crop', 'variants.landscape-crop2x'],
+      'fields.image': ['variants.scaled-xlarge', 'variants.scaled-large', 'variants.default'],
     };
 
     return sdk.images
@@ -199,7 +199,9 @@ export function uploadPortfolioImage(file) {
       .then(resp => {
         const uploadedImage = resp.data.data;
         const imageId = uploadedImage.id.uuid;
-        const imageUrl = uploadedImage.attributes?.variants?.['landscape-crop']?.url ||
+        // Use scaled variant to preserve original aspect ratio
+        const imageUrl = uploadedImage.attributes?.variants?.['scaled-xlarge']?.url ||
+                        uploadedImage.attributes?.variants?.['scaled-large']?.url ||
                         uploadedImage.attributes?.variants?.default?.url;
         dispatch(uploadPortfolioImageSuccess({ tempId, imageId, imageUrl }));
         return { imageId, imageUrl };
