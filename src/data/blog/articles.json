@@ -63,5 +63,25 @@
       }
     }
   ],
-  "articles": []
+  "articles": [
+    {
+      "id": "youdu-zapuskaet-mobilnoe-prilozhenie",
+      "slug": "youdu-zapuskaet-mobilnoe-prilozhenie",
+      "category": "telegram-news",
+      "title": {
+        "ru": "YouDu запускает мобильное приложение для iOS",
+        "en": "YouDu Launches Mobile App for iOS"
+      },
+      "description": {
+        "ru": "Мы активно работаем над мобильной версией маркетплейса услуг YouDu — это главный приоритет развития платформы в 2026 году.",
+        "en": "We are actively working on the mobile version of YouDu marketplace — this is the main development priority in 2026."
+      },
+      "image": "/static/blog/mobile-app.jpg",
+      "readTime": 2,
+      "createdAt": "2026-07-27",
+      "author": null,
+      "relatedCategory": null,
+      "featured": true
+    }
+  ]
 }
