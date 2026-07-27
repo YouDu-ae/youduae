@@ -185,8 +185,14 @@ const sanitizeConfiguredPublicData = (publicData, config = {}) => {
       'userType',
       'cardStyle',
     ];
+    const knownKeysWithArray = [
+      'portfolio',
+      'serviceCategories',
+    ];
     const sanitizedValue = knownKeysWithString.includes(key)
       ? sanitizeText(value)
+      : knownKeysWithArray.includes(key)
+      ? value
       : foundListingFieldConfig
       ? sanitizedExtendedDataFields(value, foundListingFieldConfig)
       : foundUserFieldConfig
