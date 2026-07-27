@@ -1,0 +1,256 @@
+@import '../../styles/customMediaQueries.css';
+
+.pageWrapper {
+  min-height: 100vh;
+  background-color: #f8f9fa;
+  padding: 24px 16px 60px;
+}
+
+.container {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.pageTitle {
+  text-align: center;
+  margin-bottom: 8px;
+  color: #333;
+}
+
+.pageSubtitle {
+  text-align: center;
+  color: #666;
+  margin-bottom: 32px;
+  font-size: 16px;
+}
+
+/* Quick Links */
+.quickLinks {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  margin-bottom: 40px;
+  flex-wrap: wrap;
+}
+
+.quickLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  color: #333;
+  text-decoration: none;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.quickLink:hover {
+  border-color: #f5c518;
+  background: #fffef5;
+}
+
+.quickLinkIcon {
+  font-size: 18px;
+}
+
+/* Articles Section */
+.articlesSection {
+  margin-bottom: 48px;
+}
+
+.sectionTitle {
+  font-size: 20px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 20px;
+}
+
+.articlesGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+@media (--viewportMedium) {
+  .articlesGrid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.articleCard {
+  background: white;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  transition: transform 0.2s, box-shadow 0.2s;
+  cursor: pointer;
+}
+
+.articleCard:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+
+.articleIcon {
+  font-size: 28px;
+  display: block;
+  margin-bottom: 12px;
+}
+
+.articleTitle {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+  margin: 0 0 8px;
+}
+
+.articleDescription {
+  font-size: 14px;
+  color: #666;
+  margin: 0;
+  line-height: 1.4;
+}
+
+/* FAQ Section */
+.faqSection {
+  background: white;
+  padding: 24px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  margin-bottom: 40px;
+}
+
+.categoryTabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 24px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.categoryTab {
+  padding: 10px 16px;
+  background: #f5f5f5;
+  border: none;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #666;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s;
+}
+
+.categoryTab:hover {
+  background: #eee;
+}
+
+.categoryTabActive {
+  background: #f5c518;
+  color: #000;
+}
+
+.faqList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.faqItem {
+  border: 1px solid #eee;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.faqQuestion {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  background: #fafafa;
+  border: none;
+  text-align: left;
+  font-size: 15px;
+  font-weight: 500;
+  color: #333;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.faqQuestion:hover {
+  background: #f5f5f5;
+}
+
+.faqArrow {
+  font-size: 12px;
+  color: #999;
+  transition: transform 0.2s;
+}
+
+.faqArrowOpen {
+  transform: rotate(180deg);
+}
+
+.faqAnswer {
+  padding: 16px;
+  background: white;
+  color: #555;
+  line-height: 1.6;
+  font-size: 14px;
+  border-top: 1px solid #eee;
+}
+
+/* Still Need Help */
+.stillNeedHelp {
+  text-align: center;
+  background: linear-gradient(135deg, #f5c518 0%, #ffdb4d 100%);
+  padding: 40px 24px;
+  border-radius: 12px;
+}
+
+.stillNeedHelp h3 {
+  margin: 0 0 8px;
+  color: #000;
+  font-size: 20px;
+}
+
+.stillNeedHelp p {
+  margin: 0 0 20px;
+  color: #333;
+}
+
+.supportButton {
+  display: inline-block;
+  padding: 14px 32px;
+  background: #000;
+  color: #fff;
+  border-radius: 8px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.supportButton:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  color: #fff;
+}
+
+@media (--viewportMedium) {
+  .pageWrapper {
+    padding: 40px 24px 80px;
+  }
+
+  .faqSection {
+    padding: 32px;
+  }
+
+  .stillNeedHelp {
+    padding: 48px 40px;
+  }
+}

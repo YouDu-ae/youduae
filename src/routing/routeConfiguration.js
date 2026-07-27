@@ -50,6 +50,7 @@ const WelcomePage = loadable(() => import(/* webpackChunkName: "WelcomePage" */ 
 const BlogPage = loadable(() => import(/* webpackChunkName: "BlogPage" */ '../containers/BlogPage/BlogPage'));
 const BlogArticlePage = loadable(() => import(/* webpackChunkName: "BlogArticlePage" */ '../containers/BlogArticlePage/BlogArticlePage'));
 const SupportPage = loadable(() => import(/* webpackChunkName: "SupportPage" */ '../containers/SupportPage/SupportPage'));
+const HelpPage = loadable(() => import(/* webpackChunkName: "HelpPage" */ '../containers/HelpPage/HelpPage'));
 
 // Styleguide helps you to review current components and develop new ones
 const StyleguidePage = loadable(() => import(/* webpackChunkName: "StyleguidePage" */ '../containers/StyleguidePage/StyleguidePage'));
@@ -405,6 +406,11 @@ const routeConfiguration = (layoutConfig, accessControlConfig) => {
       path: '/support',
       name: 'SupportPage',
       component: SupportPage,
+    },
+    {
+      path: '/help',
+      name: 'HelpPage',
+      component: HelpPage,
     },
     {
       path: '/welcome',
