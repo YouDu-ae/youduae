@@ -175,7 +175,11 @@ async function handleWebhook(req, res) {
       }
       
       // Check if sender is an admin
-      const isAdmin = TELEGRAM_BLOG_ADMIN_IDS.length === 0 || TELEGRAM_BLOG_ADMIN_IDS.includes(from.id);
+      // ID 1087968824 = GroupAnonymousBot (anonymous admin posts)
+      // ID 136817688 = Channel bot (forwarded from channel)
+      const isAnonymousAdmin = from.id === 1087968824 || from.id === 136817688;
+      const isKnownAdmin = TELEGRAM_BLOG_ADMIN_IDS.length === 0 || TELEGRAM_BLOG_ADMIN_IDS.includes(from.id);
+      const isAdmin = isAnonymousAdmin || isKnownAdmin;
       
       // Check minimum length
       const hasMinLength = text.length >= MIN_BLOG_POST_LENGTH;
@@ -183,9 +187,11 @@ async function handleWebhook(req, res) {
       // Check for exclusion hashtag
       const isExcluded = text.includes('#noblog') || text.includes('#нетблог');
       
+      console.log(`📝 Group message: from=${from.id}, isAdmin=${isAdmin}, length=${text.length}, excluded=${isExcluded}`);
+      
       if (isAdmin && hasMinLength && !isExcluded) {
         saveBlogPostToPending(message);
-        console.log(`📝 Blog post from admin ${firstName} saved to pending`);
+        console.log(`📝 Blog post from admin ${firstName || 'Anonymous'} saved to pending`);
       }
       
       // Don't respond to group messages
