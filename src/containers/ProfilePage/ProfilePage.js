@@ -569,15 +569,8 @@ export const MainContent = props => {
       </H2>
       {hasBio ? <p className={css.bio}>{bioWithLinks}</p> : null}
 
-      {/* DEBUG: Show portfolio data on page */}
-      <div style={{background: '#ffeeee', padding: '10px', margin: '10px 0', fontSize: '12px'}}>
-        DEBUG: isCustomer={String(userTypeRoles.customer)}, 
-        portfolioLength={publicData?.portfolio?.length || 0},
-        keys={publicData ? Object.keys(publicData).join(', ') : 'none'}
-      </div>
-
-      {/* Портфолио - после Bio, только для специалистов (Customer) */}
-      {userTypeRoles.customer && publicData?.portfolio?.length > 0 && (
+      {/* Портфолио - после Bio, только для специалистов (userType === 'customer') */}
+      {publicData?.userType === 'customer' && publicData?.portfolio?.length > 0 && (
         <SectionPortfolio portfolio={publicData.portfolio} />
       )}
 
