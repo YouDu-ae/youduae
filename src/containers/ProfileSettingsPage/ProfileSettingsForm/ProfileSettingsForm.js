@@ -167,6 +167,7 @@ class ProfileSettingsFormComponent extends Component {
             userFields,
             userTypeConfig,
             showSuccess,
+            hasRemovedPortfolio,
           } = fieldRenderProps;
 
           const user = ensureCurrentUser(currentUser);
@@ -288,10 +289,11 @@ class ProfileSettingsFormComponent extends Component {
           const pristineSinceLastSubmit = submittedOnce && isEqual(values, this.submittedValues);
           // Allow submit if image was uploaded (profileImage prop has uploadedImage or new imageId)
           const hasNewImage = profileImage?.uploadedImage || (profileImage?.imageId && profileImage?.file);
-          // Allow submit if portfolio images were added
+          // Allow submit if portfolio images were added or removed
           const hasNewPortfolioImages = portfolioImages && portfolioImages.length > 0;
+          const hasPortfolioChanges = hasNewPortfolioImages || hasRemovedPortfolio;
           const submitDisabled =
-            invalid || (pristine && !hasNewImage && !hasNewPortfolioImages) || pristineSinceLastSubmit || uploadInProgress || submitInProgress || portfolioUploadInProgress;
+            invalid || (pristine && !hasNewImage && !hasPortfolioChanges) || pristineSinceLastSubmit || uploadInProgress || submitInProgress || portfolioUploadInProgress;
 
           const userFieldProps = getPropsForCustomUserFieldInputs(
             userFields,

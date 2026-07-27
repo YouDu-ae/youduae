@@ -259,6 +259,7 @@ export const ProfileSettingsPageComponent = props => {
       portfolioUploadInProgress={portfolioUploadInProgress}
       portfolioUploadError={portfolioUploadError}
       showSuccess={showSuccess}
+      hasRemovedPortfolio={removedPortfolioIds.length > 0}
     />
   ) : null;
 
