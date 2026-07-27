@@ -308,27 +308,33 @@ async function handleWebhook(req, res) {
     }
     // Admin command: view open tickets
     else if (text === '/tickets' && chatId.toString() === TELEGRAM_ADMIN_CHAT_ID) {
-      const supportTickets = require('./support-tickets');
       try {
-        const response = await fetch(`http://localhost:${process.env.PORT || 3000}/api/support/admin/open`);
-        const data = await response.json();
+        const database = process.env.DATABASE_URL ? require('../db') : null;
         
-        if (data.tickets && data.tickets.length > 0) {
-          let ticketList = `📋 <b>Открытые тикеты (${data.tickets.length}):</b>\n\n`;
-          data.tickets.slice(0, 10).forEach(t => {
+        if (!database) {
+          await sendTelegramMessage(chatId, '⚠️ База данных не подключена');
+          return res.sendStatus(200);
+        }
+        
+        const tickets = await database.getOpenTickets();
+        
+        if (tickets && tickets.length > 0) {
+          let ticketList = `📋 <b>Открытые тикеты (${tickets.length}):</b>\n\n`;
+          tickets.slice(0, 10).forEach(t => {
             const emoji = t.priority === 'urgent' ? '🔴' : t.priority === 'high' ? '🟠' : '🟡';
             ticketList += `${emoji} <b>${t.ticket_id}</b>\n`;
             ticketList += `   ${t.subject.substring(0, 40)}${t.subject.length > 40 ? '...' : ''}\n`;
             ticketList += `   👤 ${t.user_name || t.user_email}\n\n`;
           });
-          if (data.tickets.length > 10) {
-            ticketList += `\n<i>...и ещё ${data.tickets.length - 10} тикетов</i>`;
+          if (tickets.length > 10) {
+            ticketList += `\n<i>...и ещё ${tickets.length - 10} тикетов</i>`;
           }
           await sendTelegramMessage(chatId, ticketList);
         } else {
           await sendTelegramMessage(chatId, '✅ Нет открытых тикетов');
         }
       } catch (error) {
+        console.error('Error getting tickets:', error);
         await sendTelegramMessage(chatId, '⚠️ Ошибка получения тикетов');
       }
     }
