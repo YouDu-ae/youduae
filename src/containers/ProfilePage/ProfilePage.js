@@ -569,6 +569,14 @@ export const MainContent = props => {
       </H2>
       {hasBio ? <p className={css.bio}>{bioWithLinks}</p> : null}
 
+      {/* DEBUG: Portfolio check */}
+      {console.log('Portfolio Debug:', { 
+        isCustomer: userTypeRoles.customer, 
+        portfolio: publicData?.portfolio,
+        portfolioLength: publicData?.portfolio?.length,
+        publicDataKeys: publicData ? Object.keys(publicData) : 'no publicData'
+      })}
+
       {/* Портфолио - после Bio, только для специалистов (Customer) */}
       {userTypeRoles.customer && publicData?.portfolio?.length > 0 && (
         <SectionPortfolio portfolio={publicData.portfolio} />
