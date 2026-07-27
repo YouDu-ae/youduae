@@ -169,7 +169,7 @@ const toggle = i => {
   // OG images for social sharing
   const ogImages = [
     {
-      url: 'https://youdu.ae/static/icons/youdu-og-cooperation.png',
+      url: 'https://youdu.ae/static/icons/youdu-og-cooperation-v2.png',
       width: 1200,
       height: 630,
     }
