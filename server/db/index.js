@@ -72,6 +72,48 @@ const initDatabase = async () => {
       );
 
       CREATE INDEX IF NOT EXISTS idx_listing_mapping_uuid ON listing_id_mapping(sharetribe_uuid);
+
+      -- Support tickets table
+      CREATE TABLE IF NOT EXISTS support_tickets (
+        id SERIAL PRIMARY KEY,
+        ticket_id VARCHAR(20) UNIQUE NOT NULL,
+        user_id VARCHAR(100),
+        user_email VARCHAR(255) NOT NULL,
+        user_name VARCHAR(255),
+        subject VARCHAR(500) NOT NULL,
+        category VARCHAR(50) DEFAULT 'general',
+        related_listing_id VARCHAR(20),
+        status VARCHAR(20) DEFAULT 'open',
+        priority VARCHAR(20) DEFAULT 'normal',
+        telegram_message_id VARCHAR(100),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        closed_at TIMESTAMP
+      );
+
+      -- Ticket messages (conversation thread)
+      CREATE TABLE IF NOT EXISTS ticket_messages (
+        id SERIAL PRIMARY KEY,
+        ticket_id VARCHAR(20) REFERENCES support_tickets(ticket_id),
+        sender_type VARCHAR(20) NOT NULL,
+        sender_name VARCHAR(255),
+        message TEXT NOT NULL,
+        telegram_message_id VARCHAR(100),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+
+      -- Ticket ID counter
+      CREATE TABLE IF NOT EXISTS ticket_id_counter (
+        id VARCHAR(50) PRIMARY KEY DEFAULT 'default',
+        current_value INTEGER NOT NULL DEFAULT 0,
+        prefix VARCHAR(10) NOT NULL DEFAULT 'TK',
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_tickets_user ON support_tickets(user_id);
+      CREATE INDEX IF NOT EXISTS idx_tickets_status ON support_tickets(status);
+      CREATE INDEX IF NOT EXISTS idx_tickets_created ON support_tickets(created_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_ticket_messages_ticket ON ticket_messages(ticket_id);
     `);
     
     console.log('Database tables initialized');
@@ -371,6 +413,215 @@ const getListingIdCounter = async () => {
   return result.rows[0]?.current_value || 0;
 };
 
+// ============================================
+// SUPPORT TICKET FUNCTIONS
+// ============================================
+
+/**
+ * Generate next ticket ID (TK-00001 format)
+ */
+const generateTicketId = async () => {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    
+    await client.query(`
+      INSERT INTO ticket_id_counter (id, current_value, prefix)
+      VALUES ('default', 0, 'TK')
+      ON CONFLICT (id) DO NOTHING
+    `);
+    
+    const result = await client.query(`
+      UPDATE ticket_id_counter 
+      SET current_value = current_value + 1, updated_at = CURRENT_TIMESTAMP
+      WHERE id = 'default'
+      RETURNING current_value, prefix
+    `);
+    
+    await client.query('COMMIT');
+    
+    const { current_value, prefix } = result.rows[0];
+    return `${prefix}-${String(current_value).padStart(5, '0')}`;
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
+};
+
+/**
+ * Create a new support ticket
+ */
+const createTicket = async (ticketData) => {
+  const ticketId = await generateTicketId();
+  
+  const result = await pool.query(
+    `INSERT INTO support_tickets 
+     (ticket_id, user_id, user_email, user_name, subject, category, related_listing_id, priority)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+     RETURNING *`,
+    [
+      ticketId,
+      ticketData.userId || null,
+      ticketData.userEmail,
+      ticketData.userName || null,
+      ticketData.subject,
+      ticketData.category || 'general',
+      ticketData.relatedListingId || null,
+      ticketData.priority || 'normal',
+    ]
+  );
+  
+  // Add initial message
+  if (ticketData.message) {
+    await pool.query(
+      `INSERT INTO ticket_messages (ticket_id, sender_type, sender_name, message)
+       VALUES ($1, 'user', $2, $3)`,
+      [ticketId, ticketData.userName || ticketData.userEmail, ticketData.message]
+    );
+  }
+  
+  return result.rows[0];
+};
+
+/**
+ * Get ticket by ID
+ */
+const getTicketById = async (ticketId) => {
+  const ticketResult = await pool.query(
+    'SELECT * FROM support_tickets WHERE ticket_id = $1',
+    [ticketId]
+  );
+  
+  if (ticketResult.rows.length === 0) return null;
+  
+  const messagesResult = await pool.query(
+    'SELECT * FROM ticket_messages WHERE ticket_id = $1 ORDER BY created_at ASC',
+    [ticketId]
+  );
+  
+  return {
+    ...ticketResult.rows[0],
+    messages: messagesResult.rows,
+  };
+};
+
+/**
+ * Get tickets by user ID
+ */
+const getTicketsByUserId = async (userId) => {
+  const result = await pool.query(
+    'SELECT * FROM support_tickets WHERE user_id = $1 ORDER BY created_at DESC',
+    [userId]
+  );
+  return result.rows;
+};
+
+/**
+ * Get all open tickets (for admin)
+ */
+const getOpenTickets = async () => {
+  const result = await pool.query(
+    `SELECT * FROM support_tickets 
+     WHERE status IN ('open', 'pending') 
+     ORDER BY 
+       CASE priority 
+         WHEN 'urgent' THEN 1 
+         WHEN 'high' THEN 2 
+         WHEN 'normal' THEN 3 
+         WHEN 'low' THEN 4 
+       END,
+       created_at ASC`
+  );
+  return result.rows;
+};
+
+/**
+ * Add message to ticket
+ */
+const addTicketMessage = async (ticketId, messageData) => {
+  const result = await pool.query(
+    `INSERT INTO ticket_messages 
+     (ticket_id, sender_type, sender_name, message, telegram_message_id)
+     VALUES ($1, $2, $3, $4, $5)
+     RETURNING *`,
+    [
+      ticketId,
+      messageData.senderType, // 'user' or 'admin'
+      messageData.senderName,
+      messageData.message,
+      messageData.telegramMessageId || null,
+    ]
+  );
+  
+  // Update ticket status and timestamp
+  await pool.query(
+    `UPDATE support_tickets 
+     SET updated_at = CURRENT_TIMESTAMP,
+         status = CASE WHEN $2 = 'admin' THEN 'pending' ELSE status END
+     WHERE ticket_id = $1`,
+    [ticketId, messageData.senderType]
+  );
+  
+  return result.rows[0];
+};
+
+/**
+ * Update ticket status
+ */
+const updateTicketStatus = async (ticketId, status) => {
+  const closedAt = status === 'closed' ? 'CURRENT_TIMESTAMP' : 'NULL';
+  
+  await pool.query(
+    `UPDATE support_tickets 
+     SET status = $1, 
+         updated_at = CURRENT_TIMESTAMP,
+         closed_at = ${status === 'closed' ? 'CURRENT_TIMESTAMP' : 'NULL'}
+     WHERE ticket_id = $2`,
+    [status, ticketId]
+  );
+  
+  return { success: true };
+};
+
+/**
+ * Update ticket with Telegram message ID
+ */
+const updateTicketTelegramId = async (ticketId, telegramMessageId) => {
+  await pool.query(
+    'UPDATE support_tickets SET telegram_message_id = $1 WHERE ticket_id = $2',
+    [telegramMessageId, ticketId]
+  );
+  return { success: true };
+};
+
+/**
+ * Find ticket by Telegram message ID
+ */
+const getTicketByTelegramMessageId = async (telegramMessageId) => {
+  const result = await pool.query(
+    'SELECT * FROM support_tickets WHERE telegram_message_id = $1',
+    [telegramMessageId]
+  );
+  return result.rows[0] || null;
+};
+
+/**
+ * Get ticket stats
+ */
+const getTicketStats = async () => {
+  const result = await pool.query(`
+    SELECT 
+      COUNT(*) FILTER (WHERE status = 'open') as open_count,
+      COUNT(*) FILTER (WHERE status = 'pending') as pending_count,
+      COUNT(*) FILTER (WHERE status = 'closed') as closed_count,
+      COUNT(*) as total_count
+    FROM support_tickets
+  `);
+  return result.rows[0];
+};
+
 module.exports = {
   pool,
   initDatabase,
@@ -388,4 +639,14 @@ module.exports = {
   getSharetribeUuidByPublicId,
   getPublicIdBySharetribeUuid,
   getListingIdCounter,
+  // Support ticket functions
+  createTicket,
+  getTicketById,
+  getTicketsByUserId,
+  getOpenTickets,
+  addTicketMessage,
+  updateTicketStatus,
+  updateTicketTelegramId,
+  getTicketByTelegramMessageId,
+  getTicketStats,
 };

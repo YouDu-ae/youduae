@@ -250,6 +250,29 @@ async function handleWebhook(req, res) {
     // PRIVATE CHAT: Handle bot commands
     // ========================================
     
+    // Check if this is a reply to a support ticket
+    const replyToMessage = message.reply_to_message;
+    if (replyToMessage && chatId.toString() === TELEGRAM_ADMIN_CHAT_ID) {
+      // Admin is replying to a ticket
+      const supportTickets = require('./support-tickets');
+      const result = await supportTickets.handleTelegramReply(
+        replyToMessage.message_id,
+        firstName || username || 'Админ',
+        text
+      );
+      
+      if (result.success) {
+        await sendTelegramMessage(chatId, 
+          `✅ Ответ отправлен пользователю\n\n🎫 Тикет: ${result.ticketId}\n📧 Email: ${result.userEmail}`
+        );
+      } else {
+        // Not a ticket reply, continue normal processing
+        console.log('Reply not matched to ticket, processing as normal message');
+      }
+      
+      return res.sendStatus(200);
+    }
+    
     // Handle /start command with deep link
     if (text.startsWith('/start')) {
       const parts = text.split(' ');
@@ -282,6 +305,32 @@ async function handleWebhook(req, res) {
     }
     else if (text === '/myid') {
       await sendTelegramMessage(chatId, `🆔 Ваш Chat ID: <code>${chatId}</code>\n\nИспользуйте этот ID для настройки уведомлений администратора.`);
+    }
+    // Admin command: view open tickets
+    else if (text === '/tickets' && chatId.toString() === TELEGRAM_ADMIN_CHAT_ID) {
+      const supportTickets = require('./support-tickets');
+      try {
+        const response = await fetch(`http://localhost:${process.env.PORT || 3000}/api/support/admin/open`);
+        const data = await response.json();
+        
+        if (data.tickets && data.tickets.length > 0) {
+          let ticketList = `📋 <b>Открытые тикеты (${data.tickets.length}):</b>\n\n`;
+          data.tickets.slice(0, 10).forEach(t => {
+            const emoji = t.priority === 'urgent' ? '🔴' : t.priority === 'high' ? '🟠' : '🟡';
+            ticketList += `${emoji} <b>${t.ticket_id}</b>\n`;
+            ticketList += `   ${t.subject.substring(0, 40)}${t.subject.length > 40 ? '...' : ''}\n`;
+            ticketList += `   👤 ${t.user_name || t.user_email}\n\n`;
+          });
+          if (data.tickets.length > 10) {
+            ticketList += `\n<i>...и ещё ${data.tickets.length - 10} тикетов</i>`;
+          }
+          await sendTelegramMessage(chatId, ticketList);
+        } else {
+          await sendTelegramMessage(chatId, '✅ Нет открытых тикетов');
+        }
+      } catch (error) {
+        await sendTelegramMessage(chatId, '⚠️ Ошибка получения тикетов');
+      }
     }
     else {
       await sendUnknownCommandMessage(chatId);

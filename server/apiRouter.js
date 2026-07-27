@@ -42,6 +42,7 @@ const telegramBlogWebhook = require('./api/telegram-blog-webhook');
 const blogArticles = require('./api/blog-articles');
 const viewedTransactions = require('./api/viewed-transactions');
 const listingId = require('./api/listing-id');
+const supportTickets = require('./api/support-tickets');
 
 const createUserWithIdp = require('./api/auth/createUserWithIdp');
 const createUser = require('./api/auth/createUser');
@@ -192,5 +193,15 @@ router.post('/listing/save-mapping', listingId.saveMapping);
 router.get('/listing/by-public-id/:publicId', listingId.getByPublicId);
 router.get('/listing/public-id/:sharetribeUuid', listingId.getPublicId);
 router.get('/listing/stats', listingId.getStats);
+
+// Support tickets endpoints
+router.post('/support/create', supportTickets.createTicket);
+router.get('/support/ticket/:ticketId', supportTickets.getTicket);
+router.get('/support/my-tickets', supportTickets.getMyTickets);
+router.post('/support/reply', supportTickets.addUserReply);
+router.post('/support/admin/reply', supportTickets.addAdminReply);
+router.post('/support/admin/close', supportTickets.closeTicket);
+router.get('/support/admin/open', supportTickets.getOpenTickets);
+router.get('/support/stats', supportTickets.getStats);
 
 module.exports = router;

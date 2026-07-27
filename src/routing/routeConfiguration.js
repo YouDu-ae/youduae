@@ -49,6 +49,7 @@ const CategoryExecutorsPage = loadable(() => import(/* webpackChunkName: "Catego
 const WelcomePage = loadable(() => import(/* webpackChunkName: "WelcomePage" */ '../containers/WelcomePage/WelcomePage'));
 const BlogPage = loadable(() => import(/* webpackChunkName: "BlogPage" */ '../containers/BlogPage/BlogPage'));
 const BlogArticlePage = loadable(() => import(/* webpackChunkName: "BlogArticlePage" */ '../containers/BlogArticlePage/BlogArticlePage'));
+const SupportPage = loadable(() => import(/* webpackChunkName: "SupportPage" */ '../containers/SupportPage/SupportPage'));
 
 // Styleguide helps you to review current components and develop new ones
 const StyleguidePage = loadable(() => import(/* webpackChunkName: "StyleguidePage" */ '../containers/StyleguidePage/StyleguidePage'));
@@ -399,6 +400,11 @@ const routeConfiguration = (layoutConfig, accessControlConfig) => {
       path: '/blog/:slug',
       name: 'BlogArticlePage',
       component: BlogArticlePage,
+    },
+    {
+      path: '/support',
+      name: 'SupportPage',
+      component: SupportPage,
     },
     {
       path: '/welcome',
