@@ -320,11 +320,22 @@ if (cspEnabled) {
   });
 }
 
-const server = app.listen(PORT, () => {
+const server = app.listen(PORT, async () => {
   const mode = dev ? 'development' : 'production';
   console.log(`Listening to port ${PORT} in ${mode} mode`);
   if (dev) {
     console.log(`Open http://localhost:${PORT}/ and start hacking!`);
+  }
+  
+  // Initialize database if DATABASE_URL is set
+  if (process.env.DATABASE_URL) {
+    try {
+      const db = require('./db');
+      await db.initDatabase();
+      console.log('Database initialized successfully');
+    } catch (error) {
+      console.error('Failed to initialize database:', error);
+    }
   }
 });
 

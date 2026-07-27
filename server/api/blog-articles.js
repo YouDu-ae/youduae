@@ -1,5 +1,6 @@
 /**
  * API для получения статей блога
+ * Использует PostgreSQL на продакшене, файлы для локальной разработки
  */
 
 const fs = require('fs');
@@ -7,16 +8,36 @@ const path = require('path');
 
 const ARTICLES_PATH = path.join(__dirname, '../../src/data/blog/articles.json');
 
-function getArticles(req, res) {
+let db = null;
+const getDb = () => {
+  if (!db && process.env.DATABASE_URL) {
+    db = require('../db');
+  }
+  return db;
+};
+
+async function getArticles(req, res) {
   try {
     const { category } = req.query;
+    const database = getDb();
     
-    // Read fresh data from file
+    if (database) {
+      const [categories, articles] = await Promise.all([
+        database.getCategories(),
+        database.getArticles(category, 'published')
+      ]);
+      
+      const allCategories = [
+        { id: 'all', name: { ru: 'Все статьи', en: 'All Articles' } },
+        ...categories
+      ];
+      
+      return res.json({ categories: allCategories, articles });
+    }
+    
     const data = JSON.parse(fs.readFileSync(ARTICLES_PATH, 'utf8'));
-    
     let articles = data.articles || [];
     
-    // Filter by category if specified
     if (category && category !== 'all') {
       articles = articles.filter(a => a.category === category);
     }
@@ -31,11 +52,29 @@ function getArticles(req, res) {
   }
 }
 
-function getArticleBySlug(req, res) {
+async function getArticleBySlug(req, res) {
   try {
     const { slug } = req.params;
+    const database = getDb();
     
-    // Read articles index
+    if (database) {
+      const [article, categories] = await Promise.all([
+        database.getArticleBySlug(slug),
+        database.getCategories()
+      ]);
+      
+      if (!article) {
+        return res.status(404).json({ error: 'Article not found' });
+      }
+      
+      const allCategories = [
+        { id: 'all', name: { ru: 'Все статьи', en: 'All Articles' } },
+        ...categories
+      ];
+      
+      return res.json({ ...article, categories: allCategories });
+    }
+    
     const data = JSON.parse(fs.readFileSync(ARTICLES_PATH, 'utf8'));
     const article = data.articles.find(a => a.slug === slug);
     
@@ -43,7 +82,6 @@ function getArticleBySlug(req, res) {
       return res.status(404).json({ error: 'Article not found' });
     }
     
-    // Try to read full content
     const contentPath = path.join(__dirname, '../../src/data/blog/articles', `${slug}.json`);
     let content = null;
     
