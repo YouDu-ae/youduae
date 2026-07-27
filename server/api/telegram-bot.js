@@ -35,6 +35,15 @@ const pendingVerifications = new Map();
 // Blog posts pending file path
 const PENDING_POSTS_PATH = path.join(__dirname, '../../src/data/blog/pending_posts.json');
 
+// Database connection for blog
+let db = null;
+const getDb = () => {
+  if (!db && process.env.DATABASE_URL) {
+    db = require('../db');
+  }
+  return db;
+};
+
 /**
  * Slugify text for URL
  */
@@ -57,55 +66,75 @@ function slugify(text) {
 }
 
 /**
- * Save blog post from Telegram group to pending
+ * Publish blog post from Telegram group directly (auto-publish for admins)
  */
-function saveBlogPostToPending(message) {
+async function publishBlogPostFromTelegram(message) {
   try {
     const text = message.text || message.caption || '';
     const from = message.from;
-    const chat = message.chat;
     
-    // Load existing pending posts
-    let pending = { posts: [] };
-    if (fs.existsSync(PENDING_POSTS_PATH)) {
-      pending = JSON.parse(fs.readFileSync(PENDING_POSTS_PATH, 'utf8'));
-    }
-    
-    // Check for duplicate
-    if (pending.posts.some(p => p.telegramMessageId === message.message_id)) {
-      console.log('📝 Duplicate blog post, skipping');
-      return false;
-    }
-    
-    const title = text.split('\n')[0].replace(/[#*_]/g, '').trim().substring(0, 60);
+    const title = text.split('\n')[0].replace(/[#*_]/g, '').trim().substring(0, 100) || 'Новость из Telegram';
     const slug = slugify(title) + '-' + Date.now().toString(36);
+    const description = text.substring(0, 200);
+    const content = `<p>${text.replace(/\n\n/g, '</p><p>').replace(/\n/g, '<br>')}</p>`;
+    const readTime = Math.max(1, Math.ceil(text.length / 1000));
+    const articleId = `tg-${message.message_id}-${Date.now()}`;
     
-    const pendingPost = {
-      id: slug,
-      telegramMessageId: message.message_id,
-      telegramChatId: chat.id,
-      title: title,
-      text: text,
-      author: {
-        telegramId: from.id,
-        name: `${from.first_name || ''} ${from.last_name || ''}`.trim(),
-        username: from.username || null
-      },
-      date: new Date(message.date * 1000).toISOString(),
-      hasPhoto: !!message.photo,
-      photoFileId: message.photo ? message.photo[message.photo.length - 1].file_id : null,
-      status: 'pending',
-      createdAt: new Date().toISOString()
-    };
+    const database = getDb();
     
-    pending.posts.unshift(pendingPost);
-    fs.writeFileSync(PENDING_POSTS_PATH, JSON.stringify(pending, null, 2), 'utf8');
-    
-    console.log(`✅ Blog post saved to pending: ${slug}`);
-    return true;
+    if (database) {
+      // Publish directly to database
+      await database.createArticle({
+        id: articleId,
+        slug: slug,
+        category: 'telegram-news',
+        title: { ru: title, en: title },
+        description: { ru: description, en: description },
+        content: { ru: content, en: content },
+        image: '/static/blog/default-telegram.jpg',
+        readTime: readTime,
+        featured: false,
+        status: 'published',
+        telegramMessageId: message.message_id.toString(),
+      });
+      
+      console.log(`✅ Blog post AUTO-PUBLISHED to database: ${slug}`);
+      return { success: true, slug, method: 'database' };
+    } else {
+      // Fallback to file-based storage
+      const articlesPath = path.join(__dirname, '../../src/data/blog/articles.json');
+      const articlesData = JSON.parse(fs.readFileSync(articlesPath, 'utf8'));
+      
+      const articleMetadata = {
+        id: articleId,
+        slug: slug,
+        category: 'telegram-news',
+        title: { ru: title, en: title },
+        description: { ru: description, en: description },
+        image: '/static/blog/default-telegram.jpg',
+        readTime: readTime,
+        createdAt: new Date().toISOString().split('T')[0],
+        author: null,
+        featured: false
+      };
+      
+      articlesData.articles.unshift(articleMetadata);
+      fs.writeFileSync(articlesPath, JSON.stringify(articlesData, null, 2), 'utf8');
+      
+      // Create content file
+      const contentPath = path.join(__dirname, '../../src/data/blog/articles', `${slug}.json`);
+      const contentData = {
+        id: articleId,
+        content: { ru: content, en: content }
+      };
+      fs.writeFileSync(contentPath, JSON.stringify(contentData, null, 2), 'utf8');
+      
+      console.log(`✅ Blog post AUTO-PUBLISHED to files: ${slug}`);
+      return { success: true, slug, method: 'file' };
+    }
   } catch (error) {
-    console.error('Error saving blog post:', error);
-    return false;
+    console.error('Error publishing blog post:', error);
+    return { success: false, error: error.message };
   }
 }
 
@@ -190,8 +219,14 @@ async function handleWebhook(req, res) {
       console.log(`📝 Group message: from=${from.id}, isAdmin=${isAdmin}, length=${text.length}, excluded=${isExcluded}`);
       
       if (isAdmin && hasMinLength && !isExcluded) {
-        saveBlogPostToPending(message);
-        console.log(`📝 Blog post from admin ${firstName || 'Anonymous'} saved to pending`);
+        // Auto-publish blog post from admin (no moderation needed)
+        publishBlogPostFromTelegram(message).then(result => {
+          if (result.success) {
+            console.log(`📝 Blog post from admin ${firstName || 'Anonymous'} AUTO-PUBLISHED: ${result.slug}`);
+          } else {
+            console.error(`❌ Failed to publish blog post: ${result.error}`);
+          }
+        });
       }
       
       // Don't respond to group messages
