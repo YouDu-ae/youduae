@@ -41,6 +41,7 @@ const telegramBot = require('./api/telegram-bot');
 const telegramBlogWebhook = require('./api/telegram-blog-webhook');
 const blogArticles = require('./api/blog-articles');
 const viewedTransactions = require('./api/viewed-transactions');
+const listingId = require('./api/listing-id');
 
 const createUserWithIdp = require('./api/auth/createUserWithIdp');
 const createUser = require('./api/auth/createUser');
@@ -184,5 +185,12 @@ router.get('/auth/apple', authenticateApple);
 // This is the route for callback URL the user is redirected after authenticating
 // with Apple. Note: Apple sends a POST request to the callback URL.
 router.post('/auth/apple/callback', authenticateAppleCallback);
+
+// Listing public ID endpoints (YD-00001 format)
+router.post('/listing/generate-id', listingId.generateId);
+router.post('/listing/save-mapping', listingId.saveMapping);
+router.get('/listing/by-public-id/:publicId', listingId.getByPublicId);
+router.get('/listing/public-id/:sharetribeUuid', listingId.getPublicId);
+router.get('/listing/stats', listingId.getStats);
 
 module.exports = router;

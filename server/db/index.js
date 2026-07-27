@@ -55,6 +55,23 @@ const initDatabase = async () => {
       CREATE INDEX IF NOT EXISTS idx_articles_status ON blog_articles(status);
       CREATE INDEX IF NOT EXISTS idx_articles_created ON blog_articles(created_at DESC);
       CREATE INDEX IF NOT EXISTS idx_pending_status ON blog_pending_posts(status);
+
+      -- Listing ID counter table
+      CREATE TABLE IF NOT EXISTS listing_id_counter (
+        id VARCHAR(50) PRIMARY KEY DEFAULT 'default',
+        current_value INTEGER NOT NULL DEFAULT 0,
+        prefix VARCHAR(10) NOT NULL DEFAULT 'YD',
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+
+      -- Listing ID mapping (links public ID to Sharetribe UUID)
+      CREATE TABLE IF NOT EXISTS listing_id_mapping (
+        public_id VARCHAR(20) PRIMARY KEY,
+        sharetribe_uuid VARCHAR(100) UNIQUE NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_listing_mapping_uuid ON listing_id_mapping(sharetribe_uuid);
     `);
     
     console.log('Database tables initialized');
@@ -266,6 +283,94 @@ const rejectPendingPost = async (postId) => {
   return { success: true };
 };
 
+// ============================================
+// LISTING PUBLIC ID FUNCTIONS
+// ============================================
+
+/**
+ * Generate next public ID for a listing (YD-00001 format)
+ * Uses atomic increment to prevent race conditions
+ */
+const generateListingPublicId = async () => {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    
+    // Ensure counter exists
+    await client.query(`
+      INSERT INTO listing_id_counter (id, current_value, prefix)
+      VALUES ('default', 0, 'YD')
+      ON CONFLICT (id) DO NOTHING
+    `);
+    
+    // Atomic increment and get new value
+    const result = await client.query(`
+      UPDATE listing_id_counter 
+      SET current_value = current_value + 1, updated_at = CURRENT_TIMESTAMP
+      WHERE id = 'default'
+      RETURNING current_value, prefix
+    `);
+    
+    await client.query('COMMIT');
+    
+    const { current_value, prefix } = result.rows[0];
+    const publicId = `${prefix}-${String(current_value).padStart(5, '0')}`;
+    
+    return publicId;
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
+};
+
+/**
+ * Save mapping between public ID and Sharetribe UUID
+ */
+const saveListingIdMapping = async (publicId, sharetribeUuid) => {
+  await pool.query(
+    `INSERT INTO listing_id_mapping (public_id, sharetribe_uuid)
+     VALUES ($1, $2)
+     ON CONFLICT (public_id) DO UPDATE SET sharetribe_uuid = $2`,
+    [publicId, sharetribeUuid]
+  );
+  return { success: true };
+};
+
+/**
+ * Get Sharetribe UUID by public ID
+ */
+const getSharetribeUuidByPublicId = async (publicId) => {
+  const result = await pool.query(
+    'SELECT sharetribe_uuid FROM listing_id_mapping WHERE public_id = $1',
+    [publicId]
+  );
+  return result.rows[0]?.sharetribe_uuid || null;
+};
+
+/**
+ * Get public ID by Sharetribe UUID
+ */
+const getPublicIdBySharetribeUuid = async (sharetribeUuid) => {
+  const result = await pool.query(
+    'SELECT public_id FROM listing_id_mapping WHERE sharetribe_uuid = $1',
+    [sharetribeUuid]
+  );
+  return result.rows[0]?.public_id || null;
+};
+
+/**
+ * Get current counter value (for stats)
+ */
+const getListingIdCounter = async () => {
+  const result = await pool.query(
+    'SELECT current_value FROM listing_id_counter WHERE id = $1',
+    ['default']
+  );
+  return result.rows[0]?.current_value || 0;
+};
+
 module.exports = {
   pool,
   initDatabase,
@@ -277,4 +382,10 @@ module.exports = {
   getPendingPosts,
   approvePendingPost,
   rejectPendingPost,
+  // Listing public ID functions
+  generateListingPublicId,
+  saveListingIdMapping,
+  getSharetribeUuidByPublicId,
+  getPublicIdBySharetribeUuid,
+  getListingIdCounter,
 };

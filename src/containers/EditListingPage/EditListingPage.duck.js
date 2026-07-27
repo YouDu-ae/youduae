@@ -598,19 +598,62 @@ const updateStockOfListingMaybe = (listingId, stockTotals, dispatch) => {
   return Promise.resolve();
 };
 
+// Helper function to generate public ID for listing
+const generateListingPublicId = async () => {
+  try {
+    const response = await fetch('/api/listing/generate-id', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    if (response.ok) {
+      const data = await response.json();
+      return data.publicId;
+    }
+  } catch (error) {
+    console.error('Failed to generate public ID:', error);
+  }
+  return null;
+};
+
+// Helper function to save public ID mapping after listing creation
+const saveListingIdMapping = async (publicId, sharetribeUuid) => {
+  try {
+    await fetch('/api/listing/save-mapping', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ publicId, sharetribeUuid }),
+    });
+  } catch (error) {
+    console.error('Failed to save listing ID mapping:', error);
+  }
+};
+
 // Create listing in draft state
 // NOTE: we want to keep it possible to include stock management field to the first wizard form.
 // this means that there needs to be a sequence of calls:
 // create, set stock, show listing (to get updated currentStock entity)
 export function requestCreateListingDraft(data, config) {
-  return (dispatch, getState, sdk) => {
+  return async (dispatch, getState, sdk) => {
     dispatch(createListingDraftRequest(data));
     const { stockUpdate, images, ...rest } = data;
+
+    // Generate public ID for the listing (YD-00001 format)
+    const publicId = await generateListingPublicId();
 
     // If images should be saved, create array out of the image UUIDs for the API call
     // Note: in this template, image upload is not happening at the same time as listing creation.
     const imageProperty = typeof images !== 'undefined' ? { images: imageIds(images) } : {};
-    const ownListingValues = { ...imageProperty, ...rest };
+    
+    // Add publicId to publicData if generated
+    const publicDataWithId = publicId 
+      ? { ...rest.publicData, publicId } 
+      : rest.publicData;
+    
+    const ownListingValues = { 
+      ...imageProperty, 
+      ...rest,
+      publicData: publicDataWithId,
+    };
 
     const imageVariantInfo = getImageVariantInfo(config.layout.listingImage);
     const queryParams = {
@@ -621,24 +664,27 @@ export function requestCreateListingDraft(data, config) {
     };
 
     let createDraftResponse = null;
-    return sdk.ownListings
-      .createDraft(ownListingValues, queryParams)
-      .then(response => {
-        createDraftResponse = response;
-        const listingId = response.data.data.id;
-        // If stockUpdate info is passed through, update stock
-        return updateStockOfListingMaybe(listingId, stockUpdate, dispatch);
-      })
-      .then(() => {
-        // Modify store to understand that we have created listing and can redirect away
-        dispatch(createListingDraftSuccess(createDraftResponse));
-        trackListingCreated(createDraftResponse?.data?.data, { stage: 'draft' });
-        return createDraftResponse;
-      })
-      .catch(e => {
-        log.error(e, 'create-listing-draft-failed', { listingData: data });
-        return dispatch(createListingDraftError(storableError(e)));
-      });
+    try {
+      const response = await sdk.ownListings.createDraft(ownListingValues, queryParams);
+      createDraftResponse = response;
+      const listingId = response.data.data.id;
+      
+      // Save mapping between publicId and Sharetribe UUID
+      if (publicId && listingId?.uuid) {
+        saveListingIdMapping(publicId, listingId.uuid);
+      }
+      
+      // If stockUpdate info is passed through, update stock
+      await updateStockOfListingMaybe(listingId, stockUpdate, dispatch);
+      
+      // Modify store to understand that we have created listing and can redirect away
+      dispatch(createListingDraftSuccess(createDraftResponse));
+      trackListingCreated(createDraftResponse?.data?.data, { stage: 'draft' });
+      return createDraftResponse;
+    } catch (e) {
+      log.error(e, 'create-listing-draft-failed', { listingData: data });
+      return dispatch(createListingDraftError(storableError(e)));
+    }
   };
 }
 

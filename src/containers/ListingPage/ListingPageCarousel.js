@@ -232,12 +232,15 @@ export const ListingPageComponent = props => {
     metadata = {},
   } = currentListing.attributes;
 
+  const publicId = publicData?.publicId;
+
   const richTitle = (
     <span>
       {richText(title, {
         longWordMinLength: MIN_LENGTH_FOR_LONG_WORDS_IN_TITLE,
         longWordClass: css.longWord,
       })}
+      {publicId && <span className={css.publicIdBadge}>{publicId}</span>}
     </span>
   );
 
