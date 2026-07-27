@@ -437,7 +437,7 @@ const LandingPage = () => {
             <h2 className={css.h2}><FormattedMessage id="LandingPage.blogTitle" /></h2>
 
             <div className={css.blogGrid}>
-              <NamedLink name="PrivacyPolicyPage" className={css.blogCard}>
+              <NamedLink name="BlogPage" className={css.blogCard}>
                 <div className={`${css.blogImage} ${css.blogImageVilla}`} />
                 <div className={css.blogTextBlock}>
                   <div className={css.blogTag}><FormattedMessage id="LandingPage.blogTag1" /></div>
@@ -445,7 +445,7 @@ const LandingPage = () => {
                 </div>
               </NamedLink>
 
-              <NamedLink name="PrivacyPolicyPage" className={css.blogCard}>
+              <NamedLink name="BlogPage" className={css.blogCard}>
                 <div className={`${css.blogImage} ${css.blogImagePlane}`} />
                 <div className={css.blogTextBlock}>
                   <div className={css.blogTag}><FormattedMessage id="LandingPage.blogTag2" /></div>
@@ -453,7 +453,7 @@ const LandingPage = () => {
                 </div>
               </NamedLink>
 
-              <NamedLink name="PrivacyPolicyPage" className={css.blogCard}>
+              <NamedLink name="BlogPage" className={css.blogCard}>
                 <div className={`${css.blogImage} ${css.blogImageTeacher}`} />
                 <div className={css.blogTextBlock}>
                   <div className={css.blogTag}><FormattedMessage id="LandingPage.blogTag3" /></div>
@@ -462,7 +462,7 @@ const LandingPage = () => {
               </NamedLink>
             </div>
 
-            <NamedLink name="PrivacyPolicyPage" className={css.btnBlog}>
+            <NamedLink name="BlogPage" className={css.btnBlog}>
               <FormattedMessage id="LandingPage.blogButton" />
             </NamedLink>
           </section>

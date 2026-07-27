@@ -1,0 +1,49 @@
+{
+  "_comment": "Скопируйте этот объект в массив articles в файле articles.json",
+  
+  "id": "slug-na-latinice",
+  "slug": "slug-na-latinice",
+  "category": "client-guide",
+  "title": {
+    "ru": "Заголовок статьи",
+    "en": "Article Title"
+  },
+  "description": {
+    "ru": "Краткое описание до 160 символов для SEO и карточки",
+    "en": "Short description up to 160 characters for SEO and card"
+  },
+  "image": "/static/blog/image-name.jpg",
+  "readTime": 5,
+  "createdAt": "2026-07-27",
+  "author": null,
+  "relatedCategory": null,
+  "featured": false,
+
+  "_categories": {
+    "cases": "Реальные проекты (кейсы)",
+    "client-guide": "Гид клиента",
+    "specialist-guide": "Гид специалиста", 
+    "uae-life": "Жизнь в ОАЭ"
+  },
+
+  "_author_template": {
+    "name": "Имя Фамилия",
+    "rating": 4.9,
+    "specialty": {
+      "ru": "Специальность",
+      "en": "Specialty"
+    },
+    "profileId": null,
+    "isVerified": true
+  },
+
+  "_relatedCategory_options": {
+    "repair": { "ru": "Ремонт и строительство", "en": "Repair and Construction" },
+    "cleaning": { "ru": "Клининг", "en": "Cleaning" },
+    "training": { "ru": "Репетиторы", "en": "Tutors" },
+    "beauty": { "ru": "Красота и здоровье", "en": "Beauty and Health" },
+    "transport": { "ru": "Транспорт", "en": "Transport" },
+    "events": { "ru": "Мероприятия", "en": "Events" },
+    "it": { "ru": "IT и интернет", "en": "IT and Internet" }
+  }
+}

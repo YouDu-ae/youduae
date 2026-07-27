@@ -47,6 +47,8 @@ const VerificationPage = loadable(() => import(/* webpackChunkName: "Verificatio
 const NoAccessPage = loadable(() => import(/* webpackChunkName: "NoAccessPage" */ '../containers/NoAccessPage/NoAccessPage'));
 const CategoryExecutorsPage = loadable(() => import(/* webpackChunkName: "CategoryExecutorsPage" */ '../containers/CategoryExecutorsPage/CategoryExecutorsPage'));
 const WelcomePage = loadable(() => import(/* webpackChunkName: "WelcomePage" */ '../containers/WelcomePage/WelcomePage'));
+const BlogPage = loadable(() => import(/* webpackChunkName: "BlogPage" */ '../containers/BlogPage/BlogPage'));
+const BlogArticlePage = loadable(() => import(/* webpackChunkName: "BlogArticlePage" */ '../containers/BlogArticlePage/BlogArticlePage'));
 
 // Styleguide helps you to review current components and develop new ones
 const StyleguidePage = loadable(() => import(/* webpackChunkName: "StyleguidePage" */ '../containers/StyleguidePage/StyleguidePage'));
@@ -387,6 +389,16 @@ const routeConfiguration = (layoutConfig, accessControlConfig) => {
       path: '/cooperation/signup/customer',
       name: 'CooperationSignupPage',
       component: CooperationSignupPage,
+    },
+    {
+      path: '/blog',
+      name: 'BlogPage',
+      component: BlogPage,
+    },
+    {
+      path: '/blog/:slug',
+      name: 'BlogArticlePage',
+      component: BlogArticlePage,
     },
     {
       path: '/welcome',

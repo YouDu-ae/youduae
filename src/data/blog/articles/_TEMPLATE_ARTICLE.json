@@ -1,0 +1,9 @@
+{
+  "id": "ЗАМЕНИТЕ-НА-SLUG",
+  "content": {
+    "ru": "<h2>Введение</h2>\n<p>Первый параграф статьи. Опишите проблему или тему.</p>\n\n<h2>Основная часть</h2>\n<p>Раскройте тему подробнее.</p>\n\n<ul>\n  <li><strong>Пункт 1:</strong> описание</li>\n  <li><strong>Пункт 2:</strong> описание</li>\n  <li><strong>Пункт 3:</strong> описание</li>\n</ul>\n\n<h2>Заключение</h2>\n<p>Подведите итоги и дайте рекомендации.</p>",
+    "en": "<h2>Introduction</h2>\n<p>First paragraph. Describe the problem or topic.</p>\n\n<h2>Main Part</h2>\n<p>Expand on the topic in detail.</p>\n\n<ul>\n  <li><strong>Point 1:</strong> description</li>\n  <li><strong>Point 2:</strong> description</li>\n  <li><strong>Point 3:</strong> description</li>\n</ul>\n\n<h2>Conclusion</h2>\n<p>Summarize and give recommendations.</p>"
+  },
+  "gallery": [],
+  "tags": ["тег1", "тег2"]
+}

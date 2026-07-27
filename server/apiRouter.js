@@ -33,10 +33,12 @@ const registerDeviceToken = require('./api/register-device-token');
 const { handler: sendNotification } = require('./api/send-notification');
 const notifyNewMessage = require('./api/notify-new-message');
 const notifyNewReview = require('./api/notify-new-review');
+const notifyPortfolioModeration = require('./api/notify-portfolio-moderation');
 const updatePresence = require('./api/update-presence');
 const presenceBatch = require('./api/presence-batch');
 const placesProxy = require('./api/places-proxy');
 const telegramBot = require('./api/telegram-bot');
+const telegramBlogWebhook = require('./api/telegram-blog-webhook');
 const viewedTransactions = require('./api/viewed-transactions');
 
 const createUserWithIdp = require('./api/auth/createUserWithIdp');
@@ -109,6 +111,7 @@ router.post('/register-device-token', registerDeviceToken);
 router.post('/send-notification', sendNotification);
 router.post('/notify-new-message', notifyNewMessage);
 router.post('/notify-new-review', notifyNewReview);
+router.post('/notify-portfolio-moderation', notifyPortfolioModeration);
 router.post('/update-presence', updatePresence);
 router.get('/presence-batch', presenceBatch);
 
@@ -121,6 +124,12 @@ router.post('/telegram/webhook', telegramBot.handleWebhook);
 router.post('/telegram/generate-code', telegramBot.generateCode);
 router.get('/telegram/status', telegramBot.checkTelegramStatus);
 router.post('/telegram/unlink', telegramBot.unlinkTelegram);
+
+// Telegram Blog integration
+router.post('/telegram/blog-webhook', telegramBlogWebhook.handleBlogWebhook);
+router.get('/blog/pending', telegramBlogWebhook.getPendingPosts);
+router.post('/blog/approve', telegramBlogWebhook.approvePost);
+router.post('/blog/reject', telegramBlogWebhook.rejectPost);
 
 // Viewed transactions (for syncing read/unread state across devices)
 router.get('/viewed-transactions', viewedTransactions.getViewedTransactions);

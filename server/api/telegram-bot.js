@@ -8,10 +8,20 @@
  */
 
 const crypto = require('crypto');
+const fs = require('fs');
+const path = require('path');
 const sharetribeIntegrationSdk = require('sharetribe-flex-integration-sdk');
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+const TELEGRAM_ADMIN_CHAT_ID = process.env.TELEGRAM_ADMIN_CHAT_ID;
 const TELEGRAM_API = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}`;
+
+// Blog integration settings
+const TELEGRAM_BLOG_ADMIN_IDS = process.env.TELEGRAM_BLOG_ADMIN_IDS 
+  ? process.env.TELEGRAM_BLOG_ADMIN_IDS.split(',').map(id => parseInt(id.trim()))
+  : [];
+const TELEGRAM_BLOG_GROUP_ID = process.env.TELEGRAM_BLOG_GROUP_ID || null;
+const MIN_BLOG_POST_LENGTH = 100;
 
 // Initialize Sharetribe Integration SDK
 const integrationSdk = sharetribeIntegrationSdk.createInstance({
@@ -21,6 +31,83 @@ const integrationSdk = sharetribeIntegrationSdk.createInstance({
 
 // In-memory store for pending verifications (in production, use Redis)
 const pendingVerifications = new Map();
+
+// Blog posts pending file path
+const PENDING_POSTS_PATH = path.join(__dirname, '../../src/data/blog/pending_posts.json');
+
+/**
+ * Slugify text for URL
+ */
+function slugify(text) {
+  return text
+    .toLowerCase()
+    .replace(/[а-яё]/g, char => {
+      const map = {
+        'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'д': 'd', 'е': 'e', 'ё': 'yo',
+        'ж': 'zh', 'з': 'z', 'и': 'i', 'й': 'y', 'к': 'k', 'л': 'l', 'м': 'm',
+        'н': 'n', 'о': 'o', 'п': 'p', 'р': 'r', 'с': 's', 'т': 't', 'у': 'u',
+        'ф': 'f', 'х': 'h', 'ц': 'ts', 'ч': 'ch', 'ш': 'sh', 'щ': 'sch',
+        'ъ': '', 'ы': 'y', 'ь': '', 'э': 'e', 'ю': 'yu', 'я': 'ya'
+      };
+      return map[char] || char;
+    })
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .substring(0, 50);
+}
+
+/**
+ * Save blog post from Telegram group to pending
+ */
+function saveBlogPostToPending(message) {
+  try {
+    const text = message.text || message.caption || '';
+    const from = message.from;
+    const chat = message.chat;
+    
+    // Load existing pending posts
+    let pending = { posts: [] };
+    if (fs.existsSync(PENDING_POSTS_PATH)) {
+      pending = JSON.parse(fs.readFileSync(PENDING_POSTS_PATH, 'utf8'));
+    }
+    
+    // Check for duplicate
+    if (pending.posts.some(p => p.telegramMessageId === message.message_id)) {
+      console.log('📝 Duplicate blog post, skipping');
+      return false;
+    }
+    
+    const title = text.split('\n')[0].replace(/[#*_]/g, '').trim().substring(0, 60);
+    const slug = slugify(title) + '-' + Date.now().toString(36);
+    
+    const pendingPost = {
+      id: slug,
+      telegramMessageId: message.message_id,
+      telegramChatId: chat.id,
+      title: title,
+      text: text,
+      author: {
+        telegramId: from.id,
+        name: `${from.first_name || ''} ${from.last_name || ''}`.trim(),
+        username: from.username || null
+      },
+      date: new Date(message.date * 1000).toISOString(),
+      hasPhoto: !!message.photo,
+      photoFileId: message.photo ? message.photo[message.photo.length - 1].file_id : null,
+      status: 'pending',
+      createdAt: new Date().toISOString()
+    };
+    
+    pending.posts.unshift(pendingPost);
+    fs.writeFileSync(PENDING_POSTS_PATH, JSON.stringify(pending, null, 2), 'utf8');
+    
+    console.log(`✅ Blog post saved to pending: ${slug}`);
+    return true;
+  } catch (error) {
+    console.error('Error saving blog post:', error);
+    return false;
+  }
+}
 
 /**
  * Send message via Telegram Bot API
@@ -67,12 +154,47 @@ async function handleWebhook(req, res) {
       return res.sendStatus(200);
     }
     
-    const chatId = update.message.chat.id;
-    const text = update.message.text || '';
-    const firstName = update.message.from.first_name || '';
-    const username = update.message.from.username || '';
+    const message = update.message;
+    const chat = message.chat;
+    const chatId = chat.id;
+    const chatType = chat.type; // 'private', 'group', 'supergroup'
+    const text = message.text || message.caption || '';
+    const from = message.from;
+    const firstName = from.first_name || '';
+    const username = from.username || '';
     
-    console.log(`Telegram message from ${firstName} (@${username}): ${text}`);
+    console.log(`Telegram message from ${firstName} (@${username}) in ${chatType}: ${text.substring(0, 50)}...`);
+    
+    // ========================================
+    // BLOG INTEGRATION: Handle group messages
+    // ========================================
+    if (chatType === 'group' || chatType === 'supergroup') {
+      // Check if this is the target group (if specified)
+      if (TELEGRAM_BLOG_GROUP_ID && chatId.toString() !== TELEGRAM_BLOG_GROUP_ID) {
+        return res.sendStatus(200);
+      }
+      
+      // Check if sender is an admin
+      const isAdmin = TELEGRAM_BLOG_ADMIN_IDS.length === 0 || TELEGRAM_BLOG_ADMIN_IDS.includes(from.id);
+      
+      // Check minimum length
+      const hasMinLength = text.length >= MIN_BLOG_POST_LENGTH;
+      
+      // Check for exclusion hashtag
+      const isExcluded = text.includes('#noblog') || text.includes('#нетблог');
+      
+      if (isAdmin && hasMinLength && !isExcluded) {
+        saveBlogPostToPending(message);
+        console.log(`📝 Blog post from admin ${firstName} saved to pending`);
+      }
+      
+      // Don't respond to group messages
+      return res.sendStatus(200);
+    }
+    
+    // ========================================
+    // PRIVATE CHAT: Handle bot commands
+    // ========================================
     
     // Handle /start command with deep link
     if (text.startsWith('/start')) {
@@ -103,6 +225,9 @@ async function handleWebhook(req, res) {
     }
     else if (text === '/status') {
       await sendStatusMessage(chatId);
+    }
+    else if (text === '/myid') {
+      await sendTelegramMessage(chatId, `🆔 Ваш Chat ID: <code>${chatId}</code>\n\nИспользуйте этот ID для настройки уведомлений администратора.`);
     }
     else {
       await sendUnknownCommandMessage(chatId);
@@ -577,6 +702,30 @@ async function notifyNewListingToCategory(data) {
 }
 
 /**
+ * Send notification to admin about new portfolio photos for moderation
+ */
+async function notifyAdminPortfolioModeration(data) {
+  if (!TELEGRAM_ADMIN_CHAT_ID) {
+    console.log('⚠️ TELEGRAM_ADMIN_CHAT_ID not set, skipping admin notification');
+    return false;
+  }
+  
+  const { userId, userName, photosCount, profileUrl, consoleUrl } = data;
+  
+  const message = `📸 <b>Новые фото на модерацию!</b>
+
+👤 Пользователь: <b>${userName}</b>
+🖼 Фото: ${photosCount} шт.
+
+<a href="${profileUrl}">Профиль пользователя →</a>
+<a href="${consoleUrl}">Открыть Console →</a>
+
+⏰ Ожидает модерации`;
+
+  return await sendTelegramMessage(TELEGRAM_ADMIN_CHAT_ID, message);
+}
+
+/**
  * Setup Telegram webhook
  */
 async function setupWebhook(webhookUrl) {
@@ -612,6 +761,7 @@ module.exports = {
   notifyNewMessage,
   notifyNewListing,
   notifyNewListingToCategory,
+  notifyAdminPortfolioModeration,
   getExecutorsWithTelegramByCategory,
   sendTelegramMessage,
   getUserTelegramChatId,

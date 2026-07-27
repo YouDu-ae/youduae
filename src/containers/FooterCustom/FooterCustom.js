@@ -40,7 +40,7 @@ const FooterCustom = () => {
           <NamedLink name="PrivacyPolicyPage" className={css.col2Item}>
             <FormattedMessage id="FooterCustom.contacts" />
           </NamedLink>
-          <NamedLink name="PrivacyPolicyPage" className={css.col2Item}>
+          <NamedLink name="BlogPage" className={css.col2Item}>
             <FormattedMessage id="TopbarCustom.blog" />
           </NamedLink>
         </div>

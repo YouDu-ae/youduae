@@ -1,0 +1,67 @@
+{
+  "categories": [
+    {
+      "id": "all",
+      "name": {
+        "ru": "Все статьи",
+        "en": "All Articles"
+      }
+    },
+    {
+      "id": "telegram-news",
+      "name": {
+        "ru": "Телеграм новости",
+        "en": "Telegram News"
+      },
+      "description": {
+        "ru": "Новости проекта YouDu ОАЭ из Telegram-канала",
+        "en": "YouDu UAE project news from Telegram channel"
+      }
+    },
+    {
+      "id": "cases",
+      "name": {
+        "ru": "Реальные проекты",
+        "en": "Real Projects"
+      },
+      "description": {
+        "ru": "Кейсы завершённых работ с фото, бюджетом и отзывами",
+        "en": "Case studies with photos, budgets and reviews"
+      }
+    },
+    {
+      "id": "client-guide",
+      "name": {
+        "ru": "Гид клиента",
+        "en": "Client Guide"
+      },
+      "description": {
+        "ru": "Практические советы по выбору услуг и специалистов",
+        "en": "Practical tips for choosing services and specialists"
+      }
+    },
+    {
+      "id": "specialist-guide",
+      "name": {
+        "ru": "Гид специалиста",
+        "en": "Specialist Guide"
+      },
+      "description": {
+        "ru": "Как успешно работать на YouDu и привлекать клиентов",
+        "en": "How to work successfully on YouDu and attract clients"
+      }
+    },
+    {
+      "id": "uae-life",
+      "name": {
+        "ru": "Жизнь в ОАЭ",
+        "en": "Life in UAE"
+      },
+      "description": {
+        "ru": "Полезная информация о жизни в Эмиратах",
+        "en": "Useful information about life in the Emirates"
+      }
+    }
+  ],
+  "articles": []
+}
