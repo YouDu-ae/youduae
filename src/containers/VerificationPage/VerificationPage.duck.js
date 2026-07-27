@@ -115,6 +115,21 @@ export const uploadVerificationDocuments = (files, documentType) => (dispatch, g
       dispatch(uploadDocumentsSuccess());
       // Refresh current user data to get updated protectedData
       dispatch(fetchCurrentUser());
+      
+      // Send Telegram notification to admin
+      const currentUser = getState()?.user?.currentUser;
+      fetch('/api/notify-verification', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: currentUserId,
+          userName: currentUser?.attributes?.profile?.displayName,
+          userEmail: currentUser?.attributes?.email,
+          documentType,
+          documentsCount: files.length,
+        }),
+      }).catch(err => console.error('Failed to send verification notification:', err));
+      
       return response;
     })
     .catch(e => {

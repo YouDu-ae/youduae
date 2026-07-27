@@ -34,6 +34,7 @@ const { handler: sendNotification } = require('./api/send-notification');
 const notifyNewMessage = require('./api/notify-new-message');
 const notifyNewReview = require('./api/notify-new-review');
 const notifyPortfolioModeration = require('./api/notify-portfolio-moderation');
+const notifyVerification = require('./api/notify-verification');
 const updatePresence = require('./api/update-presence');
 const presenceBatch = require('./api/presence-batch');
 const placesProxy = require('./api/places-proxy');
@@ -115,6 +116,7 @@ router.post('/send-notification', sendNotification);
 router.post('/notify-new-message', notifyNewMessage);
 router.post('/notify-new-review', notifyNewReview);
 router.post('/notify-portfolio-moderation', notifyPortfolioModeration);
+router.post('/notify-verification', notifyVerification);
 router.post('/update-presence', updatePresence);
 router.get('/presence-batch', presenceBatch);
 
