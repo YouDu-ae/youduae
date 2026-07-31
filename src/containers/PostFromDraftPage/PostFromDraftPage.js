@@ -43,16 +43,25 @@ const PostFromDraftPage = ({ onCreateListing, onPublishListing, onUpdateListing,
 
         // Prepare geolocation (optional for free-listing)
         const geolocationMaybe = {};
-        if (location?.latlng?.lat && location?.latlng?.lng) {
+        // Check multiple possible locations for lat/lng (different API formats)
+        const origin = location?.selectedPlace?.origin || location?.origin || location?.latlng;
+        const lat = origin?.lat;
+        const lng = origin?.lng;
+        
+        console.log('📍 Location data:', { location, origin, lat, lng });
+        
+        if (lat && lng) {
           try {
             geolocationMaybe.geolocation = new sdkTypes.LatLng(
-              parseFloat(location.latlng.lat), 
-              parseFloat(location.latlng.lng)
+              parseFloat(lat), 
+              parseFloat(lng)
             );
             console.log('✅ Geolocation created:', geolocationMaybe.geolocation);
           } catch (e) {
             console.warn('⚠️ Failed to create geolocation, continuing without it:', e);
           }
+        } else {
+          console.warn('⚠️ No geolocation data found in location object');
         }
 
         // Prepare price (optional for free-listing)
@@ -67,6 +76,10 @@ const PostFromDraftPage = ({ onCreateListing, onPublishListing, onUpdateListing,
           }
         }
 
+        // Prepare location data for publicData
+        const address = location?.selectedPlace?.address || location?.address || '';
+        const locationPublicData = address ? { location: { address } } : {};
+
         const createParams = {
           title,
           description: description || 'Описание задания',
@@ -77,6 +90,7 @@ const PostFromDraftPage = ({ onCreateListing, onPublishListing, onUpdateListing,
             listingType: 'free-listing',
             transactionProcessAlias: 'assignment-flow-v3/release-1',
             unitType: 'item',
+            ...locationPublicData,
           },
           ...geolocationMaybe,
           ...priceMaybe,

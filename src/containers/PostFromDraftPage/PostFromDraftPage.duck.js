@@ -94,23 +94,74 @@ export const uploadImageRequest = requestAction(UPLOAD_IMAGE_REQUEST);
 export const uploadImageSuccess = successAction(UPLOAD_IMAGE_SUCCESS);
 export const uploadImageError = errorAction(UPLOAD_IMAGE_ERROR);
 
+// ================ Helper functions ================ //
+
+const generateListingPublicId = async () => {
+  try {
+    const response = await fetch('/api/listing/generate-id', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    const data = await response.json();
+    console.log('🔢 Generated public ID:', data.publicId);
+    return data.publicId;
+  } catch (error) {
+    console.error('Failed to generate listing public ID:', error);
+    return null;
+  }
+};
+
+const saveListingIdMapping = async (publicId, sharetribeUuid) => {
+  try {
+    await fetch('/api/listing/save-mapping', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ publicId, sharetribeUuid }),
+    });
+    console.log('✅ Saved listing ID mapping:', publicId, '->', sharetribeUuid);
+  } catch (error) {
+    console.error('Failed to save listing ID mapping:', error);
+  }
+};
+
 // ================ Thunks ================ //
 
-export const createListingDraft = params => (dispatch, getState, sdk) => {
+export const createListingDraft = params => async (dispatch, getState, sdk) => {
   dispatch(createListingDraftRequest(params));
 
-  return sdk.ownListings
-    .create(params)
-    .then(response => {
-      dispatch(addMarketplaceEntities(response));
-      dispatch(createListingDraftSuccess(response));
-      trackListingCreated(response?.data?.data, { stage: 'draft' });
-      return response;
-    })
-    .catch(e => {
-      dispatch(createListingDraftError(storableError(e)));
-      throw e;
-    });
+  try {
+    // Generate public ID for the listing (YD-00001 format)
+    const publicId = await generateListingPublicId();
+    console.log('🔢 Public ID for guest listing:', publicId);
+
+    // Add publicId to publicData if generated
+    const paramsWithId = publicId
+      ? {
+          ...params,
+          publicData: {
+            ...params.publicData,
+            publicId,
+          },
+        }
+      : params;
+
+    const response = await sdk.ownListings.create(paramsWithId);
+    
+    dispatch(addMarketplaceEntities(response));
+    dispatch(createListingDraftSuccess(response));
+    trackListingCreated(response?.data?.data, { stage: 'draft' });
+
+    // Save mapping between publicId and Sharetribe UUID
+    const listingId = response?.data?.data?.id?.uuid;
+    if (publicId && listingId) {
+      saveListingIdMapping(publicId, listingId);
+    }
+
+    return response;
+  } catch (e) {
+    dispatch(createListingDraftError(storableError(e)));
+    throw e;
+  }
 };
 
 export const publishListingDraft = params => (dispatch, getState, sdk) => {
