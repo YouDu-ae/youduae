@@ -97,9 +97,12 @@ export const getPlacePredictions = async (search, sessionToken, searchConfigurat
       suggestions,
     } = await google.maps.places.AutocompleteSuggestion.fetchAutocompleteSuggestions(request);
 
+    // Filter only place predictions (exclude query suggestions that don't have placePrediction)
+    const placePredictions = (suggestions || []).filter(s => s.placePrediction);
+
     return {
       search,
-      predictions: suggestions || [],
+      predictions: placePredictions,
     };
   } catch (error) {
     if (isDev) {

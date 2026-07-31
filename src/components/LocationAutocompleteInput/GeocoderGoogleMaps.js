@@ -70,7 +70,12 @@ class GeocoderGoogleMaps {
       // default prediction defined above
       return prediction.id;
     }
-    return prediction.placePrediction.placeId;
+    // Check if placePrediction exists (Google API may return query suggestions without it)
+    if (prediction.placePrediction?.placeId) {
+      return prediction.placePrediction.placeId;
+    }
+    // Fallback for old API format or missing data
+    return prediction.place_id || prediction.placeId || null;
   }
 
   /**
@@ -81,9 +86,12 @@ class GeocoderGoogleMaps {
       // default prediction defined above
       return prediction.predictionPlace.address;
     }
-    // prediction from Google Maps Places API
-
-    return prediction.placePrediction.text.text;
+    // Check if placePrediction exists
+    if (prediction.placePrediction?.text?.text) {
+      return prediction.placePrediction.text.text;
+    }
+    // Fallback for old API format or missing data
+    return prediction.description || prediction.text || '';
   }
 
   /**
