@@ -188,7 +188,7 @@ export const ListingCard = props => {
   const authorName = author.attributes.profile.displayName;
   const isAuthorVerified = author?.attributes?.profile?.publicData?.isVerified;
 
-  const { listingType, cardStyle } = publicData || {};
+  const { listingType, cardStyle, publicId } = publicData || {};
   const validListingTypes = config.listing.listingTypes;
   const foundListingTypeConfig = validListingTypes.find(conf => conf.listingType === listingType);
   const showListingImage = requireListingImage(foundListingTypeConfig);
@@ -222,13 +222,16 @@ export const ListingCard = props => {
         showListingImage={showListingImage}
       />
       <div className={css.info}>
-        <PriceMaybe
-          price={price}
-          publicData={publicData}
-          config={config}
-          intl={intl}
-          listingTypeConfig={foundListingTypeConfig}
-        />
+        <div className={css.priceRow}>
+          <PriceMaybe
+            price={price}
+            publicData={publicData}
+            config={config}
+            intl={intl}
+            listingTypeConfig={foundListingTypeConfig}
+          />
+          {publicId && <span className={css.publicId}>{publicId}</span>}
+        </div>
         <div className={css.mainInfo}>
           {showListingImage && (
             <div className={css.title}>
