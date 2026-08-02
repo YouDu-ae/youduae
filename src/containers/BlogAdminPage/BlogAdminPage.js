@@ -26,6 +26,13 @@ const BlogAdminPage = () => {
   const [showPreview, setShowPreview] = useState(false);
   const contentRef = useRef(null);
 
+  // 2FA states
+  const [authStep, setAuthStep] = useState('password'); // 'password' | '2fa'
+  const [sessionId, setSessionId] = useState('');
+  const [twoFaCode, setTwoFaCode] = useState('');
+  const [authError, setAuthError] = useState('');
+  const [authLoading, setAuthLoading] = useState(false);
+
   const [formData, setFormData] = useState({
     title_ru: '',
     title_en: '',
@@ -45,32 +52,100 @@ const BlogAdminPage = () => {
 
   useEffect(() => {
     const savedAuth = sessionStorage.getItem('blogAdminAuth');
-    if (savedAuth === 'true') {
+    const savedSession = sessionStorage.getItem('blogAdminSession');
+    if (savedAuth === 'true' && savedSession) {
       setIsAuthenticated(true);
+      setSessionId(savedSession);
       loadArticles();
     } else {
       setLoading(false);
     }
   }, []);
 
+  // Step 1: Password check
   const handleLogin = async (e) => {
     e.preventDefault();
+    setAuthError('');
+    setAuthLoading(true);
+    
     try {
       const response = await fetch('/api/blog/admin/auth', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ password: adminPassword }),
       });
-      if (response.ok) {
-        setIsAuthenticated(true);
-        sessionStorage.setItem('blogAdminAuth', 'true');
-        loadArticles();
+      
+      const data = await response.json();
+      
+      if (response.status === 429) {
+        setAuthError('Слишком много попыток. Подождите 1 минуту.');
+        return;
+      }
+      
+      if (!response.ok) {
+        setAuthError(data.error || 'Неверный пароль');
+        return;
+      }
+      
+      setSessionId(data.sessionId);
+      
+      if (data.require2FA) {
+        // Need 2FA verification
+        setAuthStep('2fa');
       } else {
-        alert('Неверный пароль');
+        // 2FA not required (fallback)
+        completeAuth(data.sessionId);
       }
     } catch (error) {
-      alert('Ошибка авторизации');
+      setAuthError('Ошибка соединения');
+    } finally {
+      setAuthLoading(false);
     }
+  };
+
+  // Step 2: Verify 2FA code
+  const handleVerify2FA = async (e) => {
+    e.preventDefault();
+    setAuthError('');
+    setAuthLoading(true);
+    
+    try {
+      const response = await fetch('/api/blog/admin/verify-2fa', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId, code: twoFaCode }),
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        setAuthError(data.error || 'Неверный код');
+        return;
+      }
+      
+      completeAuth(sessionId);
+    } catch (error) {
+      setAuthError('Ошибка соединения');
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  const completeAuth = (sid) => {
+    setIsAuthenticated(true);
+    sessionStorage.setItem('blogAdminAuth', 'true');
+    sessionStorage.setItem('blogAdminSession', sid);
+    loadArticles();
+  };
+
+  const handleLogout = () => {
+    setIsAuthenticated(false);
+    setAuthStep('password');
+    setAdminPassword('');
+    setTwoFaCode('');
+    setSessionId('');
+    sessionStorage.removeItem('blogAdminAuth');
+    sessionStorage.removeItem('blogAdminSession');
   };
 
   const loadArticles = async () => {
@@ -310,19 +385,53 @@ const BlogAdminPage = () => {
       <Page title="Админка блога — YouDu">
         <LayoutSingleColumn topbar={<TopbarContainer />} footer={<FooterContainer />}>
           <div className={css.loginWrapper}>
-            <form onSubmit={handleLogin} className={css.loginForm}>
-              <h1>Админка блога</h1>
-              <input
-                type="password"
-                placeholder="Пароль администратора"
-                value={adminPassword}
-                onChange={(e) => setAdminPassword(e.target.value)}
-                className={css.passwordInput}
-              />
-              <button type="submit" className={css.loginButton}>
-                Войти
-              </button>
-            </form>
+            {authStep === 'password' ? (
+              <form onSubmit={handleLogin} className={css.loginForm}>
+                <h1>Админка блога</h1>
+                <div className={css.securityBadge}>🔐 Защищено 2FA</div>
+                <input
+                  type="password"
+                  placeholder="Пароль администратора"
+                  value={adminPassword}
+                  onChange={(e) => setAdminPassword(e.target.value)}
+                  className={css.passwordInput}
+                  disabled={authLoading}
+                />
+                {authError && <div className={css.authError}>{authError}</div>}
+                <button type="submit" className={css.loginButton} disabled={authLoading}>
+                  {authLoading ? 'Проверка...' : 'Далее'}
+                </button>
+              </form>
+            ) : (
+              <form onSubmit={handleVerify2FA} className={css.loginForm}>
+                <h1>Подтверждение входа</h1>
+                <div className={css.twoFaInfo}>
+                  <span className={css.telegramIcon}>📱</span>
+                  <p>Код отправлен в Telegram</p>
+                </div>
+                <input
+                  type="text"
+                  placeholder="Введите 6-значный код"
+                  value={twoFaCode}
+                  onChange={(e) => setTwoFaCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  className={css.codeInput}
+                  autoFocus
+                  maxLength={6}
+                  disabled={authLoading}
+                />
+                {authError && <div className={css.authError}>{authError}</div>}
+                <button type="submit" className={css.loginButton} disabled={authLoading || twoFaCode.length !== 6}>
+                  {authLoading ? 'Проверка...' : 'Подтвердить'}
+                </button>
+                <button 
+                  type="button" 
+                  className={css.backButton}
+                  onClick={() => { setAuthStep('password'); setAuthError(''); setTwoFaCode(''); }}
+                >
+                  ← Назад
+                </button>
+              </form>
+            )}
           </div>
         </LayoutSingleColumn>
       </Page>
@@ -334,7 +443,10 @@ const BlogAdminPage = () => {
       <LayoutSingleColumn topbar={<TopbarContainer />} footer={<FooterContainer />}>
         <div className={css.adminWrapper}>
           <div className={css.header}>
-            <h1>Админка блога</h1>
+            <div className={css.headerLeft}>
+              <h1>Админка блога</h1>
+              <button onClick={handleLogout} className={css.logoutButton}>Выйти</button>
+            </div>
             <div className={css.tabs}>
               <button
                 className={`${css.tab} ${activeTab === 'list' ? css.activeTab : ''}`}

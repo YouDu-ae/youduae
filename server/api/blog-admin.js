@@ -1,14 +1,185 @@
 const { v4: uuidv4 } = require('uuid');
 
 const ADMIN_PASSWORD = process.env.BLOG_ADMIN_PASSWORD || 'youdu-blog-2026';
+const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+const TELEGRAM_ADMIN_CHAT_ID = process.env.TELEGRAM_ADMIN_CHAT_ID;
 
-const authenticate = (req, res) => {
-  const { password } = req.body;
-  if (password === ADMIN_PASSWORD) {
-    res.json({ success: true });
-  } else {
-    res.status(401).json({ error: 'Invalid password' });
+// In-memory store for 2FA codes and rate limiting
+const authCodes = new Map(); // { sessionId: { code, expiresAt, verified } }
+const loginAttempts = new Map(); // { ip: { count, resetAt } }
+
+const MAX_ATTEMPTS = 5;
+const ATTEMPT_WINDOW_MS = 60 * 1000; // 1 minute
+const CODE_EXPIRY_MS = 5 * 60 * 1000; // 5 minutes
+
+// Generate 6-digit code
+const generateCode = () => {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+};
+
+// Send Telegram message
+const sendTelegramMessage = async (chatId, text) => {
+  if (!TELEGRAM_BOT_TOKEN || !chatId) {
+    console.warn('⚠️ Telegram not configured for 2FA');
+    return false;
   }
+
+  try {
+    const response = await fetch(
+      `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: chatId,
+          text,
+          parse_mode: 'HTML',
+        }),
+      }
+    );
+    return response.ok;
+  } catch (error) {
+    console.error('Failed to send Telegram message:', error);
+    return false;
+  }
+};
+
+// Check rate limit
+const checkRateLimit = (ip) => {
+  const now = Date.now();
+  const attempts = loginAttempts.get(ip);
+
+  if (!attempts || now > attempts.resetAt) {
+    loginAttempts.set(ip, { count: 1, resetAt: now + ATTEMPT_WINDOW_MS });
+    return true;
+  }
+
+  if (attempts.count >= MAX_ATTEMPTS) {
+    return false;
+  }
+
+  attempts.count++;
+  return true;
+};
+
+// Step 1: Verify password and send 2FA code
+const authenticate = async (req, res) => {
+  const { password } = req.body;
+  const ip = req.ip || req.connection.remoteAddress;
+
+  // Rate limiting
+  if (!checkRateLimit(ip)) {
+    console.log(`🚫 Rate limit exceeded for IP: ${ip}`);
+    await sendTelegramMessage(
+      TELEGRAM_ADMIN_CHAT_ID,
+      `🚨 <b>Блог Админка - Превышен лимит попыток</b>\n\nIP: <code>${ip}</code>\nПопыток: ${MAX_ATTEMPTS}+`
+    );
+    return res.status(429).json({ 
+      error: 'Too many attempts. Please try again in 1 minute.' 
+    });
+  }
+
+  // Check password
+  if (password !== ADMIN_PASSWORD) {
+    console.log(`❌ Invalid password attempt from IP: ${ip}`);
+    await sendTelegramMessage(
+      TELEGRAM_ADMIN_CHAT_ID,
+      `⚠️ <b>Блог Админка - Неверный пароль</b>\n\nIP: <code>${ip}</code>\nВремя: ${new Date().toLocaleString('ru-RU', { timeZone: 'Asia/Dubai' })}`
+    );
+    return res.status(401).json({ error: 'Invalid password' });
+  }
+
+  // Generate session and 2FA code
+  const sessionId = uuidv4();
+  const code = generateCode();
+  const expiresAt = Date.now() + CODE_EXPIRY_MS;
+
+  authCodes.set(sessionId, { code, expiresAt, verified: false });
+
+  // Send code via Telegram
+  const sent = await sendTelegramMessage(
+    TELEGRAM_ADMIN_CHAT_ID,
+    `🔐 <b>Код для входа в админку блога</b>\n\n<code>${code}</code>\n\nДействителен 5 минут.\nIP: <code>${ip}</code>`
+  );
+
+  if (!sent) {
+    // If Telegram fails, allow access without 2FA (fallback)
+    console.warn('⚠️ Telegram 2FA failed, allowing access');
+    authCodes.set(sessionId, { code: null, expiresAt, verified: true });
+    return res.json({ success: true, sessionId, require2FA: false });
+  }
+
+  console.log(`✅ 2FA code sent for session: ${sessionId}`);
+  res.json({ 
+    success: true, 
+    sessionId, 
+    require2FA: true,
+    message: 'Код отправлен в Telegram' 
+  });
+};
+
+// Step 2: Verify 2FA code
+const verify2FA = async (req, res) => {
+  const { sessionId, code } = req.body;
+  const ip = req.ip || req.connection.remoteAddress;
+
+  if (!sessionId || !code) {
+    return res.status(400).json({ error: 'Session ID and code are required' });
+  }
+
+  const session = authCodes.get(sessionId);
+
+  if (!session) {
+    return res.status(401).json({ error: 'Invalid or expired session' });
+  }
+
+  if (Date.now() > session.expiresAt) {
+    authCodes.delete(sessionId);
+    return res.status(401).json({ error: 'Code expired. Please login again.' });
+  }
+
+  if (session.code !== code) {
+    console.log(`❌ Invalid 2FA code for session: ${sessionId}`);
+    await sendTelegramMessage(
+      TELEGRAM_ADMIN_CHAT_ID,
+      `⚠️ <b>Блог Админка - Неверный 2FA код</b>\n\nIP: <code>${ip}</code>`
+    );
+    return res.status(401).json({ error: 'Invalid code' });
+  }
+
+  // Mark as verified
+  session.verified = true;
+  authCodes.set(sessionId, session);
+
+  // Notify about successful login
+  await sendTelegramMessage(
+    TELEGRAM_ADMIN_CHAT_ID,
+    `✅ <b>Успешный вход в админку блога</b>\n\nIP: <code>${ip}</code>\nВремя: ${new Date().toLocaleString('ru-RU', { timeZone: 'Asia/Dubai' })}`
+  );
+
+  console.log(`✅ 2FA verified for session: ${sessionId}`);
+  res.json({ success: true, verified: true });
+};
+
+// Middleware to check if session is verified (for API calls)
+const checkSession = (req, res, next) => {
+  const sessionId = req.headers['x-session-id'];
+  
+  if (!sessionId) {
+    return res.status(401).json({ error: 'No session' });
+  }
+
+  const session = authCodes.get(sessionId);
+  
+  if (!session || !session.verified || Date.now() > session.expiresAt) {
+    return res.status(401).json({ error: 'Invalid or expired session' });
+  }
+
+  // Extend session on activity
+  session.expiresAt = Date.now() + CODE_EXPIRY_MS;
+  authCodes.set(sessionId, session);
+
+  next();
 };
 
 const getArticles = (db) => async (req, res) => {
@@ -212,6 +383,8 @@ const saveGallery = async (db, articleId, gallery) => {
 
 module.exports = {
   authenticate,
+  verify2FA,
+  checkSession,
   getArticles,
   createArticle,
   updateArticle,

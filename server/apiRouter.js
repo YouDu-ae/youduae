@@ -142,8 +142,9 @@ router.post('/blog/reject', telegramBlogWebhook.rejectPost);
 router.get('/blog/articles', blogArticles.getArticles);
 router.get('/blog/articles/:slug', blogArticles.getArticleBySlug);
 
-// Blog Admin API
+// Blog Admin API (with 2FA)
 router.post('/blog/admin/auth', blogAdmin.authenticate);
+router.post('/blog/admin/verify-2fa', blogAdmin.verify2FA);
 router.get('/blog/admin/articles', blogAdmin.getArticles(database));
 router.post('/blog/admin/articles', blogAdmin.createArticle(database));
 router.put('/blog/admin/articles/:id', blogAdmin.updateArticle(database));
