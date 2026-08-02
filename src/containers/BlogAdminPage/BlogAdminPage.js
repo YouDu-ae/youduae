@@ -46,6 +46,7 @@ const BlogAdminPage = () => {
     gallery: [],
     read_time: 5,
     author_name: '',
+    keywords: '',
     featured: false,
     status: 'draft',
   });
@@ -359,6 +360,7 @@ const BlogAdminPage = () => {
       gallery: [],
       read_time: 5,
       author_name: '',
+      keywords: '',
       featured: false,
       status: 'draft',
     });
@@ -379,6 +381,7 @@ const BlogAdminPage = () => {
       gallery: article.gallery || [],
       read_time: article.read_time || 5,
       author_name: article.author_name || '',
+      keywords: article.keywords || '',
       featured: article.featured || false,
       status: article.status || 'draft',
     });
@@ -714,6 +717,17 @@ const BlogAdminPage = () => {
                       onChange={(e) => handleChange('author_name', e.target.value)}
                       placeholder="Алексей М."
                     />
+                  </div>
+
+                  <div className={css.formGroup}>
+                    <label>Ключевые слова (SEO)</label>
+                    <input
+                      type="text"
+                      value={formData.keywords}
+                      onChange={(e) => handleChange('keywords', e.target.value)}
+                      placeholder="ремонт, дубай, квартира"
+                    />
+                    <small>Через запятую, для поисковиков</small>
                   </div>
 
                   <div className={css.formGroup}>

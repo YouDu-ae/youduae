@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Helmet } from 'react-helmet-async';
 import { useParams } from 'react-router-dom';
 import { useIntl } from '../../util/reactIntl';
 import { Page, LayoutSingleColumn, NamedLink } from '../../components';
@@ -81,6 +82,8 @@ const BlogArticlePage = () => {
     'description': articleDescription,
     'image': `https://youdu.ae${article.image}`,
     'datePublished': article.createdAt,
+    'timeRequired': `PT${article.readTime || 5}M`,
+    'keywords': article.keywords || '',
     'author': article.author ? {
       '@type': 'Person',
       'name': article.author.name
@@ -145,6 +148,12 @@ const BlogArticlePage = () => {
       facebookImages={[{ url: `https://youdu.ae${article.image}` }]}
       twitterImages={[{ url: `https://youdu.ae${article.image}` }]}
     >
+      {/* Additional SEO meta tags */}
+      {article.keywords && (
+        <Helmet>
+          <meta name="keywords" content={article.keywords} />
+        </Helmet>
+      )}
       <LayoutSingleColumn
         topbar={<TopbarContainer />}
         footer={<FooterContainer />}

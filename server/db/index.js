@@ -33,12 +33,21 @@ const initDatabase = async () => {
         read_time INTEGER DEFAULT 2,
         author_name VARCHAR(255),
         author_avatar VARCHAR(500),
+        keywords TEXT,
         featured BOOLEAN DEFAULT FALSE,
         status VARCHAR(20) DEFAULT 'draft',
         telegram_message_id VARCHAR(100),
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
+      
+      -- Add keywords column if not exists (migration)
+      DO $$ 
+      BEGIN 
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='blog_articles' AND column_name='keywords') THEN
+          ALTER TABLE blog_articles ADD COLUMN keywords TEXT;
+        END IF;
+      END $$;
 
       CREATE TABLE IF NOT EXISTS blog_pending_posts (
         id VARCHAR(100) PRIMARY KEY,
@@ -199,6 +208,7 @@ const getArticleBySlug = async (slug) => {
     content: { ru: row.content_ru, en: row.content_en || row.content_ru },
     image: row.image,
     readTime: row.read_time,
+    keywords: row.keywords || '',
     author: row.author_name ? { name: row.author_name, avatar: row.author_avatar } : null,
     featured: row.featured,
     createdAt: row.created_at.toISOString().split('T')[0],

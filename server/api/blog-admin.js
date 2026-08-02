@@ -212,6 +212,7 @@ const createArticle = (db) => async (req, res) => {
       gallery,
       read_time,
       author_name,
+      keywords,
       featured,
       status,
     } = req.body;
@@ -270,13 +271,13 @@ const createArticle = (db) => async (req, res) => {
       INSERT INTO blog_articles (
         id, slug, category_id, title_ru, title_en, 
         description_ru, description_en, content_ru, content_en,
-        image, read_time, author_name, featured, status
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+        image, read_time, author_name, keywords, featured, status
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
       RETURNING *
     `, [
       id, finalSlug, category_id || 'cases', finalTitle, title_en || '',
       description_ru || '', description_en || '', content_ru || '', content_en || '',
-      image || '', read_time || 5, author_name || '', featured || false, status || 'draft'
+      image || '', read_time || 5, author_name || '', keywords || '', featured || false, status || 'draft'
     ]);
 
     if (gallery && gallery.length > 0) {
@@ -307,6 +308,7 @@ const updateArticle = (db) => async (req, res) => {
       gallery,
       read_time,
       author_name,
+      keywords,
       featured,
       status,
     } = req.body;
@@ -324,15 +326,16 @@ const updateArticle = (db) => async (req, res) => {
         image = $10,
         read_time = $11,
         author_name = $12,
-        featured = $13,
-        status = $14,
+        keywords = $13,
+        featured = $14,
+        status = $15,
         updated_at = CURRENT_TIMESTAMP
       WHERE id = $1
       RETURNING *
     `, [
       id, slug, category_id, title_ru, title_en || '',
       description_ru || '', description_en || '', content_ru || '', content_en || '',
-      image || '', read_time || 5, author_name || '', featured || false, status || 'draft'
+      image || '', read_time || 5, author_name || '', keywords || '', featured || false, status || 'draft'
     ]);
 
     if (result.rows.length === 0) {
