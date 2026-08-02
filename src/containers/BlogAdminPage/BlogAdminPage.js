@@ -23,6 +23,7 @@ const BlogAdminPage = () => {
   const [activeTab, setActiveTab] = useState('list');
   const [editingArticle, setEditingArticle] = useState(null);
   const [saveStatus, setSaveStatus] = useState(null);
+  const [showPreview, setShowPreview] = useState(false);
   const contentRef = useRef(null);
 
   const [formData, setFormData] = useState({
@@ -593,6 +594,13 @@ const BlogAdminPage = () => {
 
                   <div className={css.formActions}>
                     <button 
+                      type="button"
+                      onClick={() => setShowPreview(true)}
+                      className={css.previewButton}
+                    >
+                      👁 Предпросмотр
+                    </button>
+                    <button 
                       type="submit" 
                       className={css.saveButton}
                       disabled={saveStatus === 'saving'}
@@ -614,6 +622,73 @@ const BlogAdminPage = () => {
                 </div>
               </div>
             </form>
+          )}
+
+          {/* Preview Modal */}
+          {showPreview && (
+            <div className={css.previewOverlay} onClick={() => setShowPreview(false)}>
+              <div className={css.previewModal} onClick={(e) => e.stopPropagation()}>
+                <div className={css.previewHeader}>
+                  <h2>Предпросмотр статьи</h2>
+                  <button 
+                    className={css.previewClose}
+                    onClick={() => setShowPreview(false)}
+                  >
+                    ✕
+                  </button>
+                </div>
+                <div className={css.previewContent}>
+                  {/* Hero */}
+                  {formData.image && (
+                    <div 
+                      className={css.previewHero}
+                      style={{ backgroundImage: `linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.6)), url(${formData.image})` }}
+                    >
+                      <span className={css.previewCategory}>
+                        {CATEGORIES.find(c => c.id === formData.category_id)?.name}
+                      </span>
+                      <h1 className={css.previewTitle}>{formData.title_ru || 'Без заголовка'}</h1>
+                      <div className={css.previewMeta}>
+                        <span>{formData.read_time} мин чтения</span>
+                        {formData.author_name && <span> • {formData.author_name}</span>}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {!formData.image && (
+                    <div className={css.previewHeroNoImage}>
+                      <span className={css.previewCategory}>
+                        {CATEGORIES.find(c => c.id === formData.category_id)?.name}
+                      </span>
+                      <h1 className={css.previewTitle}>{formData.title_ru || 'Без заголовка'}</h1>
+                    </div>
+                  )}
+
+                  {/* Description */}
+                  {formData.description_ru && (
+                    <p className={css.previewDescription}>{formData.description_ru}</p>
+                  )}
+
+                  {/* Article Content */}
+                  <div 
+                    className={css.previewArticle}
+                    dangerouslySetInnerHTML={{ __html: formData.content_ru || '<p>Контент статьи пока пуст</p>' }}
+                  />
+
+                  {/* Gallery */}
+                  {formData.gallery && formData.gallery.length > 0 && (
+                    <div className={css.previewGallery}>
+                      <h3>Галерея</h3>
+                      <div className={css.previewGalleryGrid}>
+                        {formData.gallery.map((url, i) => (
+                          <img key={i} src={url} alt={`Фото ${i + 1}`} />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
           )}
         </div>
       </LayoutSingleColumn>
