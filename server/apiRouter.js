@@ -44,6 +44,8 @@ const blogArticles = require('./api/blog-articles');
 const viewedTransactions = require('./api/viewed-transactions');
 const listingId = require('./api/listing-id');
 const supportTickets = require('./api/support-tickets');
+const blogAdmin = require('./api/blog-admin');
+const database = require('./db');
 
 const createUserWithIdp = require('./api/auth/createUserWithIdp');
 const createUser = require('./api/auth/createUser');
@@ -139,6 +141,14 @@ router.post('/blog/reject', telegramBlogWebhook.rejectPost);
 // Blog articles API
 router.get('/blog/articles', blogArticles.getArticles);
 router.get('/blog/articles/:slug', blogArticles.getArticleBySlug);
+
+// Blog Admin API
+router.post('/blog/admin/auth', blogAdmin.authenticate);
+router.get('/blog/admin/articles', blogAdmin.getArticles(database));
+router.post('/blog/admin/articles', blogAdmin.createArticle(database));
+router.put('/blog/admin/articles/:id', blogAdmin.updateArticle(database));
+router.delete('/blog/admin/articles/:id', blogAdmin.deleteArticle(database));
+router.post('/blog/admin/articles/:id/publish', blogAdmin.publishArticle(database));
 
 // Viewed transactions (for syncing read/unread state across devices)
 router.get('/viewed-transactions', viewedTransactions.getViewedTransactions);

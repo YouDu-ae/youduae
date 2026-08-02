@@ -51,6 +51,7 @@ const BlogPage = loadable(() => import(/* webpackChunkName: "BlogPage" */ '../co
 const BlogArticlePage = loadable(() => import(/* webpackChunkName: "BlogArticlePage" */ '../containers/BlogArticlePage/BlogArticlePage'));
 const SupportPage = loadable(() => import(/* webpackChunkName: "SupportPage" */ '../containers/SupportPage/SupportPage'));
 const HelpPage = loadable(() => import(/* webpackChunkName: "HelpPage" */ '../containers/HelpPage/HelpPage'));
+const BlogAdminPage = loadable(() => import(/* webpackChunkName: "BlogAdminPage" */ '../containers/BlogAdminPage/BlogAdminPage'));
 
 // Styleguide helps you to review current components and develop new ones
 const StyleguidePage = loadable(() => import(/* webpackChunkName: "StyleguidePage" */ '../containers/StyleguidePage/StyleguidePage'));
@@ -401,6 +402,11 @@ const routeConfiguration = (layoutConfig, accessControlConfig) => {
       path: '/blog/:slug',
       name: 'BlogArticlePage',
       component: BlogArticlePage,
+    },
+    {
+      path: '/admin/blog',
+      name: 'BlogAdminPage',
+      component: BlogAdminPage,
     },
     {
       path: '/support',
