@@ -400,7 +400,7 @@ const BlogAdminPage = () => {
     }
   };
 
-  const handlePublish = async (articleId) => {
+  const handlePublishFromList = async (articleId) => {
     try {
       const response = await fetch(`/api/blog/admin/articles/${articleId}/publish`, {
         method: 'POST',
@@ -543,7 +543,7 @@ const BlogAdminPage = () => {
                               Ред.
                             </button>
                             {article.status !== 'published' && (
-                              <button onClick={() => handlePublish(article.id)} className={css.publishBtn}>
+                              <button onClick={() => handlePublishFromList(article.id)} className={css.publishBtn}>
                                 Опубл.
                               </button>
                             )}
