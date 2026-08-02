@@ -324,9 +324,10 @@ const BlogAdminPage = () => {
           }, 1500);
         }
       } else {
-        const error = await response.json();
+        const errorData = await response.json();
+        console.log('Save error:', errorData);
         setSaveStatus('error');
-        alert('Ошибка: ' + (error.message || 'Не удалось сохранить'));
+        alert('Ошибка: ' + (errorData.error || errorData.message || 'Не удалось сохранить'));
       }
     } catch (error) {
       setSaveStatus('error');

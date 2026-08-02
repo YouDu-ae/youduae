@@ -197,6 +197,8 @@ const getArticles = (db) => async (req, res) => {
 
 const createArticle = (db) => async (req, res) => {
   try {
+    console.log('📝 Creating article, body:', JSON.stringify(req.body, null, 2));
+    
     const {
       title_ru,
       title_en,
@@ -215,6 +217,7 @@ const createArticle = (db) => async (req, res) => {
     } = req.body;
 
     if (!title_ru || !slug) {
+      console.log('❌ Validation failed: title_ru=', title_ru, 'slug=', slug);
       return res.status(400).json({ error: 'Title and slug are required' });
     }
 
