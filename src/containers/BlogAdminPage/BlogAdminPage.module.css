@@ -459,14 +459,97 @@
   color: #333;
 }
 
+/* Status Indicator */
+.statusIndicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #555;
+}
+
+.statusDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.statusDraft {
+  background: #ffc107;
+}
+
+.statusPublished {
+  background: #28a745;
+}
+
+.editingInfo {
+  color: #999;
+  font-size: 12px;
+}
+
+.savedNotice {
+  background: #d4edda;
+  color: #155724;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  text-align: center;
+}
+
 /* Form Actions */
 .formActions {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
   margin-top: 20px;
   padding-top: 20px;
   border-top: 1px solid #eee;
+}
+
+.saveDraftButton {
+  padding: 14px 24px;
+  background: #e3f2fd;
+  border: 1px solid #1976d2;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #1976d2;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.saveDraftButton:hover:not(:disabled) {
+  background: #bbdefb;
+}
+
+.saveDraftButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.publishButton {
+  padding: 14px 24px;
+  background: #28a745;
+  border: none;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  color: white;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.publishButton:hover:not(:disabled) {
+  background: #218838;
+}
+
+.publishButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .saveButton {
@@ -496,6 +579,7 @@
   border-radius: 8px;
   font-size: 14px;
   cursor: pointer;
+  text-align: center;
 }
 
 .cancelButton:hover {

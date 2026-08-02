@@ -275,11 +275,17 @@ const BlogAdminPage = () => {
     }));
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e, publishAfterSave = false) => {
     e.preventDefault();
     setSaveStatus('saving');
 
     try {
+      // Ensure status is draft unless publishing
+      const dataToSave = {
+        ...formData,
+        status: publishAfterSave ? 'published' : 'draft',
+      };
+
       const url = editingArticle 
         ? `/api/blog/admin/articles/${editingArticle.id}`
         : '/api/blog/admin/articles';
@@ -289,17 +295,34 @@ const BlogAdminPage = () => {
       const response = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(dataToSave),
       });
 
       if (response.ok) {
+        const result = await response.json();
         setSaveStatus('saved');
         loadArticles();
+        
+        // Update editingArticle to keep editing the same article
+        if (!editingArticle && result.article) {
+          setEditingArticle(result.article);
+        }
+        
+        // Update formData with saved status
+        setFormData(prev => ({ ...prev, status: dataToSave.status }));
+        
+        // Show saved status briefly, then clear
         setTimeout(() => {
-          setActiveTab('list');
-          resetForm();
           setSaveStatus(null);
-        }, 1500);
+        }, 2000);
+
+        // If publishing, go back to list
+        if (publishAfterSave) {
+          setTimeout(() => {
+            setActiveTab('list');
+            resetForm();
+          }, 1500);
+        }
       } else {
         const error = await response.json();
         setSaveStatus('error');
@@ -308,6 +331,16 @@ const BlogAdminPage = () => {
     } catch (error) {
       setSaveStatus('error');
       alert('Ошибка сохранения: ' + error.message);
+    }
+  };
+
+  const handleSaveDraft = (e) => {
+    handleSubmit(e, false);
+  };
+
+  const handlePublish = (e) => {
+    if (confirm('Опубликовать статью? Она станет видна на сайте.')) {
+      handleSubmit(e, true);
     }
   };
 
@@ -693,16 +726,20 @@ const BlogAdminPage = () => {
                     </label>
                   </div>
 
-                  <div className={css.formGroup}>
-                    <label>Статус</label>
-                    <select
-                      value={formData.status}
-                      onChange={(e) => handleChange('status', e.target.value)}
-                    >
-                      <option value="draft">Черновик</option>
-                      <option value="published">Опубликовано</option>
-                    </select>
+                  {/* Status indicator */}
+                  <div className={css.statusIndicator}>
+                    <span className={`${css.statusDot} ${formData.status === 'published' ? css.statusPublished : css.statusDraft}`}></span>
+                    {formData.status === 'published' ? 'Опубликовано' : 'Черновик'}
+                    {editingArticle && (
+                      <span className={css.editingInfo}> (редактирование)</span>
+                    )}
                   </div>
+
+                  {saveStatus === 'saved' && (
+                    <div className={css.savedNotice}>
+                      ✓ Сохранено
+                    </div>
+                  )}
 
                   <div className={css.formActions}>
                     <button 
@@ -712,24 +749,34 @@ const BlogAdminPage = () => {
                     >
                       👁 Предпросмотр
                     </button>
+                    
                     <button 
-                      type="submit" 
-                      className={css.saveButton}
+                      type="button"
+                      onClick={handleSaveDraft}
+                      className={css.saveDraftButton}
                       disabled={saveStatus === 'saving'}
                     >
-                      {saveStatus === 'saving' ? 'Сохранение...' : 
-                       saveStatus === 'saved' ? '✓ Сохранено!' :
-                       editingArticle ? 'Сохранить изменения' : 'Создать статью'}
+                      {saveStatus === 'saving' ? 'Сохранение...' : '💾 Сохранить черновик'}
                     </button>
-                    {editingArticle && (
+                    
+                    {formData.status !== 'published' && (
                       <button 
-                        type="button" 
-                        onClick={resetForm}
-                        className={css.cancelButton}
+                        type="button"
+                        onClick={handlePublish}
+                        className={css.publishButton}
+                        disabled={saveStatus === 'saving' || !formData.title_ru}
                       >
-                        Отмена
+                        🚀 Опубликовать
                       </button>
                     )}
+                    
+                    <button 
+                      type="button" 
+                      onClick={() => { resetForm(); setActiveTab('list'); }}
+                      className={css.cancelButton}
+                    >
+                      ← К списку
+                    </button>
                   </div>
                 </div>
               </div>
