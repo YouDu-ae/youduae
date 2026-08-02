@@ -184,7 +184,7 @@ const checkSession = (req, res, next) => {
 
 const getArticles = (db) => async (req, res) => {
   try {
-    const result = await db.query(`
+    const result = await db.pool.query(`
       SELECT * FROM blog_articles 
       ORDER BY created_at DESC
     `);
@@ -220,7 +220,7 @@ const createArticle = (db) => async (req, res) => {
 
     const id = slug || uuidv4();
     
-    const existingResult = await db.query(
+    const existingResult = await db.pool.query(
       'SELECT id FROM blog_articles WHERE slug = $1',
       [slug]
     );
@@ -229,7 +229,7 @@ const createArticle = (db) => async (req, res) => {
       return res.status(400).json({ error: 'Article with this slug already exists' });
     }
 
-    const result = await db.query(`
+    const result = await db.pool.query(`
       INSERT INTO blog_articles (
         id, slug, category_id, title_ru, title_en, 
         description_ru, description_en, content_ru, content_en,
@@ -274,7 +274,7 @@ const updateArticle = (db) => async (req, res) => {
       status,
     } = req.body;
 
-    const result = await db.query(`
+    const result = await db.pool.query(`
       UPDATE blog_articles SET
         slug = $2,
         category_id = $3,
@@ -318,8 +318,8 @@ const deleteArticle = (db) => async (req, res) => {
   try {
     const { id } = req.params;
 
-    await db.query('DELETE FROM blog_article_gallery WHERE article_id = $1', [id]);
-    const result = await db.query('DELETE FROM blog_articles WHERE id = $1 RETURNING id', [id]);
+    await db.pool.query('DELETE FROM blog_article_gallery WHERE article_id = $1', [id]);
+    const result = await db.pool.query('DELETE FROM blog_articles WHERE id = $1 RETURNING id', [id]);
 
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Article not found' });
@@ -337,7 +337,7 @@ const publishArticle = (db) => async (req, res) => {
   try {
     const { id } = req.params;
 
-    const result = await db.query(`
+    const result = await db.pool.query(`
       UPDATE blog_articles 
       SET status = 'published', updated_at = CURRENT_TIMESTAMP
       WHERE id = $1
@@ -358,7 +358,7 @@ const publishArticle = (db) => async (req, res) => {
 
 const saveGallery = async (db, articleId, gallery) => {
   try {
-    await db.query(`
+    await db.pool.query(`
       CREATE TABLE IF NOT EXISTS blog_article_gallery (
         id SERIAL PRIMARY KEY,
         article_id VARCHAR(100) REFERENCES blog_articles(id) ON DELETE CASCADE,
@@ -368,10 +368,10 @@ const saveGallery = async (db, articleId, gallery) => {
       )
     `);
 
-    await db.query('DELETE FROM blog_article_gallery WHERE article_id = $1', [articleId]);
+    await db.pool.query('DELETE FROM blog_article_gallery WHERE article_id = $1', [articleId]);
 
     for (let i = 0; i < gallery.length; i++) {
-      await db.query(
+      await db.pool.query(
         'INSERT INTO blog_article_gallery (article_id, image_url, sort_order) VALUES ($1, $2, $3)',
         [articleId, gallery[i], i]
       );
