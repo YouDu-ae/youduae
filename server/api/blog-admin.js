@@ -216,20 +216,54 @@ const createArticle = (db) => async (req, res) => {
       status,
     } = req.body;
 
-    if (!title_ru || !slug) {
-      console.log('❌ Validation failed: title_ru=', title_ru, 'slug=', slug);
-      return res.status(400).json({ error: 'Title and slug are required' });
+    // Auto-generate title from content if not provided
+    let finalTitle = title_ru;
+    if (!finalTitle && content_ru) {
+      const h2Match = content_ru.match(/<h2[^>]*>([^<]+)<\/h2>/i);
+      if (h2Match) {
+        finalTitle = h2Match[1].trim();
+      } else {
+        // Take first 100 chars of text content
+        finalTitle = content_ru.replace(/<[^>]+>/g, '').substring(0, 100).trim() || 'Без названия';
+      }
+      console.log('📝 Auto-generated title:', finalTitle);
     }
 
-    const id = slug || uuidv4();
+    // Auto-generate slug from title if not provided
+    let finalSlug = slug;
+    if (!finalSlug && finalTitle) {
+      finalSlug = finalTitle
+        .toLowerCase()
+        .replace(/[а-яё]/g, (char) => {
+          const map = {
+            'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'д': 'd', 'е': 'e', 'ё': 'yo',
+            'ж': 'zh', 'з': 'z', 'и': 'i', 'й': 'y', 'к': 'k', 'л': 'l', 'м': 'm',
+            'н': 'n', 'о': 'o', 'п': 'p', 'р': 'r', 'с': 's', 'т': 't', 'у': 'u',
+            'ф': 'f', 'х': 'h', 'ц': 'ts', 'ч': 'ch', 'ш': 'sh', 'щ': 'sch',
+            'ъ': '', 'ы': 'y', 'ь': '', 'э': 'e', 'ю': 'yu', 'я': 'ya'
+          };
+          return map[char] || char;
+        })
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '')
+        .substring(0, 100) + '-' + Date.now();
+      console.log('📝 Auto-generated slug:', finalSlug);
+    }
+
+    if (!finalTitle || !finalSlug) {
+      console.log('❌ Validation failed: title_ru=', finalTitle, 'slug=', finalSlug);
+      return res.status(400).json({ error: 'Заполните заголовок статьи или добавьте контент' });
+    }
+
+    const id = finalSlug;
     
     const existingResult = await db.pool.query(
       'SELECT id FROM blog_articles WHERE slug = $1',
-      [slug]
+      [finalSlug]
     );
 
     if (existingResult.rows.length > 0) {
-      return res.status(400).json({ error: 'Article with this slug already exists' });
+      return res.status(400).json({ error: 'Статья с таким slug уже существует. Измените заголовок.' });
     }
 
     const result = await db.pool.query(`
@@ -240,7 +274,7 @@ const createArticle = (db) => async (req, res) => {
       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
       RETURNING *
     `, [
-      id, slug, category_id || 'cases', title_ru, title_en || '',
+      id, finalSlug, category_id || 'cases', finalTitle, title_en || '',
       description_ru || '', description_en || '', content_ru || '', content_en || '',
       image || '', read_time || 5, author_name || '', featured || false, status || 'draft'
     ]);
