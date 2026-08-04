@@ -111,7 +111,11 @@ if (cspEnabled) {
 
   // When a CSP directive is violated, the browser posts a JSON body
   // to the defined report URL and we need to parse this body.
+  // Scoped to the report path only: a global JSON parser here would consume the
+  // request body before the /api/st proxy can stream it, making proxied POSTs
+  // hang until the upstream timeout.
   app.use(
+    cspReportUrl,
     bodyParser.json({
       type: ['json', 'application/csp-report'],
     })
