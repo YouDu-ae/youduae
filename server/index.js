@@ -212,10 +212,24 @@ if (!dev) {
 // a 3rd party identity provider (e.g. Facebook or Google)
 app.use(passport.initialize());
 
-// Increase payload size limit for guest listing creation with images (base64)
-// Default is 100kb, we need at least 50MB for multiple images
-app.use(bodyParser.json({ limit: '50mb' }));
-app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
+// Guest listing creation sends up to 8 client-compressed photos as base64 in
+// one JSON request. Compressed photos are a few hundred KB each, so 12MB leaves
+// generous headroom while keeping concurrent uploads from exhausting the dyno.
+app.use(bodyParser.json({ limit: '12mb' }));
+app.use(bodyParser.urlencoded({ limit: '12mb', extended: true }));
+
+// The parsers above reject oversized bodies before any route runs, so API
+// clients would otherwise receive an HTML error page they cannot parse.
+app.use((err, req, res, next) => {
+  const isTooLarge = err && (err.type === 'entity.too.large' || err.status === 413);
+  if (isTooLarge && req.path.startsWith('/api')) {
+    console.warn(`🚫 Payload too large: ${req.method} ${req.originalUrl}`);
+    return res.status(413).json({
+      error: 'Слишком большой запрос. Уменьшите количество или размер фотографий.',
+    });
+  }
+  return next(err);
+});
 
 // Server-side routes that do not render the application
 app.use('/api', apiRouter);

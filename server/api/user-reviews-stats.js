@@ -1,4 +1,12 @@
 const { getSdk, handleError, serialize } = require('../api-util/sdk');
+const { createCache } = require('../api-util/cache');
+
+const REVIEWS_CACHE_TTL_MS = 5 * 60 * 1000;
+
+// Public reviews depend only on the subject, so they are safe to share between
+// callers. The transaction query below is scoped to the requesting user's own
+// sales and must stay outside the cache.
+const reviewsCache = createCache({ ttlMs: REVIEWS_CACHE_TTL_MS, maxEntries: 200 });
 
 /**
  * Get review statistics for a user
@@ -13,14 +21,14 @@ module.exports = (req, res) => {
 
   const sdk = getSdk(req, res);
 
-  console.log('🔍 user-reviews-stats: loading reviews and completed tasks for user', userId);
-
   // Query reviews where this user is the subject (reviews about them)
-  const reviewsPromise = sdk.reviews.query({
-    subject_id: userId,
-    state: 'public',
-    perPage: 100, // Get all reviews to calculate average
-  });
+  const reviewsPromise = reviewsCache.get(userId, () =>
+    sdk.reviews.query({
+      subject_id: userId,
+      state: 'public',
+      perPage: 100, // Get all reviews to calculate average
+    })
+  );
 
   // Query transactions where this user is the provider and status is completed
   const transactionsPromise = sdk.transactions.query({
@@ -34,8 +42,6 @@ module.exports = (req, res) => {
       const { status, statusText } = reviewsResponse;
       const reviews = reviewsResponse.data.data || [];
       const transactions = transactionsResponse.data.data || [];
-      
-      console.log('✅ user-reviews-stats: loaded', reviews.length, 'reviews and', transactions.length, 'transactions');
 
       // Calculate average rating
       let totalRating = 0;
@@ -56,13 +62,6 @@ module.exports = (req, res) => {
         const providerId = tx.relationships?.provider?.data?.id?.uuid;
         return providerId === userId;
       }).length;
-      
-      console.log('📊 User stats:', {
-        userId,
-        reviewCount: count,
-        averageRating: averageRating.toFixed(2),
-        completedCount,
-      });
 
       res
         .status(status)

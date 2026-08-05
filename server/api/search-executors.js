@@ -1,5 +1,195 @@
 const sharetribeIntegrationSdk = require('sharetribe-flex-integration-sdk');
 const sharetribeSdk = require('sharetribe-flex-sdk');
+const { createCache } = require('../api-util/cache');
+
+const CACHE_TTL_MS = 5 * 60 * 1000;
+
+// Sharetribe caps the Integration API at 10 concurrent requests per IP, and the
+// whole app shares one dyno IP. Each executor costs two upstream calls, so keep
+// the fan-out well under that ceiling to leave room for other endpoints.
+const MAX_CONCURRENT_EXECUTOR_LOOKUPS = 4;
+
+const executorsCache = createCache({ ttlMs: CACHE_TTL_MS });
+
+const COMPLETED_TRANSITIONS = [
+  'transition/complete',
+  'transition/review-1-by-customer',
+  'transition/review-2-by-customer',
+  'transition/review-1-by-provider',
+  'transition/review-2-by-provider',
+];
+
+/** Runs `task` over `items`, keeping at most `limit` calls in flight. */
+const mapWithConcurrency = async (items, limit, task) => {
+  const results = new Array(items.length);
+  let nextIndex = 0;
+
+  const worker = async () => {
+    while (nextIndex < items.length) {
+      const index = nextIndex++;
+      results[index] = await task(items[index], index);
+    }
+  };
+
+  const workers = Array.from({ length: Math.min(limit, items.length) }, worker);
+  await Promise.all(workers);
+  return results;
+};
+
+/**
+ * Ranking order: verified with reviews, then verified only, then reviewed only,
+ * then by rating, and finally newest first.
+ */
+const compareExecutors = (a, b) => {
+  const aVerified = a.isVerified;
+  const bVerified = b.isVerified;
+  const aHasReviews = a.reviews.count > 0;
+  const bHasReviews = b.reviews.count > 0;
+
+  const aBoth = aVerified && aHasReviews;
+  const bBoth = bVerified && bHasReviews;
+
+  if (aBoth && !bBoth) return -1;
+  if (!aBoth && bBoth) return 1;
+
+  if (aBoth && bBoth) {
+    if (b.reviews.averageRating !== a.reviews.averageRating) {
+      return b.reviews.averageRating - a.reviews.averageRating;
+    }
+    if (b.reviews.count !== a.reviews.count) {
+      return b.reviews.count - a.reviews.count;
+    }
+  }
+
+  const aVerifiedOnly = aVerified && !aHasReviews;
+  const bVerifiedOnly = bVerified && !bHasReviews;
+
+  if (aVerifiedOnly && !bVerifiedOnly) return -1;
+  if (!aVerifiedOnly && bVerifiedOnly) return 1;
+
+  const aReviewsOnly = !aVerified && aHasReviews;
+  const bReviewsOnly = !bVerified && bHasReviews;
+
+  if (aReviewsOnly && !bReviewsOnly) return -1;
+  if (!aReviewsOnly && bReviewsOnly) return 1;
+
+  if (aReviewsOnly && bReviewsOnly) {
+    if (b.reviews.averageRating !== a.reviews.averageRating) {
+      return b.reviews.averageRating - a.reviews.averageRating;
+    }
+    if (b.reviews.count !== a.reviews.count) {
+      return b.reviews.count - a.reviews.count;
+    }
+  }
+
+  if (b.reviews.averageRating !== a.reviews.averageRating) {
+    return b.reviews.averageRating - a.reviews.averageRating;
+  }
+
+  return new Date(b.createdAt) - new Date(a.createdAt);
+};
+
+const buildExecutor = async ({ user, included, integrationSdk, marketplaceSdk }) => {
+  const profileImage = included.find(
+    item =>
+      item.type === 'image' &&
+      item.id.uuid === user.relationships?.profileImage?.data?.id?.uuid
+  );
+
+  let reviewCount = 0;
+  let averageRating = 0;
+  let completedTasksCount = 0;
+
+  try {
+    const reviewsResponse = await marketplaceSdk.reviews.query({
+      subjectId: user.id.uuid,
+      state: 'public',
+      perPage: 100,
+    });
+    const reviews = reviewsResponse.data.data;
+    reviewCount = reviews.length;
+    const totalRating = reviews.reduce((sum, review) => sum + (review.attributes.rating || 0), 0);
+    averageRating = reviewCount > 0 ? totalRating / reviewCount : 0;
+  } catch (err) {
+    console.error('❌ Error fetching reviews for user:', user.id.uuid, err.message);
+  }
+
+  // In YouDu terms a Sharetribe "customer" is the executor doing the work.
+  try {
+    const transactionsResponse = await integrationSdk.transactions.query({
+      customerId: user.id.uuid,
+      perPage: 100,
+    });
+    const allTx = transactionsResponse.data.data || [];
+    completedTasksCount = allTx.filter(tx =>
+      COMPLETED_TRANSITIONS.includes(tx.attributes.lastTransition)
+    ).length;
+  } catch (err) {
+    console.error('❌ Error fetching transactions for user:', user.id.uuid, err.message);
+  }
+
+  return {
+    id: user.id.uuid,
+    displayName: user.attributes.profile.displayName,
+    abbreviatedName: user.attributes.profile.abbreviatedName,
+    bio: user.attributes.profile.bio || '',
+    publicData: user.attributes.profile.publicData || {},
+    metadata: user.attributes.profile.metadata || {},
+    isVerified: user.attributes.profile.metadata?.isVerified === true,
+    createdAt: user.attributes.createdAt,
+    profileImage,
+    reviews: {
+      count: reviewCount,
+      averageRating: Math.round(averageRating * 10) / 10,
+    },
+    completedTasks: completedTasksCount,
+  };
+};
+
+const fetchExecutors = async category => {
+  const integrationSdk = sharetribeIntegrationSdk.createInstance({
+    clientId: process.env.INTEGRATION_API_CLIENT_ID,
+    clientSecret: process.env.INTEGRATION_API_CLIENT_SECRET,
+  });
+
+  const marketplaceSdk = sharetribeSdk.createInstance({
+    clientId: process.env.REACT_APP_SHARETRIBE_SDK_CLIENT_ID,
+    clientSecret: process.env.SHARETRIBE_SDK_CLIENT_SECRET,
+  });
+
+  const response = await integrationSdk.users.query({
+    include: ['profileImage'],
+    perPage: 100,
+  });
+
+  const users = response.data.data;
+  const included = response.data.included || [];
+
+  const filteredUsers = users.filter(user => {
+    const serviceCategories = user.attributes?.profile?.publicData?.serviceCategories;
+    return Array.isArray(serviceCategories) && serviceCategories.includes(category);
+  });
+
+  const executors = await mapWithConcurrency(
+    filteredUsers,
+    MAX_CONCURRENT_EXECUTOR_LOOKUPS,
+    user => buildExecutor({ user, included, integrationSdk, marketplaceSdk })
+  );
+
+  const sortedExecutors = executors.sort(compareExecutors);
+
+  console.log(
+    `🔍 Executors for "${category}": ${sortedExecutors.length} of ${users.length} users (cache miss)`
+  );
+
+  return {
+    data: sortedExecutors,
+    meta: {
+      totalCount: sortedExecutors.length,
+      category,
+    },
+  };
+};
 
 module.exports = (req, res) => {
   const { category } = req.query;
@@ -8,237 +198,30 @@ module.exports = (req, res) => {
     return res.status(400).json({ error: 'Category parameter is required' });
   }
 
-  console.log('🔍 Searching executors for category:', category);
-
-  const integrationClientId = process.env.INTEGRATION_API_CLIENT_ID;
-  const integrationClientSecret = process.env.INTEGRATION_API_CLIENT_SECRET;
-  const marketplaceClientId = process.env.REACT_APP_SHARETRIBE_SDK_CLIENT_ID;
-  const marketplaceClientSecret = process.env.SHARETRIBE_SDK_CLIENT_SECRET;
-
-  if (!integrationClientId || !integrationClientSecret) {
+  if (!process.env.INTEGRATION_API_CLIENT_ID || !process.env.INTEGRATION_API_CLIENT_SECRET) {
     return res.status(500).json({ error: 'Integration API credentials not configured' });
   }
 
-  try {
-    const integrationSdk = sharetribeIntegrationSdk.createInstance({
-      clientId: integrationClientId,
-      clientSecret: integrationClientSecret,
-    });
-
-    const marketplaceSdk = sharetribeSdk.createInstance({
-      clientId: marketplaceClientId,
-      clientSecret: marketplaceClientSecret,
-    });
-
-    // Получаем всех пользователей
-  integrationSdk.users
-    .query({
-      include: ['profileImage'],
-        perPage: 100,
-    })
-    .then(response => {
-      const users = response.data.data;
-      const included = response.data.included || [];
-
-        console.log(`📊 Total users: ${users.length}`);
-
-        // Фильтруем по категории
-        const filteredUsers = users.filter(user => {
-          const publicData = user.attributes?.profile?.publicData || {};
-          const serviceCategories = publicData.serviceCategories;
-          
-          if (Array.isArray(serviceCategories)) {
-            console.log(`👤 ${user.attributes?.profile?.displayName}: [${serviceCategories.join(', ')}]`);
-          }
-
-          return (
-            Array.isArray(serviceCategories) && 
-            serviceCategories.includes(category)
-          );
-        });
-
-        console.log(`✅ Filtered: ${filteredUsers.length} executors for "${category}"`);
-
-        // Для каждого пользователя получаем отзывы и выполненные задания
-        const userPromises = filteredUsers.map(async user => {
-          // Находим фото профиля
-          const profileImage = included.find(
-            item =>
-              item.type === 'image' &&
-              item.id.uuid === user.relationships?.profileImage?.data?.id?.uuid
-          );
-
-          let reviewCount = 0;
-          let averageRating = 0;
-          let completedTasksCount = 0;
-
-          // Получаем отзывы
-          try {
-            const reviewsResponse = await marketplaceSdk.reviews.query({
-              subjectId: user.id.uuid,
-              state: 'public',
-              perPage: 100,
-            });
-            const reviews = reviewsResponse.data.data;
-            reviewCount = reviews.length;
-            const totalRating = reviews.reduce((sum, review) => {
-              return sum + (review.attributes.rating || 0);
-            }, 0);
-            averageRating = reviewCount > 0 ? totalRating / reviewCount : 0;
-          } catch (err) {
-            console.error('❌ Error fetching reviews for user:', user.id.uuid, err.message);
-          }
-
-          // Получаем выполненные задания (транзакции где пользователь - исполнитель/customer)
-          // В YouDu: Provider = создатель задания, Customer = исполнитель
-          try {
-            const transactionsResponse = await integrationSdk.transactions.query({
-              customerId: user.id.uuid,
-              perPage: 100,
-            });
-            
-            // Фильтруем завершённые транзакции
-            const completedTransitions = [
-              'transition/complete',
-              'transition/review-1-by-customer',
-              'transition/review-2-by-customer',
-              'transition/review-1-by-provider',
-              'transition/review-2-by-provider',
-            ];
-            
-            const allTx = transactionsResponse.data.data || [];
-            completedTasksCount = allTx.filter(tx => 
-              completedTransitions.includes(tx.attributes.lastTransition)
-            ).length;
-            
-            console.log(`📋 User ${user.attributes.profile.displayName}: ${allTx.length} total tx, ${completedTasksCount} completed`);
-          } catch (err) {
-            console.error('❌ Error fetching transactions for user:', user.id.uuid, err.message);
-          }
-
-          return {
-            id: user.id.uuid,
-            displayName: user.attributes.profile.displayName,
-            abbreviatedName: user.attributes.profile.abbreviatedName,
-            bio: user.attributes.profile.bio || '',
-            publicData: user.attributes.profile.publicData || {},
-            metadata: user.attributes.profile.metadata || {},
-            isVerified: user.attributes.profile.metadata?.isVerified === true,
-            createdAt: user.attributes.createdAt,
-            profileImage: profileImage,
-            reviews: {
-              count: reviewCount,
-              averageRating: Math.round(averageRating * 10) / 10,
-            },
-            completedTasks: completedTasksCount,
-          };
-      });
-
-      return Promise.all(userPromises);
-    })
-    .then(executors => {
-        // Сортировка по приоритетам
-      const sortedExecutors = executors.sort((a, b) => {
-          // Проверяем наличие верификации
-          const aVerified = a.metadata?.isVerified === true;
-          const bVerified = b.metadata?.isVerified === true;
-          
-          // Проверяем наличие отзывов
-          const aHasReviews = a.reviews.count > 0;
-          const bHasReviews = b.reviews.count > 0;
-          
-          // 1️⃣ Группа: Верификация + Отзывы
-          const aBoth = aVerified && aHasReviews;
-          const bBoth = bVerified && bHasReviews;
-          
-          if (aBoth && !bBoth) return -1;
-          if (!aBoth && bBoth) return 1;
-          
-          // Если оба в группе 1 - сравниваем по рейтингу и количеству отзывов
-          if (aBoth && bBoth) {
-            if (b.reviews.averageRating !== a.reviews.averageRating) {
-              return b.reviews.averageRating - a.reviews.averageRating;
-            }
-            if (b.reviews.count !== a.reviews.count) {
-              return b.reviews.count - a.reviews.count;
-            }
-          }
-          
-          // 2️⃣ Группа: Только верификация (без отзывов)
-          const aVerifiedOnly = aVerified && !aHasReviews;
-          const bVerifiedOnly = bVerified && !bHasReviews;
-        
-          if (aVerifiedOnly && !bVerifiedOnly) return -1;
-          if (!aVerifiedOnly && bVerifiedOnly) return 1;
-
-          // 3️⃣ Группа: Только отзывы (без верификации)
-          const aReviewsOnly = !aVerified && aHasReviews;
-          const bReviewsOnly = !bVerified && bHasReviews;
-          
-          if (aReviewsOnly && !bReviewsOnly) return -1;
-          if (!aReviewsOnly && bReviewsOnly) return 1;
-          
-          // Если оба в группе 3 - сравниваем по рейтингу
-          if (aReviewsOnly && bReviewsOnly) {
-            if (b.reviews.averageRating !== a.reviews.averageRating) {
-              return b.reviews.averageRating - a.reviews.averageRating;
-            }
-        if (b.reviews.count !== a.reviews.count) {
-          return b.reviews.count - a.reviews.count;
-            }
-        }
-
-          // 4️⃣ По рейтингу (для остальных)
-        if (b.reviews.averageRating !== a.reviews.averageRating) {
-          return b.reviews.averageRating - a.reviews.averageRating;
-        }
-
-          // 5️⃣ По дате регистрации (новые выше)
-        return new Date(b.createdAt) - new Date(a.createdAt);
-      });
-
-        // Логируем сортировку для отладки
-        console.log(`📤 Sending ${sortedExecutors.length} executors with reviews`);
-        console.log('🔢 Sorting summary:');
-        sortedExecutors.forEach((exec, index) => {
-          const verifiedIcon = exec.isVerified ? '✅' : '❌';
-          const reviewsInfo = exec.reviews.count > 0 
-            ? `⭐${exec.reviews.averageRating} (${exec.reviews.count})` 
-            : 'нет отзывов';
-          console.log(`  ${index + 1}. ${verifiedIcon} ${exec.displayName} - ${reviewsInfo}`);
-        });
-
-      res.status(200).json({
-        data: sortedExecutors,
-        meta: {
-          totalCount: sortedExecutors.length,
-          category,
-        },
-      });
+  executorsCache
+    .get(category, () => fetchExecutors(category))
+    .then(payload => {
+      res.set('Cache-Control', `public, max-age=${CACHE_TTL_MS / 1000}`);
+      res.status(200).json(payload);
     })
     .catch(err => {
-        const status = err?.status || err?.statusCode;
-        const data = err?.data || err?.response?.data;
-        const apiErrors = data?.errors || data;
+      const status = err?.status || err?.statusCode;
+      const data = err?.data || err?.response?.data;
 
-        console.error('❌ Query error:', {
-          message: err?.message,
-          status,
-          apiErrors,
-        });
-
-      res.status(500).json({ 
-          error: 'Query failed',
-          details: err?.message,
-          status,
-          apiErrors,
-        });
+      console.error('❌ Executor search failed:', {
+        message: err?.message,
+        status,
+        apiErrors: data?.errors || data,
       });
-  } catch (err) {
-    console.error('❌ SDK init error:', err.message);
-    res.status(500).json({
-      error: 'SDK initialization failed',
-      details: err.message,
+
+      res.status(500).json({
+        error: 'Query failed',
+        details: err?.message,
+        status,
+      });
     });
-  }
 };

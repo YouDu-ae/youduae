@@ -9,6 +9,12 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const { deserialize } = require('./api-util/sdk');
+const {
+  apiLimiter,
+  expensiveLimiter,
+  writeLimiter,
+  placesLimiter,
+} = require('./api-util/rateLimit');
 
 const initiateLoginAs = require('./api/initiate-login-as');
 const loginAs = require('./api/login-as');
@@ -61,10 +67,14 @@ const router = express.Router();
 
 // ================ API router middleware: ================ //
 
+// Applied before the body parsers so a flood is rejected without paying the
+// cost of reading and parsing large payloads.
+router.use(apiLimiter);
+
 // Parse JSON body with increased size limit for guest listing creation (images in base64)
 router.use(
   bodyParser.json({
-    limit: '50mb',
+    limit: '12mb',
     type: 'application/json',
   })
 );
@@ -73,7 +83,7 @@ router.use(
 router.use(
   bodyParser.text({
     type: 'application/transit+json',
-    limit: '50mb',
+    limit: '12mb',
   })
 );
 
@@ -103,18 +113,18 @@ router.get('/query-offers', queryOffers);
 router.get('/check-my-offer', checkMyOffer);
 router.post('/update-listing-status', updateListingStatus);
 router.get('/user-reviews-stats', userReviewsStats);
-router.post('/create-guest-listing', createGuestListing);
+router.post('/create-guest-listing', writeLimiter, createGuestListing);
 router.get('/listing-status', listingStatus);
-router.get('/search-executors', searchExecutors);
+router.get('/search-executors', expensiveLimiter, searchExecutors);
 router.post('/create-my-executor-profile', createMyExecutorProfile);
 router.post('/add-portfolio-item', addPortfolioItem);
-router.get('/user-completed-transactions', userCompletedTransactions);
-router.get('/platform-stats', platformStats);
-router.get('/listing-responses', listingResponses);
+router.get('/user-completed-transactions', expensiveLimiter, userCompletedTransactions);
+router.get('/platform-stats', expensiveLimiter, platformStats);
+router.get('/listing-responses', expensiveLimiter, listingResponses);
 router.post('/accept-offer', acceptOffer);
 router.post('/complete-transaction', completeTransaction);
 router.post('/register-device-token', registerDeviceToken);
-router.post('/send-notification', sendNotification);
+router.post('/send-notification', writeLimiter, sendNotification);
 router.post('/notify-new-message', notifyNewMessage);
 router.post('/notify-new-review', notifyNewReview);
 router.post('/notify-portfolio-moderation', notifyPortfolioModeration);
@@ -123,12 +133,12 @@ router.post('/update-presence', updatePresence);
 router.get('/presence-batch', presenceBatch);
 
 // Google Places (для мобильного приложения — ключ на сервере, без referrer с телефона)
-router.get('/places/autocomplete', placesProxy.autocomplete);
-router.get('/places/details', placesProxy.details);
+router.get('/places/autocomplete', placesLimiter, placesProxy.autocomplete);
+router.get('/places/details', placesLimiter, placesProxy.details);
 
 // Telegram Bot
 router.post('/telegram/webhook', telegramBot.handleWebhook);
-router.post('/telegram/generate-code', telegramBot.generateCode);
+router.post('/telegram/generate-code', writeLimiter, telegramBot.generateCode);
 router.get('/telegram/status', telegramBot.checkTelegramStatus);
 router.post('/telegram/unlink', telegramBot.unlinkTelegram);
 
@@ -145,11 +155,19 @@ router.get('/blog/articles/:slug', blogArticles.getArticleBySlug);
 // Blog Admin API (with 2FA)
 router.post('/blog/admin/auth', blogAdmin.authenticate);
 router.post('/blog/admin/verify-2fa', blogAdmin.verify2FA);
-router.get('/blog/admin/articles', blogAdmin.getArticles(database));
-router.post('/blog/admin/articles', blogAdmin.createArticle(database));
-router.put('/blog/admin/articles/:id', blogAdmin.updateArticle(database));
-router.delete('/blog/admin/articles/:id', blogAdmin.deleteArticle(database));
-router.post('/blog/admin/articles/:id/publish', blogAdmin.publishArticle(database));
+router.get('/blog/admin/articles', blogAdmin.checkSession, blogAdmin.getArticles(database));
+router.post('/blog/admin/articles', blogAdmin.checkSession, blogAdmin.createArticle(database));
+router.put('/blog/admin/articles/:id', blogAdmin.checkSession, blogAdmin.updateArticle(database));
+router.delete(
+  '/blog/admin/articles/:id',
+  blogAdmin.checkSession,
+  blogAdmin.deleteArticle(database)
+);
+router.post(
+  '/blog/admin/articles/:id/publish',
+  blogAdmin.checkSession,
+  blogAdmin.publishArticle(database)
+);
 
 // Viewed transactions (for syncing read/unread state across devices)
 router.get('/viewed-transactions', viewedTransactions.getViewedTransactions);
@@ -157,7 +175,7 @@ router.post('/viewed-transactions', viewedTransactions.markTransactionViewed);
 router.post('/viewed-transactions/batch', viewedTransactions.markTransactionsBatchViewed);
 
 // Email OTP verification endpoints
-router.post('/otp/email/send', sendEmailOtp);
+router.post('/otp/email/send', writeLimiter, sendEmailOtp);
 router.post('/otp/email/verify', verifyEmailOtp);
 router.post('/otp/email/assert', assertEmailVerified);
 
@@ -208,13 +226,25 @@ router.get('/listing/public-id/:sharetribeUuid', listingId.getPublicId);
 router.get('/listing/stats', listingId.getStats);
 
 // Support tickets endpoints
-router.post('/support/create', supportTickets.createTicket);
+router.post('/support/create', writeLimiter, supportTickets.createTicket);
 router.get('/support/ticket/:ticketId', supportTickets.getTicket);
 router.get('/support/my-tickets', supportTickets.getMyTickets);
-router.post('/support/reply', supportTickets.addUserReply);
+router.post('/support/reply', writeLimiter, supportTickets.addUserReply);
 router.post('/support/admin/reply', supportTickets.addAdminReply);
 router.post('/support/admin/close', supportTickets.closeTicket);
 router.get('/support/admin/open', supportTickets.getOpenTickets);
 router.get('/support/stats', supportTickets.getStats);
+
+// body-parser rejects oversized payloads before any route runs. Without this the
+// client gets an HTML error page it cannot parse.
+router.use((err, req, res, next) => {
+  if (err && (err.type === 'entity.too.large' || err.status === 413)) {
+    console.warn(`🚫 Payload too large: ${req.method} ${req.originalUrl}`);
+    return res.status(413).json({
+      error: 'Слишком большой запрос. Уменьшите количество или размер фотографий.',
+    });
+  }
+  return next(err);
+});
 
 module.exports = router;

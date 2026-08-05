@@ -91,6 +91,76 @@ export const fileToBase64 = (file) => {
   });
 };
 
+// Phone cameras produce 3-8 MB files, which base64 inflates by a third. Sending
+// those untouched fills browser storage and the server's request buffer, so
+// downscale before anything else touches the image.
+const MAX_IMAGE_DIMENSION = 1920;
+const JPEG_QUALITY = 0.82;
+
+/**
+ * Decodes a file into something drawable, honouring EXIF orientation so photos
+ * taken sideways are not rotated. `createImageBitmap` handles orientation
+ * natively; the `<img>` path is a fallback for browsers without it.
+ */
+const decodeImage = async (file) => {
+  if (typeof createImageBitmap === 'function') {
+    try {
+      return await createImageBitmap(file, { imageOrientation: 'from-image' });
+    } catch (e) {
+      // Older Safari rejects the options argument — fall through to <img>.
+    }
+  }
+
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const objectUrl = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+      resolve(img);
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error('Не удалось прочитать изображение'));
+    };
+    img.src = objectUrl;
+  });
+};
+
+/**
+ * Downscale an image and re-encode it as JPEG.
+ * @param {File} file - File object
+ * @returns {Promise<string>} - compressed base64 data URL
+ */
+export const compressImage = async (file) => {
+  // Vector and non-image files cannot be redrawn meaningfully.
+  if (!file.type || !file.type.startsWith('image/') || file.type === 'image/svg+xml') {
+    return fileToBase64(file);
+  }
+
+  try {
+    const source = await decodeImage(file);
+    const width = source.width;
+    const height = source.height;
+    const scale = Math.min(1, MAX_IMAGE_DIMENSION / Math.max(width, height));
+
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.round(width * scale);
+    canvas.height = Math.round(height * scale);
+
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(source, 0, 0, canvas.width, canvas.height);
+
+    if (typeof source.close === 'function') {
+      source.close();
+    }
+
+    return canvas.toDataURL('image/jpeg', JPEG_QUALITY);
+  } catch (error) {
+    console.error('❌ Image compression failed, using original:', error);
+    return fileToBase64(file);
+  }
+};
+
 /**
  * Convert base64 string back to File object
  * @param {string} base64 - base64 string
@@ -120,11 +190,19 @@ export const saveImagesToStorage = async (files) => {
   try {
     const imagesData = await Promise.all(
       files.map(async (file) => {
-        const base64 = await fileToBase64(file);
+        const base64 = await compressImage(file);
+        // Compression re-encodes to JPEG, but the fallback path keeps the
+        // original format, so read the type back from the data URL.
+        const mimeMatch = base64.match(/^data:([^;]+);/);
+        const type = mimeMatch ? mimeMatch[1] : file.type;
+        const name =
+          type === 'image/jpeg' ? file.name.replace(/\.[^.]+$/, '') + '.jpg' : file.name;
+
         return {
-          name: file.name,
-          type: file.type,
-          size: file.size,
+          name,
+          type,
+          // Approximate byte size of the stored payload, not of the original file.
+          size: Math.round((base64.length - base64.indexOf(',') - 1) * 0.75),
           base64,
           preview: base64, // Use base64 as preview URL
         };

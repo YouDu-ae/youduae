@@ -11,6 +11,9 @@ const loginAttempts = new Map(); // { ip: { count, resetAt } }
 const MAX_ATTEMPTS = 5;
 const ATTEMPT_WINDOW_MS = 60 * 1000; // 1 minute
 const CODE_EXPIRY_MS = 5 * 60 * 1000; // 5 minutes
+// Verified sessions live much longer than the 2FA code: writing an article can
+// take an hour with no requests in between, and expiring mid-edit loses the draft.
+const SESSION_EXPIRY_MS = 8 * 60 * 60 * 1000; // 8 hours
 
 // Generate 6-digit code
 const generateCode = () => {
@@ -44,6 +47,21 @@ const sendTelegramMessage = async (chatId, text) => {
   }
 };
 
+// Drop expired sessions and rate-limit windows so the in-memory maps stay bounded.
+const pruneExpired = () => {
+  const now = Date.now();
+  for (const [id, session] of authCodes) {
+    if (now > session.expiresAt) {
+      authCodes.delete(id);
+    }
+  }
+  for (const [ip, attempts] of loginAttempts) {
+    if (now > attempts.resetAt) {
+      loginAttempts.delete(ip);
+    }
+  }
+};
+
 // Check rate limit
 const checkRateLimit = (ip) => {
   const now = Date.now();
@@ -66,6 +84,8 @@ const checkRateLimit = (ip) => {
 const authenticate = async (req, res) => {
   const { password } = req.body;
   const ip = req.ip || req.connection.remoteAddress;
+
+  pruneExpired();
 
   // Rate limiting
   if (!checkRateLimit(ip)) {
@@ -105,7 +125,11 @@ const authenticate = async (req, res) => {
   if (!sent) {
     // If Telegram fails, allow access without 2FA (fallback)
     console.warn('⚠️ Telegram 2FA failed, allowing access');
-    authCodes.set(sessionId, { code: null, expiresAt, verified: true });
+    authCodes.set(sessionId, {
+      code: null,
+      expiresAt: Date.now() + SESSION_EXPIRY_MS,
+      verified: true,
+    });
     return res.json({ success: true, sessionId, require2FA: false });
   }
 
@@ -149,6 +173,7 @@ const verify2FA = async (req, res) => {
 
   // Mark as verified
   session.verified = true;
+  session.expiresAt = Date.now() + SESSION_EXPIRY_MS;
   authCodes.set(sessionId, session);
 
   // Notify about successful login
@@ -176,7 +201,7 @@ const checkSession = (req, res, next) => {
   }
 
   // Extend session on activity
-  session.expiresAt = Date.now() + CODE_EXPIRY_MS;
+  session.expiresAt = Date.now() + SESSION_EXPIRY_MS;
   authCodes.set(sessionId, session);
 
   next();

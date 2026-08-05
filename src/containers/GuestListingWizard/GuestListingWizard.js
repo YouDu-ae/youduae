@@ -24,6 +24,10 @@ const STEPS = {
 
 const STEP_ORDER = [STEPS.TITLE, STEPS.DETAILS, STEPS.LOCATION, STEPS.PRICING, STEPS.PHOTOS];
 
+// Photos travel to the server as base64 inside a single JSON request, so the
+// count has to stay within the server's body limit even after compression.
+const MAX_PHOTOS = 8;
+
 const GuestListingWizard = () => {
   const history = useHistory();
   const location = useLocation();
@@ -207,14 +211,30 @@ const GuestListingWizard = () => {
 
   const handleImagesChange = async (files) => {
     if (!files || files.length === 0) return;
-    
+
+    const currentImages = formData.images || [];
+    const freeSlots = MAX_PHOTOS - currentImages.length;
+
+    if (freeSlots <= 0) {
+      setErrors(prev => ({ ...prev, images: `Можно добавить не более ${MAX_PHOTOS} фото` }));
+      return;
+    }
+
+    const accepted = files.slice(0, freeSlots);
+
     setIsUploadingImages(true);
     try {
-      const imagesData = await saveImagesToStorage(files);
+      const imagesData = await saveImagesToStorage(accepted);
       // Добавляем новые фото к существующим
-      const updatedImages = [...(formData.images || []), ...imagesData];
+      const updatedImages = [...currentImages, ...imagesData];
       handleFieldChange('images', updatedImages);
-      console.log('✅ Images uploaded successfully:', imagesData.length);
+
+      if (files.length > accepted.length) {
+        setErrors(prev => ({
+          ...prev,
+          images: `Добавлено ${accepted.length} из ${files.length}: максимум ${MAX_PHOTOS} фото`,
+        }));
+      }
     } catch (error) {
       console.error('❌ Error uploading images:', error);
       setErrors(prev => ({ ...prev, images: 'Ошибка загрузки изображений' }));
@@ -526,7 +546,10 @@ const GuestListingWizard = () => {
             
             <div className={css.field}>
               <label className={css.label}>
-                Добавьте фото {formData.images && formData.images.length > 0 ? `(${formData.images.length})` : '*'}
+                Добавьте фото{' '}
+                {formData.images && formData.images.length > 0
+                  ? `(${formData.images.length} из ${MAX_PHOTOS})`
+                  : `* (до ${MAX_PHOTOS})`}
               </label>
               <div className={css.fileInputWrapper}>
                 <input
@@ -535,17 +558,31 @@ const GuestListingWizard = () => {
                   className={css.fileInputHidden}
                   accept="image/*"
                   multiple
-                  onChange={(e) => handleImagesChange(Array.from(e.target.files))}
-                  disabled={isUploadingImages}
+                  onChange={(e) => {
+                    handleImagesChange(Array.from(e.target.files));
+                    // Allow re-selecting the same file after a removal.
+                    e.target.value = '';
+                  }}
+                  disabled={isUploadingImages || (formData.images || []).length >= MAX_PHOTOS}
                 />
-                <label 
-                  htmlFor="photo-upload" 
-                  className={`${css.fileInputLabel} ${isUploadingImages ? css.fileInputLabelDisabled : ''}`}
+                <label
+                  htmlFor="photo-upload"
+                  className={`${css.fileInputLabel} ${
+                    isUploadingImages || (formData.images || []).length >= MAX_PHOTOS
+                      ? css.fileInputLabelDisabled
+                      : ''
+                  }`}
                 >
                   <span className={css.uploadIcon}>
                     {isUploadingImages ? '⏳' : '📷'}
                   </span>
-                  <span>{isUploadingImages ? 'Обработка фото...' : 'Выберите фотографии'}</span>
+                  <span>
+                    {isUploadingImages
+                      ? 'Обработка фото...'
+                      : (formData.images || []).length >= MAX_PHOTOS
+                      ? `Добавлено максимум ${MAX_PHOTOS} фото`
+                      : 'Выберите фотографии'}
+                  </span>
                 </label>
               </div>
               {errors.images && <div className={css.error}>{errors.images}</div>}

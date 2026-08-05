@@ -149,10 +149,33 @@ const BlogAdminPage = () => {
     sessionStorage.removeItem('blogAdminSession');
   };
 
+  // Admin CRUD routes are session-protected; the id comes from the 2FA login.
+  const adminFetch = async (url, options = {}) => {
+    const sid = sessionStorage.getItem('blogAdminSession') || sessionId;
+    const response = await fetch(url, {
+      ...options,
+      headers: {
+        ...(options.headers || {}),
+        'X-Session-Id': sid || '',
+      },
+    });
+
+    if (response.status === 401) {
+      handleLogout();
+      setAuthError('Сессия истекла. Войдите заново.');
+    }
+
+    return response;
+  };
+
   const loadArticles = async () => {
     setLoading(true);
     try {
-      const response = await fetch('/api/blog/admin/articles');
+      const response = await adminFetch('/api/blog/admin/articles');
+      if (!response.ok) {
+        setArticles([]);
+        return;
+      }
       const data = await response.json();
       setArticles(data.articles || []);
     } catch (error) {
@@ -293,7 +316,7 @@ const BlogAdminPage = () => {
       
       const method = editingArticle ? 'PUT' : 'POST';
 
-      const response = await fetch(url, {
+      const response = await adminFetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(dataToSave),
@@ -393,7 +416,7 @@ const BlogAdminPage = () => {
     if (!confirm('Удалить статью?')) return;
 
     try {
-      const response = await fetch(`/api/blog/admin/articles/${articleId}`, {
+      const response = await adminFetch(`/api/blog/admin/articles/${articleId}`, {
         method: 'DELETE',
       });
       if (response.ok) {
@@ -406,7 +429,7 @@ const BlogAdminPage = () => {
 
   const handlePublishFromList = async (articleId) => {
     try {
-      const response = await fetch(`/api/blog/admin/articles/${articleId}/publish`, {
+      const response = await adminFetch(`/api/blog/admin/articles/${articleId}/publish`, {
         method: 'POST',
       });
       if (response.ok) {
