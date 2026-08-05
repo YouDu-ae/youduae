@@ -1,23 +1,5 @@
 const { getSdk } = require('../api-util/sdk');
-const { notifyNewListingToCategory } = require('./telegram-bot');
-
-// Category labels for notifications
-const CATEGORY_LABELS = {
-  'repairs_main': 'Ремонт и строительство',
-  'Delivery': 'Курьерские услуги',
-  'Help_home': 'Уборка и помощь в доме',
-  'Cargo_transportation': 'Грузоперевозки',
-  'Installation_mashines': 'Установка бытовой техники',
-  'Beauty_health': 'Красота и здоровье',
-  'Photo': 'Фото, видео, аудио',
-  'Repair_digital': 'Ремонт цифровой техники',
-  'Legal_assistance': 'Юридическая и бухгалтерская помощь',
-  'training': 'Репетиторы и обучение',
-  'Automotive_services': 'Автомобильные услуги',
-  'Interior_designer': 'Дизайн интерьеров',
-  'Tourist_services': 'Туристические услуги',
-  'Web_design': 'Веб Дизайн/SEO',
-};
+const { notifyExecutorsAboutListing } = require('../api-util/notifyListingPublished');
 
 module.exports = async (req, res) => {
   const { 
@@ -164,28 +146,14 @@ module.exports = async (req, res) => {
 
     // Send Telegram notifications to executors in this category
     if (category && listingState === 'published') {
-      try {
-        const rootUrl = process.env.REACT_APP_MARKETPLACE_ROOT_URL || 'https://youdu.ae';
-        const listingUrl = `${rootUrl}/l/${listingId.uuid}`;
-        const categoryName = CATEGORY_LABELS[category] || category;
-        const priceText = price ? `${price} AED` : null;
-        
-        // Don't await - send notifications in background
-        notifyNewListingToCategory({
-          categoryId: category,
-          categoryName,
-          listingTitle: title,
-          price: priceText,
-          listingUrl,
-          listingId: listingId.uuid,
-        }).then(result => {
-          console.log(`📱 Telegram: Notified ${result.sent}/${result.total} executors about new listing`);
-        }).catch(err => {
+      // Don't await - send notifications in background
+      notifyExecutorsAboutListing(listingId.uuid)
+        .then(result => {
+          console.log('📱 Telegram: new listing notification result:', JSON.stringify(result));
+        })
+        .catch(err => {
           console.error('📱 Telegram notification error:', err.message);
         });
-      } catch (notifyError) {
-        console.error('⚠️ Failed to send category notifications:', notifyError.message);
-      }
     }
 
     res.status(200).json({

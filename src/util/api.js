@@ -269,6 +269,14 @@ export const createGuestListing = listingData => {
   return post('/api/create-guest-listing', listingData);
 };
 
+// Notify executors with Telegram linked about a freshly published task.
+// The server keeps this idempotent, so retries cannot produce duplicate alerts.
+export const notifyNewListing = listingId => {
+  return post('/api/notify-new-listing', { listingId }, {
+    headers: { 'Content-Type': 'application/json' },
+  });
+};
+
 // Create user with identity provider (e.g. Facebook or Google)
 //
 // If loginWithIdp api call fails and user can't authenticate to Marketplace API with idp

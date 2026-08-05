@@ -16,6 +16,7 @@ import * as log from '../../util/log';
 import { parse } from '../../util/urlHelpers';
 import { isUserAuthorized } from '../../util/userHelpers';
 import { isBookingProcessAlias } from '../../transactions/transaction';
+import { notifyNewListing } from '../../util/api';
 
 import { addMarketplaceEntities } from '../../ducks/marketplaceData.duck';
 import {
@@ -750,6 +751,16 @@ export const requestPublishListingDraft = listingId => (dispatch, getState, sdk)
       dispatch(addMarketplaceEntities(response));
       dispatch(publishListingSuccess(response));
       trackListingCreated(response?.data?.data, { stage: 'published' });
+
+      // Telegram alert to executors in the task category. Failures must not
+      // affect the publish flow, so the promise is intentionally detached.
+      const publishedId = response?.data?.data?.id?.uuid;
+      if (publishedId) {
+        notifyNewListing(publishedId).catch(e => {
+          console.error('Failed to notify executors about new listing:', e);
+        });
+      }
+
       return response;
     })
     .catch(e => {

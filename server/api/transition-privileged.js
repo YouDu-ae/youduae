@@ -4,7 +4,8 @@ const {
   handleError,
   serialize,
 } = require('../api-util/sdk');
-const { notifyOfferDeclined } = require('./telegram-bot');
+const { notifyOfferDeclined, notifyOfferAccepted } = require('./telegram-bot');
+const { sendExecutorSelectedNotification } = require('./send-notification');
 
 module.exports = (req, res) => {
   const { isSpeculative, orderData, bodyParams, queryParams } = req.body;
@@ -45,9 +46,12 @@ module.exports = (req, res) => {
       const { status, statusText, data } = apiResponse;
       console.log('✅ transition-privileged: success, status =', status);
       
-      // Send Telegram notification for decline-offer
+      // Notify the executor (transaction customer) when their offer is accepted or declined.
       const transition = req.body?.bodyParams?.transition;
-      if (transition === 'transition/decline-offer' && data?.data) {
+      const isAccept = transition === 'transition/accept-offer';
+      const isDecline = transition === 'transition/decline-offer';
+
+      if ((isAccept || isDecline) && data?.data) {
         try {
           const integrationClientId = process.env.INTEGRATION_API_CLIENT_ID;
           const integrationClientSecret = process.env.INTEGRATION_API_CLIENT_SECRET;
@@ -64,11 +68,12 @@ module.exports = (req, res) => {
             // Get full transaction details
             const txRes = await integrationSdk.transactions.show({
               id: transactionId,
-              include: ['customer', 'listing'],
+              include: ['customer', 'provider', 'listing'],
             });
             
             const txData = txRes.data.data;
             const customerId = txData.relationships?.customer?.data?.id?.uuid;
+            const providerId = txData.relationships?.provider?.data?.id?.uuid;
             const listingId = txData.relationships?.listing?.data?.id?.uuid;
             
             const listing = txRes.data.included?.find(
@@ -76,9 +81,26 @@ module.exports = (req, res) => {
             );
             const listingTitle = listing?.attributes?.title || 'Задание';
             
-            if (customerId) {
+            if (customerId && isDecline) {
               await notifyOfferDeclined(customerId, { listingTitle });
               console.log('📱 Telegram: Decline notification sent to:', customerId);
+            }
+
+            if (customerId && isAccept) {
+              const author = txRes.data.included?.find(
+                inc => inc.type === 'user' && inc.id.uuid === providerId
+              );
+              const customerName = author?.attributes?.profile?.displayName || 'Заказчик';
+              const rootUrl = process.env.REACT_APP_MARKETPLACE_ROOT_URL || 'https://youdu.ae';
+
+              await notifyOfferAccepted(customerId, {
+                listingTitle,
+                customerName,
+                listingUrl: `${rootUrl}/l/${listingId}`,
+              });
+              console.log('📱 Telegram: Accept notification sent to:', customerId);
+
+              await sendExecutorSelectedNotification(customerId, listingTitle, listingId);
             }
           }
         } catch (notifyError) {
