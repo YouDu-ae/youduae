@@ -42,8 +42,6 @@ const notifyNewMessage = require('./api/notify-new-message');
 const notifyNewReview = require('./api/notify-new-review');
 const notifyPortfolioModeration = require('./api/notify-portfolio-moderation');
 const notifyVerification = require('./api/notify-verification');
-const updatePresence = require('./api/update-presence');
-const presenceBatch = require('./api/presence-batch');
 const placesProxy = require('./api/places-proxy');
 const telegramBot = require('./api/telegram-bot');
 const telegramBlogWebhook = require('./api/telegram-blog-webhook');
@@ -131,8 +129,6 @@ router.post('/notify-new-message', notifyNewMessage);
 router.post('/notify-new-review', notifyNewReview);
 router.post('/notify-portfolio-moderation', notifyPortfolioModeration);
 router.post('/notify-verification', notifyVerification);
-router.post('/update-presence', updatePresence);
-router.get('/presence-batch', presenceBatch);
 
 // Google Places (для мобильного приложения — ключ на сервере, без referrer с телефона)
 router.get('/places/autocomplete', placesLimiter, placesProxy.autocomplete);
