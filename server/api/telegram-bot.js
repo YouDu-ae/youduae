@@ -526,15 +526,20 @@ async function handleVerificationCode(chatId, code, firstName) {
   }
   
   try {
-    // Update user's privateData with telegramChatId
-    const updateResponse = await integrationSdk.users.updateProfile({
-      id: verification.userId,
-      privateData: {
-        telegramChatId: chatId.toString(),
-        telegramUsername: firstName,
-        telegramLinkedAt: new Date().toISOString(),
+    // expand is required: without it the response carries only the id, and the
+    // subscriber row would be stored without a name, user type or categories,
+    // which silently excludes the specialist from category broadcasts.
+    const updateResponse = await integrationSdk.users.updateProfile(
+      {
+        id: verification.userId,
+        privateData: {
+          telegramChatId: chatId.toString(),
+          telegramUsername: firstName,
+          telegramLinkedAt: new Date().toISOString(),
+        },
       },
-    });
+      { expand: true }
+    );
     
     const { categories, userType } = await recordSubscriberFromProfile(
       verification.userId,
