@@ -184,6 +184,22 @@ async function sendTelegramMessage(chatId, text, options = {}) {
     const data = await response.json();
     if (!data.ok) {
       console.error('Telegram API error:', data);
+      // 403 means the user blocked the bot or deleted the chat. Without this
+      // the dead chat would be retried on every future broadcast.
+      if (data.error_code === 403) {
+        try {
+          const db = require('../db');
+          const userId = await db.deactivateTelegramSubscriberByChatId(
+            chatId,
+            data.description || 'Forbidden'
+          );
+          if (userId) {
+            console.log(`📱 Subscriber deactivated (bot blocked): ${userId}`);
+          }
+        } catch (dbError) {
+          console.error('Failed to deactivate subscriber:', dbError.message);
+        }
+      }
     }
     return data;
   } catch (error) {
@@ -454,6 +470,41 @@ async function sendUnknownCommandMessage(chatId) {
 /**
  * Handle verification code from user
  */
+/**
+ * Mirror a freshly linked account into the subscribers table.
+ *
+ * Broadcast targeting reads from that table, so a failure here would silently
+ * drop the user from future notifications; it is logged loudly but never
+ * blocks the linking itself.
+ */
+async function recordSubscriberFromProfile(userId, chatId, firstName, profileResponse) {
+  const profile = profileResponse?.data?.data?.attributes?.profile;
+  const publicData = profile?.publicData || {};
+  const categories = Array.isArray(publicData.serviceCategories)
+    ? publicData.serviceCategories
+    : [];
+  const userType = publicData.userType || null;
+
+  try {
+    const db = require('../db');
+
+    await db.upsertTelegramSubscriber({
+      userId,
+      chatId,
+      telegramUsername: firstName,
+      displayName: profile?.displayName || null,
+      userType,
+      categories,
+    });
+
+    console.log(`📱 Subscriber saved: ${userId} (${categories.length} categories)`);
+  } catch (error) {
+    console.error('⚠️ Failed to save Telegram subscriber:', error.message);
+  }
+
+  return { categories, userType };
+}
+
 async function handleVerificationCode(chatId, code, firstName) {
   // Check if code exists in pending verifications
   const verification = pendingVerifications.get(code);
@@ -476,7 +527,7 @@ async function handleVerificationCode(chatId, code, firstName) {
   
   try {
     // Update user's privateData with telegramChatId
-    await integrationSdk.users.updateProfile({
+    const updateResponse = await integrationSdk.users.updateProfile({
       id: verification.userId,
       privateData: {
         telegramChatId: chatId.toString(),
@@ -485,11 +536,26 @@ async function handleVerificationCode(chatId, code, firstName) {
       },
     });
     
+    const { categories, userType } = await recordSubscriberFromProfile(
+      verification.userId,
+      chatId,
+      firstName,
+      updateResponse
+    );
+    
     // Remove used code
     pendingVerifications.delete(code);
     
+    // New tasks are broadcast per category, so a specialist without any
+    // selected services would hear nothing and assume the bot is broken.
+    const isSpecialist = userType === 'customer';
+    const missingCategories = isSpecialist && categories.length === 0;
+    const categoryHint = missingCategories
+      ? `\n\n⚠️ <b>Важно:</b> в вашем профиле не указаны категории услуг, поэтому уведомления о новых заданиях приходить не будут.\n\nУкажите их: youdu.ae → Настройки профиля → Категории услуг`
+      : '';
+    
     await sendTelegramMessage(chatId,
-      `✅ <b>Отлично, ${firstName}!</b>\n\nВаш Telegram успешно привязан к аккаунту YouDu.\n\nТеперь вы будете получать уведомления:\n• 📬 Новые отклики\n• ✅ Принятие откликов\n• 💬 Новые сообщения`
+      `✅ <b>Отлично, ${firstName}!</b>\n\nВаш Telegram успешно привязан к аккаунту YouDu.\n\nТеперь вы будете получать уведомления:\n• 📋 Новые задания в ваших категориях\n• 📬 Новые отклики\n• ✅ Принятие откликов\n• 💬 Новые сообщения${categoryHint}`
     );
     
     console.log(`Telegram linked: chatId=${chatId}, userId=${verification.userId}`);
@@ -611,6 +677,13 @@ async function unlinkTelegram(req, res) {
       },
     });
     
+    try {
+      const db = require('../db');
+      await db.removeTelegramSubscriber(userId);
+    } catch (dbError) {
+      console.error('Failed to remove Telegram subscriber:', dbError.message);
+    }
+    
     // Notify user in Telegram
     if (chatId) {
       await sendTelegramMessage(chatId,
@@ -730,13 +803,33 @@ async function notifyNewListing(userId, data) {
  * Get user's Telegram chatId from Sharetribe
  */
 async function getUserTelegramChatId(userId) {
+  // The subscribers table answers this without touching the Integration API,
+  // which every notification used to do.
+  try {
+    const db = require('../db');
+    const subscriber = await db.getTelegramSubscriber(userId);
+    if (subscriber && subscriber.is_active) {
+      return subscriber.chat_id;
+    }
+  } catch (error) {
+    console.error('Subscriber lookup failed, falling back to Sharetribe:', error.message);
+  }
+
   try {
     const userResponse = await integrationSdk.users.show({
       id: userId,
     });
     
-    const privateData = userResponse.data.data.attributes.profile.privateData || {};
-    return privateData.telegramChatId || null;
+    const profile = userResponse.data.data.attributes.profile;
+    const privateData = profile.privateData || {};
+    const chatId = privateData.telegramChatId || null;
+
+    // Backfill accounts linked before the table existed.
+    if (chatId) {
+      await recordSubscriberFromProfile(userId, chatId, privateData.telegramUsername, userResponse);
+    }
+
+    return chatId;
   } catch (error) {
     console.error('Error getting user Telegram chatId:', error);
     return null;
@@ -748,27 +841,32 @@ async function getUserTelegramChatId(userId) {
  */
 async function getExecutorsWithTelegramByCategory(categoryId) {
   try {
-    // Get all users
+    const db = require('../db');
+    return await db.getTelegramSubscribersByCategory(categoryId);
+  } catch (error) {
+    console.error('Subscriber query failed, falling back to Sharetribe scan:', error.message);
+  }
+
+  // Fallback for a database outage. It only sees the first page of users, so
+  // it is a degraded path rather than an equivalent one.
+  try {
     const usersResponse = await integrationSdk.users.query({
       perPage: 100,
     });
-    
+
     const users = usersResponse.data.data;
-    
-    // Filter users who:
-    // 1. Have serviceCategories including this category
-    // 2. Have Telegram linked (telegramChatId in privateData)
+
     const executors = users.filter(user => {
       const publicData = user.attributes?.profile?.publicData || {};
       const privateData = user.attributes?.profile?.privateData || {};
-      
+
       const serviceCategories = publicData.serviceCategories || [];
       const hasTelegram = !!privateData.telegramChatId;
       const hasCategory = Array.isArray(serviceCategories) && serviceCategories.includes(categoryId);
-      
+
       return hasTelegram && hasCategory;
     });
-    
+
     return executors.map(user => ({
       userId: user.id.uuid,
       chatId: user.attributes.profile.privateData.telegramChatId,

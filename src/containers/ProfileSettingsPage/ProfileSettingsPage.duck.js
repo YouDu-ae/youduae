@@ -1,6 +1,7 @@
 import { denormalisedResponseEntities } from '../../util/data';
 import { storableError } from '../../util/errors';
 import { currentUserShowSuccess } from '../../ducks/user.duck';
+import { syncTelegramCategories } from '../../util/api';
 
 // ================ Action types ================ //
 
@@ -240,6 +241,14 @@ export const updateProfile = actionPayload => {
 
         // Update current user in state.user.currentUser through user.duck.js
         dispatch(currentUserShowSuccess(currentUser));
+
+        // Telegram broadcasts target categories stored server-side. Syncing is
+        // detached: a failure must not surface as a profile save error.
+        if (actionPayload?.publicData?.serviceCategories) {
+          syncTelegramCategories().catch(err => {
+            console.error('Failed to sync Telegram categories:', err);
+          });
+        }
       })
       .catch(e => dispatch(updateProfileError(storableError(e))));
   };

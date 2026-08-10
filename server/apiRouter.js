@@ -44,6 +44,7 @@ const notifyPortfolioModeration = require('./api/notify-portfolio-moderation');
 const notifyVerification = require('./api/notify-verification');
 const placesProxy = require('./api/places-proxy');
 const telegramBot = require('./api/telegram-bot');
+const syncTelegramCategories = require('./api/sync-telegram-categories');
 const telegramBlogWebhook = require('./api/telegram-blog-webhook');
 const blogArticles = require('./api/blog-articles');
 const viewedTransactions = require('./api/viewed-transactions');
@@ -139,6 +140,7 @@ router.post('/telegram/webhook', telegramBot.handleWebhook);
 router.post('/telegram/generate-code', writeLimiter, telegramBot.generateCode);
 router.get('/telegram/status', telegramBot.checkTelegramStatus);
 router.post('/telegram/unlink', telegramBot.unlinkTelegram);
+router.post('/telegram/sync-categories', writeLimiter, syncTelegramCategories);
 
 // Telegram Blog integration
 router.post('/telegram/blog-webhook', telegramBlogWebhook.handleBlogWebhook);

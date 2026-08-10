@@ -351,3 +351,11 @@ export const unlinkTelegram = () => {
   });
 };
 
+// Mirror updated service categories into the Telegram subscribers table so
+// broadcasts target the specialist's current services.
+export const syncTelegramCategories = () => {
+  return post('/api/telegram/sync-categories', {}, {
+    headers: { 'Content-Type': 'application/json' },
+  });
+};
+

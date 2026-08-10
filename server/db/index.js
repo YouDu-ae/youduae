@@ -123,6 +123,30 @@ const initDatabase = async () => {
       CREATE INDEX IF NOT EXISTS idx_tickets_status ON support_tickets(status);
       CREATE INDEX IF NOT EXISTS idx_tickets_created ON support_tickets(created_at DESC);
       CREATE INDEX IF NOT EXISTS idx_ticket_messages_ticket ON ticket_messages(ticket_id);
+
+      -- Telegram subscribers. Mirrors who linked the bot so notifications no
+      -- longer require scanning every marketplace user through the
+      -- Integration API, which silently capped the audience at 100 users.
+      CREATE TABLE IF NOT EXISTS telegram_subscribers (
+        user_id VARCHAR(100) PRIMARY KEY,
+        chat_id VARCHAR(100) NOT NULL,
+        telegram_username VARCHAR(255),
+        display_name VARCHAR(255),
+        user_type VARCHAR(20),
+        categories TEXT[] NOT NULL DEFAULT '{}',
+        notifications_enabled BOOLEAN NOT NULL DEFAULT TRUE,
+        is_active BOOLEAN NOT NULL DEFAULT TRUE,
+        failure_count INTEGER NOT NULL DEFAULT 0,
+        last_error TEXT,
+        linked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        last_synced_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_tg_subscribers_categories
+        ON telegram_subscribers USING GIN (categories);
+      CREATE INDEX IF NOT EXISTS idx_tg_subscribers_active
+        ON telegram_subscribers (is_active, notifications_enabled);
     `);
     
     console.log('Database tables initialized');
@@ -632,6 +656,136 @@ const getTicketStats = async () => {
   return result.rows[0];
 };
 
+// ============================================
+// TELEGRAM SUBSCRIBER FUNCTIONS
+// ============================================
+
+/**
+ * Record or refresh a subscriber. Called when someone links the bot and
+ * whenever their service categories change.
+ */
+const upsertTelegramSubscriber = async subscriber => {
+  const {
+    userId,
+    chatId,
+    telegramUsername = null,
+    displayName = null,
+    userType = null,
+    categories = [],
+  } = subscriber;
+
+  const result = await pool.query(
+    `INSERT INTO telegram_subscribers
+       (user_id, chat_id, telegram_username, display_name, user_type, categories,
+        is_active, failure_count, last_error, last_synced_at, updated_at)
+     VALUES ($1, $2, $3, $4, $5, $6, TRUE, 0, NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+     ON CONFLICT (user_id) DO UPDATE SET
+       chat_id = EXCLUDED.chat_id,
+       telegram_username = COALESCE(EXCLUDED.telegram_username, telegram_subscribers.telegram_username),
+       display_name = COALESCE(EXCLUDED.display_name, telegram_subscribers.display_name),
+       user_type = COALESCE(EXCLUDED.user_type, telegram_subscribers.user_type),
+       categories = EXCLUDED.categories,
+       is_active = TRUE,
+       failure_count = 0,
+       last_error = NULL,
+       last_synced_at = CURRENT_TIMESTAMP,
+       updated_at = CURRENT_TIMESTAMP
+     RETURNING *`,
+    [userId, String(chatId), telegramUsername, displayName, userType, categories]
+  );
+  return result.rows[0];
+};
+
+/**
+ * Update only the categories, leaving the Telegram link untouched. Used when a
+ * specialist edits their profile.
+ */
+const updateTelegramSubscriberCategories = async (userId, categories) => {
+  const result = await pool.query(
+    `UPDATE telegram_subscribers
+     SET categories = $2, last_synced_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+     WHERE user_id = $1
+     RETURNING *`,
+    [userId, categories]
+  );
+  return result.rows[0] || null;
+};
+
+const getTelegramSubscriber = async userId => {
+  const result = await pool.query('SELECT * FROM telegram_subscribers WHERE user_id = $1', [
+    userId,
+  ]);
+  return result.rows[0] || null;
+};
+
+/**
+ * Everyone who should hear about a new task in the given category.
+ * The GIN index on categories keeps this fast as the audience grows.
+ */
+const getTelegramSubscribersByCategory = async categoryId => {
+  const result = await pool.query(
+    `SELECT user_id, chat_id, display_name
+     FROM telegram_subscribers
+     WHERE is_active
+       AND notifications_enabled
+       AND categories && ARRAY[$1]::TEXT[]`,
+    [categoryId]
+  );
+  return result.rows.map(row => ({
+    userId: row.user_id,
+    chatId: row.chat_id,
+    displayName: row.display_name,
+  }));
+};
+
+/**
+ * Stop sending to a chat that Telegram rejects, e.g. after the user blocks the
+ * bot. Keeping the row preserves history and lets a re-link revive it.
+ */
+const deactivateTelegramSubscriber = async (userId, reason = null) => {
+  await pool.query(
+    `UPDATE telegram_subscribers
+     SET is_active = FALSE,
+         failure_count = failure_count + 1,
+         last_error = $2,
+         updated_at = CURRENT_TIMESTAMP
+     WHERE user_id = $1`,
+    [userId, reason]
+  );
+  return { success: true };
+};
+
+const deactivateTelegramSubscriberByChatId = async (chatId, reason = null) => {
+  const result = await pool.query(
+    `UPDATE telegram_subscribers
+     SET is_active = FALSE,
+         failure_count = failure_count + 1,
+         last_error = $2,
+         updated_at = CURRENT_TIMESTAMP
+     WHERE chat_id = $1
+     RETURNING user_id`,
+    [String(chatId), reason]
+  );
+  return result.rows[0]?.user_id || null;
+};
+
+const removeTelegramSubscriber = async userId => {
+  await pool.query('DELETE FROM telegram_subscribers WHERE user_id = $1', [userId]);
+  return { success: true };
+};
+
+const getTelegramSubscriberStats = async () => {
+  const result = await pool.query(`
+    SELECT
+      COUNT(*) AS total,
+      COUNT(*) FILTER (WHERE is_active AND notifications_enabled) AS active,
+      COUNT(*) FILTER (WHERE NOT is_active) AS inactive,
+      COUNT(*) FILTER (WHERE categories = '{}') AS without_categories
+    FROM telegram_subscribers
+  `);
+  return result.rows[0];
+};
+
 module.exports = {
   pool,
   initDatabase,
@@ -659,4 +813,13 @@ module.exports = {
   updateTicketTelegramId,
   getTicketByTelegramMessageId,
   getTicketStats,
+  // Telegram subscriber functions
+  upsertTelegramSubscriber,
+  updateTelegramSubscriberCategories,
+  getTelegramSubscriber,
+  getTelegramSubscribersByCategory,
+  deactivateTelegramSubscriber,
+  deactivateTelegramSubscriberByChatId,
+  removeTelegramSubscriber,
+  getTelegramSubscriberStats,
 };
