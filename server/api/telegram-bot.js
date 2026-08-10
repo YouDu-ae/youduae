@@ -35,6 +35,20 @@ const integrationSdk = sharetribeIntegrationSdk.createInstance({
 // In-memory store for pending verifications (in production, use Redis)
 const pendingVerifications = new Map();
 
+/**
+ * Resolves the caller from their session cookie.
+ *
+ * The linking endpoints must never trust a userId supplied by the client:
+ * profile ids are public, so accepting one would let anyone bind their own
+ * Telegram to somebody else's account and receive that person's notifications.
+ */
+async function getAuthenticatedUserId(req, res) {
+  const { getSdk } = require('../api-util/sdk');
+  const sdk = getSdk(req, res);
+  const response = await sdk.currentUser.show();
+  return response.data.data.id.uuid;
+}
+
 // Blog posts pending file path
 const PENDING_POSTS_PATH = path.join(__dirname, '../../src/data/blog/pending_posts.json');
 
@@ -500,10 +514,11 @@ async function handleAccountLinking(chatId, code, userId, firstName) {
  */
 async function generateCode(req, res) {
   try {
-    const { userId } = req.body;
-    
-    if (!userId) {
-      return res.status(400).json({ error: 'userId is required' });
+    let userId;
+    try {
+      userId = await getAuthenticatedUserId(req, res);
+    } catch (authError) {
+      return res.status(401).json({ error: 'Authentication required' });
     }
     
     // Generate new code
@@ -542,10 +557,11 @@ async function generateCode(req, res) {
  */
 async function checkTelegramStatus(req, res) {
   try {
-    const { userId } = req.query;
-    
-    if (!userId) {
-      return res.status(400).json({ error: 'userId is required' });
+    let userId;
+    try {
+      userId = await getAuthenticatedUserId(req, res);
+    } catch (authError) {
+      return res.status(401).json({ error: 'Authentication required' });
     }
     
     const userResponse = await integrationSdk.users.show({
@@ -570,10 +586,11 @@ async function checkTelegramStatus(req, res) {
  */
 async function unlinkTelegram(req, res) {
   try {
-    const { userId } = req.body;
-    
-    if (!userId) {
-      return res.status(400).json({ error: 'userId is required' });
+    let userId;
+    try {
+      userId = await getAuthenticatedUserId(req, res);
+    } catch (authError) {
+      return res.status(401).json({ error: 'Authentication required' });
     }
     
     // Get current user to find chatId

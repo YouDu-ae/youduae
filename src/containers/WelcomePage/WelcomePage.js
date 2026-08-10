@@ -8,12 +8,11 @@ import { ensureCurrentUser } from '../../util/data';
 import { getCurrentUserTypeRoles } from '../../util/userHelpers';
 import { isScrollingDisabled } from '../../ducks/ui.duck';
 import { Page, NamedLink, LayoutSingleColumn, PrimaryButton, SecondaryButton, ExternalLink } from '../../components';
+import { useTelegramLink } from '../../hooks/useTelegramLink';
 import TopbarContainer from '../TopbarContainer/TopbarContainer';
 import FooterContainer from '../FooterContainer/FooterContainer';
 
 import css from './WelcomePage.module.css';
-
-const TELEGRAM_BOT_URL = 'https://t.me/YouDuAE_bot';
 
 export const WelcomePageComponent = props => {
   const { scrollingDisabled, currentUser } = props;
@@ -30,6 +29,12 @@ export const WelcomePageComponent = props => {
 
   const user = ensureCurrentUser(currentUser);
   const userRoles = getCurrentUserTypeRoles(config, user);
+  // Right after signup nobody has Telegram linked yet, so the status request
+  // would only delay the prompt.
+  const { connecting, error: telegramError, connect: connectTelegram } = useTelegramLink({
+    currentUser: user,
+    skipStatusCheck: true,
+  });
   
   // ⚠️ ROLE MAPPING:
   // userType 'provider' (Заказчик) → roles: {customer: true, provider: false} → создаёт задания
@@ -97,9 +102,21 @@ export const WelcomePageComponent = props => {
                     id={isProvider ? 'WelcomePage.telegramDescriptionProvider' : 'WelcomePage.telegramDescriptionCustomer'} 
                   />
                 </p>
-                <ExternalLink href={TELEGRAM_BOT_URL} className={css.telegramButton}>
-                  <FormattedMessage id="WelcomePage.telegramConnect" />
-                </ExternalLink>
+                <button
+                  type="button"
+                  onClick={connectTelegram}
+                  disabled={connecting}
+                  className={css.telegramButton}
+                >
+                  {connecting ? (
+                    <FormattedMessage id="WelcomePage.telegramConnecting" />
+                  ) : (
+                    <FormattedMessage id="WelcomePage.telegramConnect" />
+                  )}
+                </button>
+                {telegramError ? (
+                  <p className={css.telegramError}>{telegramError}</p>
+                ) : null}
               </div>
             </div>
 

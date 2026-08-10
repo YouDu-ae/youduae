@@ -64,6 +64,7 @@ export { default as ValidationError } from './ValidationError/ValidationError';
 export { default as VerificationBadge } from './VerificationBadge/VerificationBadge';
 export { default as TelegramBanner } from './TelegramBanner/TelegramBanner';
 export { default as TelegramConnect } from './TelegramConnect/TelegramConnect';
+export { default as TelegramConnectPrompt } from './TelegramConnectPrompt/TelegramConnectPrompt';
 
 /**
  * Composite components

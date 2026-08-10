@@ -405,7 +405,10 @@ export const InboxPageComponent = props => {
         </div>
 
         {/* Telegram Banner */}
-        <TelegramBanner userType={currentUser?.attributes?.profile?.publicData?.userType} />
+        <TelegramBanner
+          userType={currentUser?.attributes?.profile?.publicData?.userType}
+          currentUser={currentUser}
+        />
 
         {/* Основной контент */}
         <div className={css.content}>

@@ -3,6 +3,11 @@ import classNames from 'classnames';
 
 import { FormattedMessage } from '../../util/reactIntl';
 import { IconSpinner, Button, ExternalLink } from '../../components';
+import {
+  generateTelegramCode,
+  getTelegramStatus,
+  unlinkTelegram as unlinkTelegramRequest,
+} from '../../util/api';
 
 import css from './TelegramConnect.module.css';
 
@@ -32,8 +37,7 @@ const TelegramConnect = props => {
   const checkStatus = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`/api/telegram/status?userId=${userId}`);
-      const data = await response.json();
+      const data = await getTelegramStatus();
       
       setIsLinked(data.isLinked);
       setLinkedAt(data.linkedAt);
@@ -51,13 +55,7 @@ const TelegramConnect = props => {
       setGenerating(true);
       setError(null);
       
-      const response = await fetch('/api/telegram/generate-code', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId }),
-      });
-      
-      const data = await response.json();
+      const data = await generateTelegramCode();
       
       if (data.error) {
         throw new Error(data.error);
@@ -82,13 +80,7 @@ const TelegramConnect = props => {
       setUnlinking(true);
       setError(null);
       
-      const response = await fetch('/api/telegram/unlink', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId }),
-      });
-      
-      const data = await response.json();
+      const data = await unlinkTelegramRequest();
       
       if (data.error) {
         throw new Error(data.error);

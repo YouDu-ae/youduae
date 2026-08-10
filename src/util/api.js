@@ -331,3 +331,23 @@ export const getPlatformStats = () => {
   });
 };
 
+// Telegram notifications. The account is resolved from the session on the
+// server, so no user id is sent from the browser.
+export const getTelegramStatus = () => {
+  return get('/api/telegram/status', {
+    headers: { 'Content-Type': 'application/json' },
+  });
+};
+
+export const generateTelegramCode = () => {
+  return post('/api/telegram/generate-code', {}, {
+    headers: { 'Content-Type': 'application/json' },
+  });
+};
+
+export const unlinkTelegram = () => {
+  return post('/api/telegram/unlink', {}, {
+    headers: { 'Content-Type': 'application/json' },
+  });
+};
+

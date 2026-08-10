@@ -1,14 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { ExternalLink } from '../../components';
+import { useTelegramLink } from '../../hooks/useTelegramLink';
 import css from './TelegramBanner.module.css';
 
-const TELEGRAM_BOT_URL = 'https://t.me/YouDuAE_bot';
 const TELEGRAM_GROUP_URL = 'https://t.me/+FxO8HMVQMz1kNGVi';
 const STORAGE_KEY = 'telegramBannerDismissed';
 const DISMISS_DAYS = 7; // Show again after 7 days
 
-const TelegramBanner = ({ userType }) => {
-  const [isVisible, setIsVisible] = useState(false);
+const TelegramBanner = ({ userType, currentUser }) => {
+  const [isDismissed, setIsDismissed] = useState(true);
+  const { isLinked, connecting, error, connect } = useTelegramLink({ currentUser });
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -24,17 +25,18 @@ const TelegramBanner = ({ userType }) => {
       }
     }
     
-    setIsVisible(true);
+    setIsDismissed(false);
   }, []);
 
   const handleDismiss = () => {
-    setIsVisible(false);
+    setIsDismissed(true);
     if (typeof window !== 'undefined') {
       localStorage.setItem(STORAGE_KEY, Date.now().toString());
     }
   };
 
-  if (!isVisible) return null;
+  // Wait for the status so users who already linked never see the prompt.
+  if (isDismissed || isLinked !== false) return null;
 
   // Different messages for Provider (заказчик) and Customer (исполнитель)
   const isProvider = userType === 'provider';
@@ -62,13 +64,19 @@ const TelegramBanner = ({ userType }) => {
           </p>
           
           <div className={css.links}>
-            <ExternalLink href={TELEGRAM_BOT_URL} className={css.primaryLink}>
-              Подключить бота
-            </ExternalLink>
+            <button
+              type="button"
+              onClick={connect}
+              disabled={connecting}
+              className={css.primaryLink}
+            >
+              {connecting ? 'Открываем Telegram…' : 'Подключить за один клик'}
+            </button>
             <ExternalLink href={TELEGRAM_GROUP_URL} className={css.secondaryLink}>
               Новости YouDu
             </ExternalLink>
           </div>
+          {error ? <p className={css.error}>{error}</p> : null}
         </div>
         
         <button 

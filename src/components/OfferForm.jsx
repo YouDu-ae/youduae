@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { initiatePrivileged, checkMyOffer } from '../util/api';
-import { NamedLink } from '../components';
+import { NamedLink, TelegramConnectPrompt } from '../components';
 import { trackOfferSubmitted } from '../analytics/plausibleEvents';
 import css from './OfferForm.module.css';
 
@@ -255,6 +255,11 @@ export default function OfferForm({
         <p style={{ marginTop: 8, marginBottom: 0, color: '#2d3748' }}>
           Дождитесь ответа от заказчика. Вы можете посмотреть статус вашего отклика в разделе "Входящие".
         </p>
+        <TelegramConnectPrompt
+          currentUser={currentUser}
+          title="Узнайте об ответе первым"
+          description="Заказчики выбирают тех, кто отвечает быстро. Пришлём уведомление в Telegram, как только придёт ответ."
+        />
       </div>
     );
   }

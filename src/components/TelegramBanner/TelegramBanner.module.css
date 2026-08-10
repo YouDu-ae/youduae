@@ -64,14 +64,28 @@
   color: #fff !important;
   font-size: 14px;
   font-weight: 500;
+  font-family: inherit;
+  border: none;
   border-radius: 8px;
   text-decoration: none;
+  cursor: pointer;
   transition: background 0.2s ease;
 }
 
 .primaryLink:hover {
   background: #006da3;
   text-decoration: none;
+}
+
+.primaryLink:disabled {
+  background: #7bb8d9;
+  cursor: default;
+}
+
+.error {
+  margin: 10px 0 0 0;
+  font-size: 13px;
+  color: #c53030;
 }
 
 .secondaryLink {
