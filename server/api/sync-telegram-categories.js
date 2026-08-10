@@ -10,10 +10,18 @@ const db = require('../db');
  * client cannot subscribe itself to arbitrary categories.
  */
 module.exports = async (req, res) => {
+  let user;
   try {
     const sdk = getSdk(req, res);
     const response = await sdk.currentUser.show();
-    const user = response.data.data;
+    user = response.data.data;
+  } catch (authError) {
+    // Sharetribe answers an anonymous currentUser.show with 403, so any
+    // failure here means there is no usable session.
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+
+  try {
     const userId = user.id.uuid;
     const publicData = user.attributes.profile.publicData || {};
     const categories = Array.isArray(publicData.serviceCategories)
@@ -29,10 +37,6 @@ module.exports = async (req, res) => {
       categories: updated ? categories : [],
     });
   } catch (error) {
-    const status = error.status === 401 ? 401 : 500;
-    if (status === 401) {
-      return res.status(401).json({ error: 'Authentication required' });
-    }
     console.error('⚠️ sync-telegram-categories failed:', error.message);
     return res.status(500).json({ error: 'Failed to sync categories' });
   }
