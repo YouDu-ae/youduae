@@ -31,7 +31,7 @@ const SectionAuthorMaybe = props => {
   useEffect(() => {
     if (listing.author?.id?.uuid) {
       setLoadingStats(true);
-      getUserReviewsStats(listing.author.id.uuid)
+      getUserReviewsStats(listing.author.id.uuid, 'client')
         .then(response => {
           // API returns { status, statusText, data: { userId, reviewCount, averageRating } }
           const stats = response.data || response;

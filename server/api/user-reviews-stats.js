@@ -1,88 +1,93 @@
-const { getSdk, handleError, serialize } = require('../api-util/sdk');
+const sharetribeIntegrationSdk = require('sharetribe-flex-integration-sdk');
+const sharetribeSdk = require('sharetribe-flex-sdk');
+const { handleError, serialize } = require('../api-util/sdk');
 const { createCache } = require('../api-util/cache');
+const { parseRole, fetchReviewStats, fetchCompletedCount } = require('../api-util/reputation');
 
-const REVIEWS_CACHE_TTL_MS = 5 * 60 * 1000;
+const CACHE_TTL_MS = 5 * 60 * 1000;
 
-// Public reviews depend only on the subject, so they are safe to share between
-// callers. The transaction query below is scoped to the requesting user's own
-// sales and must stay outside the cache.
-const reviewsCache = createCache({ ttlMs: REVIEWS_CACHE_TTL_MS, maxEntries: 200 });
+// Everything returned here is derived from the subject user alone, never from
+// who is asking, so one cached entry can serve every caller. OfferList requests
+// one of these per offer, which makes the de-duplication worth having.
+const statsCache = createCache({ ttlMs: CACHE_TTL_MS, maxEntries: 500 });
+
+let marketplaceSdkInstance = null;
+let integrationSdkInstance = null;
+
+// Both are built on first use: creating them at module load crashes the whole
+// API router in environments where the credentials are absent.
+const getMarketplaceSdk = () => {
+  if (!marketplaceSdkInstance) {
+    marketplaceSdkInstance = sharetribeSdk.createInstance({
+      clientId: process.env.REACT_APP_SHARETRIBE_SDK_CLIENT_ID,
+      clientSecret: process.env.SHARETRIBE_SDK_CLIENT_SECRET,
+    });
+  }
+  return marketplaceSdkInstance;
+};
+
+const getIntegrationSdk = () => {
+  if (!integrationSdkInstance) {
+    integrationSdkInstance = sharetribeIntegrationSdk.createInstance({
+      clientId: process.env.INTEGRATION_API_CLIENT_ID,
+      clientSecret: process.env.INTEGRATION_API_CLIENT_SECRET,
+    });
+  }
+  return integrationSdkInstance;
+};
 
 /**
- * Get review statistics for a user
- * Returns average rating and review count
+ * Public reputation for one user: average rating, review count and how many
+ * tasks they completed.
+ *
+ * `role` selects which side of the marketplace to report on — `specialist`
+ * (default) for someone doing the work, `client` for someone posting tasks. A
+ * user active on both sides has separate standings, and mixing them is wrong in
+ * both directions.
+ *
+ * Only published reviews and completed transaction counts are exposed, so the
+ * response is the same for every caller and is served with application
+ * credentials rather than the requester's session.
  */
 module.exports = (req, res) => {
   const { userId } = req.query;
+  const role = parseRole(req.query.role);
 
   if (!userId) {
     return res.status(400).json({ error: 'userId is required' }).end();
   }
 
-  const sdk = getSdk(req, res);
+  const hasIntegrationCredentials =
+    !!process.env.INTEGRATION_API_CLIENT_ID && !!process.env.INTEGRATION_API_CLIENT_SECRET;
 
-  // Query reviews where this user is the subject (reviews about them)
-  const reviewsPromise = reviewsCache.get(userId, () =>
-    sdk.reviews.query({
-      subject_id: userId,
-      state: 'public',
-      perPage: 100, // Get all reviews to calculate average
-    })
-  );
+  const buildStats = async () => {
+    const [reviews, completedCount] = await Promise.all([
+      fetchReviewStats(getMarketplaceSdk(), { subjectId: userId, role }),
+      hasIntegrationCredentials
+        ? fetchCompletedCount(getIntegrationSdk(), { userId, role })
+        : Promise.resolve(0),
+    ]);
 
-  // Query transactions where this user is the provider and status is completed
-  const transactionsPromise = sdk.transactions.query({
-    only: 'sale',
-    last_transitions: ['transition/complete', 'transition/review-1-by-provider', 'transition/review-1-by-customer', 'transition/review-2-by-provider', 'transition/review-2-by-customer'],
-    perPage: 100,
-  });
+    return {
+      userId,
+      role,
+      reviewCount: reviews.count,
+      averageRating: reviews.averageRating,
+      completedCount,
+    };
+  };
 
-  Promise.all([reviewsPromise, transactionsPromise])
-    .then(([reviewsResponse, transactionsResponse]) => {
-      const { status, statusText } = reviewsResponse;
-      const reviews = reviewsResponse.data.data || [];
-      const transactions = transactionsResponse.data.data || [];
-
-      // Calculate average rating
-      let totalRating = 0;
-      let count = 0;
-      
-      reviews.forEach(review => {
-        const rating = review.attributes?.rating;
-        if (rating) {
-          totalRating += rating;
-          count++;
-        }
-      });
-      
-      const averageRating = count > 0 ? totalRating / count : 0;
-      
-      // Count completed tasks where user is provider
-      const completedCount = transactions.filter(tx => {
-        const providerId = tx.relationships?.provider?.data?.id?.uuid;
-        return providerId === userId;
-      }).length;
-
+  statsCache
+    .get(`${role}:${userId}`, buildStats)
+    .then(data => {
       res
-        .status(status)
+        .status(200)
         .set('Content-Type', 'application/transit+json')
-        .send(
-          serialize({
-            status,
-            statusText,
-            data: {
-              userId,
-              reviewCount: count,
-              averageRating: parseFloat(averageRating.toFixed(2)),
-              completedCount,
-            },
-          })
-        )
+        .send(serialize({ status: 200, statusText: 'OK', data }))
         .end();
     })
     .catch(e => {
-      console.error('❌ user-reviews-stats error:', e?.status, e?.statusText);
+      console.error('❌ user-reviews-stats error:', e?.status, e?.statusText || e?.message);
       handleError(res, e);
     });
 };
-

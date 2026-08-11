@@ -5,6 +5,12 @@
 
 const sharetribeIntegrationSdk = require('sharetribe-flex-integration-sdk');
 const sharetribeSdk = require('sharetribe-flex-sdk');
+const {
+  ROLE,
+  resolveIsVerified,
+  fetchReviewStats,
+  fetchCompletedCount,
+} = require('../api-util/reputation');
 
 module.exports = async (req, res) => {
   const { listingId } = req.query;
@@ -131,9 +137,7 @@ module.exports = async (req, res) => {
           profileImage.attributes.variants['square-small']?.url;
       }
 
-      // Get verification status from metadata
-      const metadata = customer.attributes?.profile?.metadata || {};
-      const isVerified = metadata.isVerified === true;
+      const isVerified = resolveIsVerified(customer.attributes?.profile);
 
       // Last message as preview (matches chat UX — newest activity)
       let messagePreview = '';
@@ -169,48 +173,19 @@ module.exports = async (req, res) => {
         console.log(`  → Using payinTotal: ${offerPrice}`);
       }
 
-      // Get customer reviews
-      let reviewCount = 0;
-      let averageRating = 0;
-      try {
-        const reviewsResponse = await marketplaceSdk.reviews.query({
+      // Everyone responding to a task is rated as a specialist, which is the
+      // customer side of the transaction in Sharetribe terms.
+      const [reviews, completedTasks] = await Promise.all([
+        fetchReviewStats(marketplaceSdk, {
           subjectId: customer.id.uuid,
-          state: 'public',
-          perPage: 100,
-        });
-        const reviews = reviewsResponse.data.data || [];
-        reviewCount = reviews.length;
-        if (reviewCount > 0) {
-          const totalRating = reviews.reduce((sum, review) => {
-            return sum + (review.attributes.rating || 0);
-          }, 0);
-          averageRating = Math.round((totalRating / reviewCount) * 10) / 10;
-        }
-      } catch (err) {
-        console.error('❌ Error fetching reviews for customer:', customer.id.uuid, err.message);
-      }
-
-      // Get completed tasks count
-      let completedTasks = 0;
-      try {
-        const completedTxResponse = await integrationSdk.transactions.query({
-          customerId: customer.id.uuid,
-          perPage: 100,
-        });
-        const completedTransitions = [
-          'transition/complete',
-          'transition/review-1-by-customer',
-          'transition/review-2-by-customer',
-          'transition/review-1-by-provider',
-          'transition/review-2-by-provider',
-        ];
-        const allTx = completedTxResponse.data.data || [];
-        completedTasks = allTx.filter(t => 
-          completedTransitions.includes(t.attributes.lastTransition)
-        ).length;
-      } catch (err) {
-        console.error('❌ Error fetching completed tasks:', err.message);
-      }
+          role: ROLE.SPECIALIST,
+        }),
+        fetchCompletedCount(integrationSdk, {
+          userId: customer.id.uuid,
+          role: ROLE.SPECIALIST,
+        }),
+      ]);
+      const { count: reviewCount, averageRating } = reviews;
 
       // Get transaction status
       const lastTransition = tx.attributes?.lastTransition || '';

@@ -322,7 +322,7 @@ const OrderPanel = props => {
       if (author?.id?.uuid) {
         try {
           const { getUserReviewsStats } = await import('../../util/api');
-          const response = await getUserReviewsStats(author.id.uuid);
+          const response = await getUserReviewsStats(author.id.uuid, 'client');
           const stats = response.data || response;
           console.log('📊 [OrderPanel] Author stats loaded:', stats);
           setAuthorStats(stats);

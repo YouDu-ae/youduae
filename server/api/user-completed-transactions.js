@@ -1,4 +1,6 @@
 const sharetribeIntegrationSdk = require('sharetribe-flex-integration-sdk');
+const { queryAllPages } = require('../api-util/paginate');
+const { COMPLETED_TRANSITIONS } = require('../api-util/reputation');
 
 module.exports = (req, res) => {
   const { userId } = req.query;
@@ -22,69 +24,25 @@ module.exports = (req, res) => {
     clientSecret: integrationClientSecret,
   });
 
-  console.log('🔍 Fetching completed transactions for user (both roles):', userId);
+  // The user can appear on either side of a transaction, so both roles are
+  // queried. Sharetribe applies the completed-transition filter itself, which
+  // keeps unfinished tasks off the wire entirely.
+  const queryRole = filterKey =>
+    queryAllPages(({ page, perPage }) =>
+      integrationSdk.transactions.query({
+        [filterKey]: userId,
+        lastTransitions: COMPLETED_TRANSITIONS,
+        include: ['listing', 'customer', 'provider'],
+        page,
+        perPage,
+      })
+    );
 
-  // Fetch transactions where user is CUSTOMER (executor/specialist)
-  const customerTransactionsPromise = integrationSdk.transactions.query({
-    customerId: userId,
-    include: ['listing', 'customer', 'provider'],
-    perPage: 100,
-  });
+  Promise.all([queryRole('customerId'), queryRole('providerId')])
+    .then(([asCustomer, asProvider]) => {
+      const filteredTransactions = [...asCustomer.items, ...asProvider.items];
+      const included = [...asCustomer.included, ...asProvider.included];
 
-  // Fetch transactions where user is PROVIDER (listing author/task creator)
-  const providerTransactionsPromise = integrationSdk.transactions.query({
-    providerId: userId,
-    include: ['listing', 'customer', 'provider'],
-    perPage: 100,
-  });
-
-  // Wait for both queries to complete
-  Promise.all([customerTransactionsPromise, providerTransactionsPromise])
-    .then(([customerResponse, providerResponse]) => {
-      const customerTransactions = customerResponse.data.data || [];
-      const providerTransactions = providerResponse.data.data || [];
-      const allTransactions = [...customerTransactions, ...providerTransactions];
-      
-      // Combine included arrays
-      const customerIncluded = customerResponse.data.included || [];
-      const providerIncluded = providerResponse.data.included || [];
-      const included = [...customerIncluded, ...providerIncluded];
-
-      // Debug: log all transaction states
-      console.log('🔍 All transactions for user:', {
-        userId,
-        asCustomer: customerTransactions.length,
-        asProvider: providerTransactions.length,
-        total: allTransactions.length,
-        states: allTransactions.map(t => ({
-          id: t.id.uuid,
-          lastTransition: t.attributes.lastTransition,
-          processState: t.attributes.processState,
-        })),
-      });
-
-      // Filter completed/reviewed transactions by lastTransition
-      // In assignment-flow-v3, transitions are: transition/complete, transition/review-1-by-customer, etc.
-      const completedTransitions = [
-        'transition/complete',
-        'transition/review-1-by-customer',
-        'transition/review-2-by-customer',
-        'transition/review-1-by-provider',
-        'transition/review-2-by-provider',
-      ];
-      
-      const filteredTransactions = allTransactions.filter(t => {
-        const lastTransition = t.attributes.lastTransition;
-        return completedTransitions.includes(lastTransition);
-      });
-
-      console.log('🔍 Filtered transactions:', {
-        before: allTransactions.length,
-        after: filteredTransactions.length,
-        lastTransitions: filteredTransactions.map(t => t.attributes.lastTransition),
-      });
-
-      // Map filtered transactions with listing info
       const completedWorks = filteredTransactions.map(tx => {
         const listingRef = tx.relationships?.listing?.data;
         const listing = listingRef
@@ -108,12 +66,9 @@ module.exports = (req, res) => {
         };
       });
 
-      console.log('✅ Found completed transactions:', {
-        totalTransactions: allTransactions.length,
-        completedWorks: completedWorks.length,
-        states: allTransactions.map(t => t.attributes.lastTransition),
-        sample: completedWorks[0],
-      });
+      console.log(
+        `✅ Completed transactions for ${userId}: ${completedWorks.length} (as specialist ${asCustomer.items.length}, as client ${asProvider.items.length})`
+      );
 
       res.status(200).json({
         completedWorks,

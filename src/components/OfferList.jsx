@@ -137,7 +137,7 @@ export default function OfferList({ listingId, isOwner, publicData = {} }) {
         // Загружаем статистику параллельно для всех customers
         const statsPromises = Array.from(customerIds).map(async customerId => {
           try {
-            const statsResponse = await getUserReviewsStats(customerId);
+            const statsResponse = await getUserReviewsStats(customerId, 'specialist');
             return {
               userId: customerId,
               stats: statsResponse.data,

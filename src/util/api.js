@@ -252,10 +252,13 @@ export const updateListingStatus = ({
   });
 };
 
-// Get user review statistics (average rating and count)
-// Returns { userId, reviewCount, averageRating }
-export const getUserReviewsStats = userId => {
-  return get(`/api/user-reviews-stats?userId=${userId}`);
+// Get user review statistics for one side of the marketplace.
+// `role` is 'specialist' (someone doing the work) or 'client' (someone posting
+// tasks). A user active on both sides earns two separate reputations, so the
+// caller has to say which one it is showing.
+// Returns { userId, role, reviewCount, averageRating, completedCount }
+export const getUserReviewsStats = (userId, role = 'specialist') => {
+  return get(`/api/user-reviews-stats?userId=${userId}&role=${role}`);
 };
 
 // Get listing status based on transactions

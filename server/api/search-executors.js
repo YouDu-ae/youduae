@@ -1,6 +1,13 @@
 const sharetribeIntegrationSdk = require('sharetribe-flex-integration-sdk');
 const sharetribeSdk = require('sharetribe-flex-sdk');
 const { createCache } = require('../api-util/cache');
+const { queryAllPages } = require('../api-util/paginate');
+const {
+  ROLE,
+  resolveIsVerified,
+  fetchReviewStats,
+  fetchCompletedCount,
+} = require('../api-util/reputation');
 
 const CACHE_TTL_MS = 5 * 60 * 1000;
 
@@ -10,14 +17,6 @@ const CACHE_TTL_MS = 5 * 60 * 1000;
 const MAX_CONCURRENT_EXECUTOR_LOOKUPS = 4;
 
 const executorsCache = createCache({ ttlMs: CACHE_TTL_MS });
-
-const COMPLETED_TRANSITIONS = [
-  'transition/complete',
-  'transition/review-1-by-customer',
-  'transition/review-2-by-customer',
-  'transition/review-1-by-provider',
-  'transition/review-2-by-provider',
-];
 
 /** Runs `task` over `items`, keeping at most `limit` calls in flight. */
 const mapWithConcurrency = async (items, limit, task) => {
@@ -96,37 +95,12 @@ const buildExecutor = async ({ user, included, integrationSdk, marketplaceSdk })
       item.id.uuid === user.relationships?.profileImage?.data?.id?.uuid
   );
 
-  let reviewCount = 0;
-  let averageRating = 0;
-  let completedTasksCount = 0;
-
-  try {
-    const reviewsResponse = await marketplaceSdk.reviews.query({
-      subjectId: user.id.uuid,
-      state: 'public',
-      perPage: 100,
-    });
-    const reviews = reviewsResponse.data.data;
-    reviewCount = reviews.length;
-    const totalRating = reviews.reduce((sum, review) => sum + (review.attributes.rating || 0), 0);
-    averageRating = reviewCount > 0 ? totalRating / reviewCount : 0;
-  } catch (err) {
-    console.error('❌ Error fetching reviews for user:', user.id.uuid, err.message);
-  }
-
-  // In YouDu terms a Sharetribe "customer" is the executor doing the work.
-  try {
-    const transactionsResponse = await integrationSdk.transactions.query({
-      customerId: user.id.uuid,
-      perPage: 100,
-    });
-    const allTx = transactionsResponse.data.data || [];
-    completedTasksCount = allTx.filter(tx =>
-      COMPLETED_TRANSITIONS.includes(tx.attributes.lastTransition)
-    ).length;
-  } catch (err) {
-    console.error('❌ Error fetching transactions for user:', user.id.uuid, err.message);
-  }
+  // Everyone listed here is rated as a specialist, which in Sharetribe terms is
+  // the customer side of the transaction.
+  const [reviews, completedTasksCount] = await Promise.all([
+    fetchReviewStats(marketplaceSdk, { subjectId: user.id.uuid, role: ROLE.SPECIALIST }),
+    fetchCompletedCount(integrationSdk, { userId: user.id.uuid, role: ROLE.SPECIALIST }),
+  ]);
 
   return {
     id: user.id.uuid,
@@ -135,13 +109,10 @@ const buildExecutor = async ({ user, included, integrationSdk, marketplaceSdk })
     bio: user.attributes.profile.bio || '',
     publicData: user.attributes.profile.publicData || {},
     metadata: user.attributes.profile.metadata || {},
-    isVerified: user.attributes.profile.metadata?.isVerified === true,
+    isVerified: resolveIsVerified(user.attributes.profile),
     createdAt: user.attributes.createdAt,
     profileImage,
-    reviews: {
-      count: reviewCount,
-      averageRating: Math.round(averageRating * 10) / 10,
-    },
+    reviews,
     completedTasks: completedTasksCount,
   };
 };
@@ -157,13 +128,9 @@ const fetchExecutors = async category => {
     clientSecret: process.env.SHARETRIBE_SDK_CLIENT_SECRET,
   });
 
-  const response = await integrationSdk.users.query({
-    include: ['profileImage'],
-    perPage: 100,
-  });
-
-  const users = response.data.data;
-  const included = response.data.included || [];
+  const { items: users, included } = await queryAllPages(({ page, perPage }) =>
+    integrationSdk.users.query({ include: ['profileImage'], page, perPage })
+  );
 
   const filteredUsers = users.filter(user => {
     const serviceCategories = user.attributes?.profile?.publicData?.serviceCategories;
