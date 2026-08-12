@@ -59,6 +59,8 @@ const SignupFormFields = props => {
   });
   const autoSubmitAfterOtpRef = useRef(false);
   const prevEmailRef = useRef(null);
+  const [submitAttempted, setSubmitAttempted] = useState(false);
+  const [incompleteFormNotice, setIncompleteFormNotice] = useState(false);
 
   const { userType, email } = values || {};
   const normalizedEmail = email ? String(email).trim().toLowerCase() : '';
@@ -72,8 +74,10 @@ const SignupFormFields = props => {
     otpState.sent ||
     otpState.verified
   );
-  // Block leave while drafting signup (not during submit / after success redirect)
-  const blockLeaveWithoutSignup = hasStartedSignup && !inProgress;
+  // Block leave while drafting signup. Once a submit has been fired the guard is
+  // dropped, otherwise it also intercepts the redirect that follows a successful
+  // signup and the user is left staring at the form.
+  const blockLeaveWithoutSignup = hasStartedSignup && !inProgress && !submitAttempted;
 
       // email
       const emailRequired = validators.required(
@@ -139,6 +143,10 @@ const SignupFormFields = props => {
 
   const submitDisabled = invalid || submitInProgress || !otpState.verified || !hasServiceCategories;
 
+  // The rest of the form has to be complete before we send a code. Verifying the
+  // email first left people with a confirmed address and a dead submit button.
+  const formReadyForOtp = !invalid && hasServiceCategories;
+
   // Определяем состояние главной кнопки
   const getButtonState = () => {
     if (!otpState.sent && !otpState.verified) {
@@ -152,15 +160,39 @@ const SignupFormFields = props => {
 
   const buttonState = getButtonState();
 
+  // Marks every field as touched so Final Form renders its errors, then brings
+  // the first offending field into view.
+  const revealMissingFields = () => {
+    const registered = form.getRegisteredFields();
+
+    registered.forEach(name => {
+      form.focus(name);
+      form.blur(name);
+    });
+
+    const firstInvalid = registered.find(name => form.getFieldState(name)?.invalid);
+    const node = firstInvalid ? document.querySelector(`[name="${firstInvalid}"]`) : null;
+    if (node && typeof node.scrollIntoView === 'function') {
+      node.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    setIncompleteFormNotice(true);
+  };
+
   // Обработчик универсальной кнопки
-  const handleMainButtonClick = async (e) => {
+  const handleMainButtonClick = async e => {
     e.preventDefault();
-    
+
     if (buttonState === 'sendOtp') {
+      if (!formReadyForOtp) {
+        revealMissingFields();
+        return;
+      }
       await handleSendOtp();
     } else if (buttonState === 'verifyOtp') {
       await handleVerifyOtp();
     } else if (buttonState === 'submit') {
+      setSubmitAttempted(true);
       handleSubmit(e);
     }
   };
@@ -168,7 +200,9 @@ const SignupFormFields = props => {
   // Проверяем, можно ли нажать кнопку
   const isMainButtonDisabled = () => {
     if (buttonState === 'sendOtp') {
-      return !email || emailValid(email) || otpState.sending;
+      // Deliberately clickable while the form is incomplete: the tap points at
+      // the missing fields instead of doing nothing.
+      return otpState.sending;
     }
     if (buttonState === 'verifyOtp') {
       const code = values?.emailOtpCode;
@@ -280,6 +314,32 @@ const SignupFormFields = props => {
     }
   };
 
+  // A verified token only lives for 30 minutes. Without this the code input is
+  // already unmounted by then and there is no way to start verification over.
+  const handleRequestNewCode = () => {
+    autoSubmitAfterOtpRef.current = false;
+    if (form?.change) {
+      form.change('verifiedToken', undefined);
+      form.change('emailOtpCode', undefined);
+    }
+    setOtpState(prev => ({
+      ...prev,
+      sent: false,
+      verified: false,
+      challengeToken: null,
+      verifiedToken: null,
+      error: null,
+      info: null,
+    }));
+  };
+
+  // Drop the "complete the form" hint as soon as it stops being true.
+  useEffect(() => {
+    if (formReadyForOtp && incompleteFormNotice) {
+      setIncompleteFormNotice(false);
+    }
+  }, [formReadyForOtp, incompleteFormNotice]);
+
   // After OTP success → finish signup automatically (account is created only here)
   useEffect(() => {
     if (!autoSubmitAfterOtpRef.current || !otpState.verified || !otpState.verifiedToken) {
@@ -294,7 +354,8 @@ const SignupFormFields = props => {
         return;
       }
       if (invalid || inProgress) {
-        autoSubmitAfterOtpRef.current = false;
+        // Stay armed on purpose: this effect re-runs once the form turns valid,
+        // so completing the last field finishes signup without another tap.
         setOtpState(prev => ({
           ...prev,
           info: intl.formatMessage({ id: 'SignupForm.emailOtpVerifiedFillAndSubmit' }),
@@ -302,6 +363,11 @@ const SignupFormFields = props => {
         return;
       }
       autoSubmitAfterOtpRef.current = false;
+      setSubmitAttempted(true);
+      setOtpState(prev => ({
+        ...prev,
+        info: intl.formatMessage({ id: 'SignupForm.emailOtpVerifiedAutoSubmit' }),
+      }));
       handleSubmit();
     }, 150);
     return () => clearTimeout(t);
@@ -513,8 +579,16 @@ const SignupFormFields = props => {
         {/* Галочка после успешной верификации */}
         {otpState.verified && (
           <div className={classNames(css.emailOtpStatus, css.emailOtpStatusSuccess)}>
-            <span className={css.verifiedIcon}>✓</span>
             <FormattedMessage id="SignupForm.emailOtpVerifiedStatus" />
+            <button type="button" className={css.resendOtpButton} onClick={handleRequestNewCode}>
+              <FormattedMessage id="SignupForm.emailOtpRequestNewCode" />
+            </button>
+          </div>
+        )}
+
+        {incompleteFormNotice && (
+          <div className={classNames(css.emailOtpStatus, css.emailOtpStatusError)}>
+            <FormattedMessage id="SignupForm.completeFormBeforeOtp" />
           </div>
         )}
 

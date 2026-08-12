@@ -1008,6 +1008,8 @@
   "SignupForm.emailOtpSentMessage": "Код отправлен! Проверьте вашу почту (и папку «Спам»).",
   "SignupForm.emailOtpPendingAccountNotice": "Аккаунт ещё не создан. Введите код из письма — регистрация продолжится автоматически.",
   "SignupForm.emailOtpVerifiedStatus": "✓ Email подтверждён",
+  "SignupForm.emailOtpRequestNewCode": "Запросить новый код",
+  "SignupForm.completeFormBeforeOtp": "Заполните все обязательные поля — после этого отправим код на почту.",
   "SignupForm.emailOtpVerifiedAutoSubmit": "✓ Email подтверждён. Завершаем регистрацию…",
   "SignupForm.emailOtpVerifiedFillAndSubmit": "✓ Email подтверждён. Заполните обязательные поля и нажмите «Зарегистрироваться».",
   "SignupForm.leaveWithoutSignupConfirm": "Вы хотите выйти без регистрации? Введённые данные будут потеряны, аккаунт ещё не создан.",

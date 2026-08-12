@@ -3,9 +3,15 @@ import '@testing-library/jest-dom';
 
 import { renderWithProviders as render, testingLibrary } from '../../../util/testHelpers';
 import { fakeIntl } from '../../../util/testData';
+import { sendEmailOtp } from '../../../util/api';
 
 import TermsAndConditions from '../TermsAndConditions/TermsAndConditions';
 import SignupForm from './SignupForm';
+
+jest.mock('../../../util/api', () => ({
+  sendEmailOtp: jest.fn(),
+  verifyEmailOtp: jest.fn(),
+}));
 
 const { screen, fireEvent, userEvent, waitFor } = testingLibrary;
 
@@ -111,7 +117,35 @@ describe('SignupForm', () => {
   //   expect(tree.asFragment()).toMatchSnapshot();
   // });
 
-  it('enables Sign up button when required fields are filled', async () => {
+  // react-scripts runs jest with resetMocks, so the implementation has to be
+  // (re)installed for every test rather than in the module factory.
+  beforeEach(() => {
+    sendEmailOtp.mockResolvedValue({ challengeToken: 'challenge-token' });
+  });
+
+  const selectSellerAndFillForm = async ({ skipTerms = false } = {}) => {
+    await waitFor(() => {
+      userEvent.selectOptions(
+        screen.getByRole('combobox'),
+        screen.getByRole('option', { name: 'Seller' })
+      );
+    });
+
+    userEvent.type(
+      screen.getByRole('textbox', { name: 'SignupForm.emailLabel' }),
+      'joe@example.com'
+    );
+    userEvent.type(screen.getByRole('textbox', { name: 'SignupForm.firstNameLabel' }), 'Joe');
+    userEvent.type(screen.getByRole('textbox', { name: 'SignupForm.lastNameLabel' }), 'Dunphy');
+    userEvent.type(screen.getByLabelText('SignupForm.passwordLabel'), 'secret-password');
+    userEvent.type(screen.getByLabelText('Text Field'), 'Text value');
+
+    if (!skipTerms) {
+      fireEvent.click(screen.getByLabelText(/AuthenticationPage.termsAndConditionsAcceptText/i));
+    }
+  };
+
+  it('refuses to send a verification code until the rest of the form is filled', async () => {
     render(
       <SignupForm
         intl={fakeIntl}
@@ -122,7 +156,6 @@ describe('SignupForm', () => {
       />
     );
 
-    // Simulate user interaction and select parent level category
     await waitFor(() => {
       userEvent.selectOptions(
         screen.getByRole('combobox'),
@@ -130,25 +163,64 @@ describe('SignupForm', () => {
       );
     });
 
-    // Test that sign up button is disabled at first
-    expect(screen.getByRole('button', { name: 'SignupForm.signUp' })).toBeDisabled();
-
-    // Type the values to the sign up form
+    // Only the email is filled in — the state that used to let people verify
+    // their address and then get stuck on a dead submit button.
     userEvent.type(
       screen.getByRole('textbox', { name: 'SignupForm.emailLabel' }),
       'joe@example.com'
     );
-    userEvent.type(screen.getByRole('textbox', { name: 'SignupForm.firstNameLabel' }), 'Joe');
-    userEvent.type(screen.getByRole('textbox', { name: 'SignupForm.lastNameLabel' }), 'Dunphy');
-    userEvent.type(screen.getByLabelText('SignupForm.passwordLabel'), 'secret-password');
-    userEvent.type(screen.getByLabelText('Text Field'), 'Text value');
 
-    // Test that sign up button is still disabled before clicking the checkbox
-    expect(screen.getByRole('button', { name: 'SignupForm.signUp' })).toBeDisabled();
+    const button = screen.getByRole('button', { name: 'SignupForm.sendVerificationCode' });
+    // The button stays clickable so the tap can explain what is missing.
+    expect(button).toBeEnabled();
+    fireEvent.click(button);
+
+    expect(sendEmailOtp).not.toHaveBeenCalled();
+    expect(screen.getByText('SignupForm.completeFormBeforeOtp')).toBeInTheDocument();
+  });
+
+  it('sends a verification code once every required field is filled', async () => {
+    render(
+      <SignupForm
+        intl={fakeIntl}
+        termsAndConditions={termsAndConditions}
+        userTypes={userTypes}
+        userFields={userFields}
+        onSubmit={noop}
+      />
+    );
+
+    await selectSellerAndFillForm();
+
+    fireEvent.click(screen.getByRole('button', { name: 'SignupForm.sendVerificationCode' }));
+
+    await waitFor(() => {
+      expect(sendEmailOtp).toHaveBeenCalledTimes(1);
+    });
+    expect(screen.queryByText('SignupForm.completeFormBeforeOtp')).toBeNull();
+  });
+
+  it('clears the "complete the form" notice once the missing fields are filled', async () => {
+    render(
+      <SignupForm
+        intl={fakeIntl}
+        termsAndConditions={termsAndConditions}
+        userTypes={userTypes}
+        userFields={userFields}
+        onSubmit={noop}
+      />
+    );
+
+    await selectSellerAndFillForm({ skipTerms: true });
+
+    fireEvent.click(screen.getByRole('button', { name: 'SignupForm.sendVerificationCode' }));
+    expect(screen.getByText('SignupForm.completeFormBeforeOtp')).toBeInTheDocument();
+
     fireEvent.click(screen.getByLabelText(/AuthenticationPage.termsAndConditionsAcceptText/i));
 
-    // Test that sign up button is enabled after typing the values
-    expect(screen.getByRole('button', { name: 'SignupForm.signUp' })).toBeEnabled();
+    await waitFor(() => {
+      expect(screen.queryByText('SignupForm.completeFormBeforeOtp')).toBeNull();
+    });
   });
 
   it('shows custom user fields according to configuration', async () => {

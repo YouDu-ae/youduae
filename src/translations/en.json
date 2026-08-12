@@ -1014,6 +1014,8 @@
   "SignupForm.emailOtpSentMessage": "Verification code sent! Check your email (and Spam folder).",
   "SignupForm.emailOtpPendingAccountNotice": "Your account is not created yet. Enter the code from your email — registration will continue automatically.",
   "SignupForm.emailOtpVerifiedStatus": "✓ Email verified",
+  "SignupForm.emailOtpRequestNewCode": "Request a new code",
+  "SignupForm.completeFormBeforeOtp": "Fill in all required fields — we'll send the code right after that.",
   "SignupForm.emailOtpVerifiedAutoSubmit": "✓ Email verified. Finishing registration…",
   "SignupForm.emailOtpVerifiedFillAndSubmit": "✓ Email verified. Fill in the required fields and tap Sign up.",
   "SignupForm.leaveWithoutSignupConfirm": "Leave without finishing registration? Your details will be lost and no account has been created yet.",
