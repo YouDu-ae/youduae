@@ -7,26 +7,20 @@ import { fakeIntl } from '../../../util/testData';
 import TermsAndConditions from '../TermsAndConditions/TermsAndConditions';
 import ConfirmSignupForm from './ConfirmSignupForm';
 
-const { screen, fireEvent, userEvent, waitFor } = testingLibrary;
+const { screen, fireEvent, userEvent } = testingLibrary;
 
 const noop = () => null;
 
+// IdP signup always lands on 'provider' (YouDu's client role), so the fixtures
+// mirror the real user types instead of generic placeholders.
 const userTypes = [
   {
-    userType: 'a',
-    label: 'Seller',
+    userType: 'provider',
+    label: 'Стать заказчиком',
   },
   {
-    userType: 'b',
-    label: 'Buyer',
-  },
-  {
-    userType: 'c',
-    label: 'Guest',
-  },
-  {
-    userType: 'd',
-    label: 'Host',
+    userType: 'customer',
+    label: 'Стать исполнителем',
   },
 ];
 
@@ -65,7 +59,7 @@ const userFields = [
     },
     userTypeConfig: {
       limitToUserTypeIds: true,
-      userTypeIds: ['c', 'd'],
+      userTypeIds: ['customer'],
     },
   },
   {
@@ -119,6 +113,23 @@ describe('ConfirmSignupForm', () => {
   //   expect(tree.asFragment()).toMatchSnapshot();
   // });
 
+  it('picks the provider user type without asking, since IdP signup has no choice', () => {
+    const { container } = render(
+      <ConfirmSignupForm
+        authInfo={authInfo}
+        intl={fakeIntl}
+        termsAndConditions={termsAndConditions}
+        userTypes={userTypes}
+        userFields={userFields}
+        onSubmit={noop}
+        onOpenTermsOfService={noop}
+      />
+    );
+
+    expect(container.querySelector('select[name="userType"]')).toBeNull();
+    expect(container.querySelector('input[name="userType"]')).toHaveValue('provider');
+  });
+
   it('enables Continue with button when required fields are filled', async () => {
     render(
       <ConfirmSignupForm
@@ -131,14 +142,6 @@ describe('ConfirmSignupForm', () => {
         onOpenTermsOfService={noop}
       />
     );
-
-    // Simulate user interaction and select parent level category
-    await waitFor(() => {
-      userEvent.selectOptions(
-        screen.getByRole('combobox'),
-        screen.getByRole('option', { name: 'Seller' })
-      );
-    });
 
     // Test that sign up button is disabled at first
     expect(screen.getByRole('button', { name: 'ConfirmSignupForm.signUp' })).toBeDisabled();
@@ -165,7 +168,7 @@ describe('ConfirmSignupForm', () => {
     expect(screen.getByRole('button', { name: 'ConfirmSignupForm.signUp' })).toBeEnabled();
   });
 
-  it('shows custom user fields according to configuration', async () => {
+  it('shows custom user fields according to configuration', () => {
     render(
       <ConfirmSignupForm
         authInfo={authInfo}
@@ -178,14 +181,6 @@ describe('ConfirmSignupForm', () => {
       />
     );
 
-    // Simulate user interaction and select parent level category
-    await waitFor(() => {
-      userEvent.selectOptions(
-        screen.getByRole('combobox'),
-        screen.getByRole('option', { name: 'Seller' })
-      );
-    });
-
     // Show user fields that have not been limited to type and have displayInSignUp: true
     expect(screen.getByText('Enum Field 1')).toBeInTheDocument();
     expect(screen.getByText('Text Field')).toBeInTheDocument();
@@ -193,8 +188,8 @@ describe('ConfirmSignupForm', () => {
     // Don't show user fields that have displayInSignUp: false
     expect(screen.queryByText('Boolean Field')).toBeNull();
 
-    // Don't show user fields that are limited to user types –
-    // ConfirmSignupForm does not support user types yet!
+    // Don't show user fields limited to a different user type than the
+    // 'provider' one this form forces.
     expect(screen.queryByText('Enum Field 2')).toBeNull();
   });
 });

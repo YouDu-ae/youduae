@@ -6,7 +6,7 @@ import { fakeIntl } from '../../util/testData';
 
 import AuthenticationPage from './AuthenticationPage';
 
-const { screen, waitFor, userEvent } = testingLibrary;
+const { screen } = testingLibrary;
 
 const noop = () => null;
 
@@ -65,26 +65,37 @@ describe('AuthenticationPage', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('changes the login form to sign up form by clicking "Sign up" ', async () => {
+  it('offers a tab link from login to the signup form', async () => {
     // We want to make sure that during the test the env variables
     // for social logins are as we expect them to be
     process.env = Object.assign(process.env, { REACT_APP_FACEBOOK_APP_ID: '' });
     process.env = Object.assign(process.env, { REACT_APP_GOOGLE_CLIENT_ID: '' });
 
-    render(<AuthenticationPage {...props} />);
-
-    // First we can check that login button is in the document
-    expect(screen.getByRole('button', { name: 'LoginForm.logIn' })).toBeInTheDocument();
-
     await act(async () => {
-      // User event for changing the tab
-      userEvent.click(screen.getByRole('link', { name: 'AuthenticationPage.signupLinkText' }));
+      render(<AuthenticationPage {...props} />);
     });
 
-    // Then we can check that login sign up button is in the document
-    waitFor(() =>
-      expect(screen.findByRole('button', { name: 'SignupForm.signUp' })).toBeInTheDocument()
-    );
+    expect(screen.getByRole('button', { name: 'LoginForm.logIn' })).toBeInTheDocument();
+
+    // Signup is reachable from the login tab. YouDu only advertises the client
+    // ("provider") signup here; specialists sign up from their own landing.
+    expect(
+      screen.getByRole('link', { name: 'AuthenticationPage.signupProviderLinkText' })
+    ).toBeInTheDocument();
+  });
+
+  it('starts signup with email verification rather than a plain submit', async () => {
+    process.env = Object.assign(process.env, { REACT_APP_FACEBOOK_APP_ID: '' });
+    process.env = Object.assign(process.env, { REACT_APP_GOOGLE_CLIENT_ID: '' });
+
+    await act(async () => {
+      render(<AuthenticationPage {...props} tab="signup" />);
+    });
+
+    expect(
+      screen.getByRole('button', { name: 'SignupForm.sendVerificationCode' })
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'SignupForm.signUp' })).toBeNull();
   });
 });
 
