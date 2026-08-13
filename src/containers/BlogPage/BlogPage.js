@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useIntl } from '../../util/reactIntl';
+import { apiBaseUrl } from '../../util/api';
+import { blogCoverUrl } from '../../util/blog';
 import { useLocation, useHistory } from 'react-router-dom';
 import { Page, LayoutSingleColumn, NamedLink } from '../../components';
 import TopbarContainer from '../TopbarContainer/TopbarContainer';
@@ -25,8 +27,8 @@ const BlogPage = () => {
       try {
         setLoading(true);
         const url = activeCategory === 'all' 
-          ? '/api/blog/articles'
-          : `/api/blog/articles?category=${activeCategory}`;
+          ? `${apiBaseUrl()}/api/blog/articles`
+          : `${apiBaseUrl()}/api/blog/articles?category=${activeCategory}`;
         const response = await fetch(url);
         const data = await response.json();
         setCategories(data.categories || []);
@@ -125,7 +127,7 @@ const BlogPage = () => {
                 >
                   <div 
                     className={css.articleImage}
-                    style={{ backgroundImage: `url(${article.image})` }}
+                    style={{ backgroundImage: `url(${blogCoverUrl(article)})` }}
                   >
                     <span className={css.categoryBadge}>
                       {categories.find(c => c.id === article.category)?.name[locale] || article.category}

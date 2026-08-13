@@ -194,7 +194,7 @@ async function approvePost(req, res) {
       category: category || 'telegram-news',
       title: { ru: post.title, en: post.title },
       description: { ru: post.text.substring(0, 155) + '...', en: post.text.substring(0, 155) + '...' },
-      image: '/static/blog/default-post.jpg',
+      image: '/static/blog/default.jpg',
       readTime: Math.max(1, Math.ceil(post.text.split(/\s+/).length / 200)),
       createdAt: post.date.split('T')[0],
       author: null,

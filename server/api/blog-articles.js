@@ -8,6 +8,48 @@ const path = require('path');
 
 const ARTICLES_PATH = path.join(__dirname, '../../src/data/blog/articles.json');
 
+// Продакшен отдаёт статику из build/, локальная разработка — из public/
+const COVERS_DIRS = [
+  path.join(__dirname, '../../build/static/blog'),
+  path.join(__dirname, '../../public/static/blog'),
+];
+const COVERS_PREFIX = '/static/blog/';
+const COVERS_TTL = 5 * 60 * 1000;
+
+let coversCache = { names: null, readAt: 0 };
+
+const availableCovers = () => {
+  if (coversCache.names && Date.now() - coversCache.readAt < COVERS_TTL) {
+    return coversCache.names;
+  }
+
+  const names = new Set();
+  COVERS_DIRS.forEach(dir => {
+    try {
+      fs.readdirSync(dir).forEach(name => names.add(name));
+    } catch (e) {
+      // Папки нет в этом окружении — просто пропускаем
+    }
+  });
+
+  coversCache = { names, readAt: Date.now() };
+  return names;
+};
+
+/**
+ * Часть статей хранит путь к обложке, которую так и не загрузили.
+ * Отдаём такие как image: null, чтобы каждая страница подставила свою заглушку,
+ * а битый URL не попал в Open Graph и Schema.org.
+ */
+const withResolvedCover = article => {
+  const image = article && article.image;
+  if (!image || !image.startsWith(COVERS_PREFIX)) {
+    return article;
+  }
+
+  return availableCovers().has(path.basename(image)) ? article : { ...article, image: null };
+};
+
 let db = null;
 const getDb = () => {
   if (!db && process.env.DATABASE_URL) {
@@ -32,7 +74,7 @@ async function getArticles(req, res) {
         ...categories
       ];
       
-      return res.json({ categories: allCategories, articles });
+      return res.json({ categories: allCategories, articles: articles.map(withResolvedCover) });
     }
     
     const data = JSON.parse(fs.readFileSync(ARTICLES_PATH, 'utf8'));
@@ -44,7 +86,7 @@ async function getArticles(req, res) {
     
     res.json({
       categories: data.categories,
-      articles: articles
+      articles: articles.map(withResolvedCover)
     });
   } catch (error) {
     console.error('Error reading articles:', error);
@@ -72,7 +114,7 @@ async function getArticleBySlug(req, res) {
         ...categories
       ];
       
-      return res.json({ ...article, categories: allCategories });
+      return res.json({ ...withResolvedCover(article), categories: allCategories });
     }
     
     const data = JSON.parse(fs.readFileSync(ARTICLES_PATH, 'utf8'));
@@ -91,7 +133,7 @@ async function getArticleBySlug(req, res) {
     }
     
     res.json({
-      ...article,
+      ...withResolvedCover(article),
       content: content,
       categories: data.categories
     });

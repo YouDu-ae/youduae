@@ -145,7 +145,7 @@ function processExport(exportPath) {
         ru: text.substring(0, 155) + '...',
         en: text.substring(0, 155) + '...'
       },
-      image: '/static/blog/default-post.jpg',
+      image: '/static/blog/default.jpg',
       readTime: estimateReadTime(text),
       createdAt: date,
       author: null,

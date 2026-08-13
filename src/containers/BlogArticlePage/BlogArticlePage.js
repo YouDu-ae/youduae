@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { useParams } from 'react-router-dom';
 import { useIntl } from '../../util/reactIntl';
+import { apiBaseUrl } from '../../util/api';
+import { blogCoverUrl, blogCoverAbsoluteUrl } from '../../util/blog';
 import { Page, LayoutSingleColumn, NamedLink } from '../../components';
 import TopbarContainer from '../TopbarContainer/TopbarContainer';
 import FooterContainer from '../FooterContainer/FooterContainer';
@@ -23,7 +25,7 @@ const BlogArticlePage = () => {
     const fetchArticle = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`/api/blog/articles/${slug}`);
+        const response = await fetch(`${apiBaseUrl()}/api/blog/articles/${slug}`);
         if (!response.ok) {
           setNotFound(true);
           return;
@@ -80,7 +82,7 @@ const BlogArticlePage = () => {
     '@type': 'Article',
     'headline': articleTitle,
     'description': articleDescription,
-    'image': `https://youdu.ae${article.image}`,
+    'image': blogCoverAbsoluteUrl(article),
     'datePublished': article.createdAt,
     'timeRequired': `PT${article.readTime || 5}M`,
     'keywords': article.keywords || '',
@@ -145,8 +147,8 @@ const BlogArticlePage = () => {
       title={pageTitle}
       description={articleDescription}
       schema={[schemaData, breadcrumbSchema]}
-      facebookImages={[{ url: `https://youdu.ae${article.image}` }]}
-      twitterImages={[{ url: `https://youdu.ae${article.image}` }]}
+      facebookImages={[{ url: blogCoverAbsoluteUrl(article) }]}
+      twitterImages={[{ url: blogCoverAbsoluteUrl(article) }]}
     >
       {/* Additional SEO meta tags */}
       {article.keywords && (
@@ -179,7 +181,7 @@ const BlogArticlePage = () => {
           {/* Hero */}
           <div 
             className={css.hero}
-            style={{ backgroundImage: `linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.6)), url(${article.image})` }}
+            style={{ backgroundImage: `linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.6)), url(${blogCoverUrl(article)})` }}
           >
             <div className={css.container}>
               <span className={css.categoryBadge}>
@@ -279,7 +281,7 @@ const BlogArticlePage = () => {
                       >
                         <div 
                           className={css.relatedImage}
-                          style={{ backgroundImage: `url(${relatedArticle.image})` }}
+                          style={{ backgroundImage: `url(${blogCoverUrl(relatedArticle)})` }}
                         />
                         <div className={css.relatedContent}>
                           <h4 className={css.relatedArticleTitle}>
