@@ -1,5 +1,7 @@
 const { v4: uuidv4 } = require('uuid');
 
+const { availableCovers, COVERS_PREFIX } = require('./blog-articles');
+
 const ADMIN_PASSWORD = process.env.BLOG_ADMIN_PASSWORD || 'youdu-blog-2026';
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_ADMIN_CHAT_ID = process.env.TELEGRAM_ADMIN_CHAT_ID;
@@ -205,6 +207,20 @@ const checkSession = (req, res, next) => {
   authCodes.set(sessionId, session);
 
   next();
+};
+
+// Обложки лежат в репозитории и деплоятся вместе с кодом: файловая система дино
+// эфемерная, поэтому загрузка через админку сюда писать не может. Отдаём список
+// готовых файлов, чтобы редактор предлагал выбор вместо ручного ввода пути.
+const IMAGE_EXTENSIONS = /\.(jpe?g|png|webp|avif)$/i;
+
+const getCovers = (req, res) => {
+  const covers = [...availableCovers()]
+    .filter(name => IMAGE_EXTENSIONS.test(name))
+    .sort()
+    .map(name => ({ name, url: `${COVERS_PREFIX}${name}` }));
+
+  res.json({ covers });
 };
 
 const getArticles = (db) => async (req, res) => {
@@ -450,6 +466,7 @@ module.exports = {
   authenticate,
   verify2FA,
   checkSession,
+  getCovers,
   getArticles,
   createArticle,
   updateArticle,

@@ -409,6 +409,51 @@
   margin-top: 8px;
 }
 
+/* Готовые обложки из /static/blog — выбор кликом вместо ручного ввода пути */
+.coverPicker {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.coverOption {
+  padding: 4px;
+  border: 2px solid transparent;
+  border-radius: 8px;
+  background: #f5f5f5;
+  cursor: pointer;
+  text-align: center;
+}
+
+.coverOption img {
+  width: 100%;
+  aspect-ratio: 1.91 / 1;
+  object-fit: cover;
+  border-radius: 4px;
+  display: block;
+}
+
+.coverOption span {
+  display: block;
+  margin-top: 4px;
+  font-size: 11px;
+  color: #666;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.coverOptionSelected {
+  border-color: #ffc629;
+  background: #fff8e1;
+}
+
+.coverOptionSelected span {
+  color: #000;
+  font-weight: 600;
+}
+
 /* Gallery */
 .galleryGrid {
   display: grid;

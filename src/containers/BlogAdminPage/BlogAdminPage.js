@@ -19,6 +19,7 @@ const BlogAdminPage = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [adminPassword, setAdminPassword] = useState('');
   const [articles, setArticles] = useState([]);
+  const [covers, setCovers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('list');
   const [editingArticle, setEditingArticle] = useState(null);
@@ -58,6 +59,7 @@ const BlogAdminPage = () => {
       setIsAuthenticated(true);
       setSessionId(savedSession);
       loadArticles();
+      loadCovers();
     } else {
       setLoading(false);
     }
@@ -137,6 +139,7 @@ const BlogAdminPage = () => {
     sessionStorage.setItem('blogAdminAuth', 'true');
     sessionStorage.setItem('blogAdminSession', sid);
     loadArticles();
+    loadCovers();
   };
 
   const handleLogout = () => {
@@ -166,6 +169,17 @@ const BlogAdminPage = () => {
     }
 
     return response;
+  };
+
+  const loadCovers = async () => {
+    try {
+      const response = await adminFetch('/api/blog/admin/covers');
+      if (!response.ok) return;
+      const data = await response.json();
+      setCovers(data.covers || []);
+    } catch (error) {
+      console.error('Error loading covers:', error);
+    }
   };
 
   const loadArticles = async () => {
@@ -709,12 +723,35 @@ const BlogAdminPage = () => {
                   </div>
 
                   <div className={css.formGroup}>
-                    <label>Обложка (URL изображения)</label>
+                    <label>Обложка</label>
+                    {covers.length > 0 && (
+                      <div className={css.coverPicker}>
+                        {covers.map(cover => (
+                          <button
+                            key={cover.url}
+                            type="button"
+                            title={cover.name}
+                            className={
+                              formData.image === cover.url
+                                ? `${css.coverOption} ${css.coverOptionSelected}`
+                                : css.coverOption
+                            }
+                            onClick={() => handleChange('image', cover.url)}
+                          >
+                            <img src={cover.url} alt={cover.name} />
+                            <span>{cover.name}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    {/* type="text", а не "url": обложки лежат в самом проекте и
+                        задаются путём /static/blog/..., который url-валидация браузера
+                        отклоняет и блокирует сохранение всей статьи. */}
                     <input
-                      type="url"
+                      type="text"
                       value={formData.image}
                       onChange={(e) => handleChange('image', e.target.value)}
-                      placeholder="https://i.ibb.co/..."
+                      placeholder="/static/blog/default.jpg или https://..."
                     />
                     {formData.image && (
                       <img src={formData.image} alt="Preview" className={css.coverPreview} />

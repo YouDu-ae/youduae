@@ -155,6 +155,7 @@ router.get('/blog/articles/:slug', blogArticles.getArticleBySlug);
 // Blog Admin API (with 2FA)
 router.post('/blog/admin/auth', blogAdmin.authenticate);
 router.post('/blog/admin/verify-2fa', blogAdmin.verify2FA);
+router.get('/blog/admin/covers', blogAdmin.checkSession, blogAdmin.getCovers);
 router.get('/blog/admin/articles', blogAdmin.checkSession, blogAdmin.getArticles(database));
 router.post('/blog/admin/articles', blogAdmin.checkSession, blogAdmin.createArticle(database));
 router.put('/blog/admin/articles/:id', blogAdmin.checkSession, blogAdmin.updateArticle(database));

@@ -145,5 +145,7 @@ async function getArticleBySlug(req, res) {
 
 module.exports = {
   getArticles,
-  getArticleBySlug
+  getArticleBySlug,
+  availableCovers,
+  COVERS_PREFIX
 };
