@@ -1,15 +1,58 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useHistory } from 'react-router-dom';
 import { FormattedMessage, useIntl } from '../../util/reactIntl';
 import { NamedLink, Page } from '../../components';
+import { apiBaseUrl } from '../../util/api';
 import css from './LandingPage.module.css';
 import TopbarContainer from '../../containers/TopbarContainer/TopbarContainer';
 import FooterCustom from '../FooterCustom/FooterCustom';
+import blogFallbackVilla from './blog-villa.png';
+import blogFallbackPlane from './blog-plane.png';
+import blogFallbackTeacher from './blog-teacher.png';
+
+const BLOG_FALLBACK_IMAGES = [blogFallbackVilla, blogFallbackPlane, blogFallbackTeacher];
+const BLOG_CARDS_COUNT = 3;
 
 const LandingPage = () => {
   const history = useHistory();
   const intl = useIntl();
+  const locale = intl.locale || 'ru';
   const [taskTitle, setTaskTitle] = useState('');
+  const [blog, setBlog] = useState({ status: 'loading', articles: [], categories: [] });
+
+  useEffect(() => {
+    let cancelled = false;
+
+    fetch(`${apiBaseUrl()}/api/blog/articles`)
+      .then(res => (res.ok ? res.json() : Promise.reject(new Error(`HTTP ${res.status}`))))
+      .then(data => {
+        if (cancelled) return;
+        setBlog({
+          status: 'ready',
+          articles: (data.articles || []).slice(0, BLOG_CARDS_COUNT),
+          categories: data.categories || [],
+        });
+      })
+      .catch(() => {
+        if (!cancelled) setBlog({ status: 'failed', articles: [], categories: [] });
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const blogCategoryLabel = article =>
+    blog.categories.find(c => c.id === article.category)?.name?.[locale] || article.category;
+
+  // Статьи без обложки получают одну из фирменных иллюстраций — так блок
+  // выглядит разнообразнее, чем с общей заглушкой из /static/blog.
+  const blogCardBackground = (article, index) => {
+    const fallback = BLOG_FALLBACK_IMAGES[index % BLOG_FALLBACK_IMAGES.length];
+    return { backgroundImage: `url(${article.image || fallback})` };
+  };
+
+  const showBlogSection = blog.status === 'loading' || blog.articles.length > 0;
 
   const siteTitle = intl.formatMessage({ id: 'LandingPage.schemaTitle' });
   const schemaDescription = intl.formatMessage({ id: 'LandingPage.schemaDescription' });
@@ -433,39 +476,47 @@ const LandingPage = () => {
  
 
           {/* ===== БЛОГ ===== */}
+          {showBlogSection && (
           <section className={css.blog}>
             <h2 className={css.h2}><FormattedMessage id="LandingPage.blogTitle" /></h2>
 
             <div className={css.blogGrid}>
-              <NamedLink name="BlogPage" className={css.blogCard}>
-                <div className={`${css.blogImage} ${css.blogImageVilla}`} />
-                <div className={css.blogTextBlock}>
-                  <div className={css.blogTag}><FormattedMessage id="LandingPage.blogTag1" /></div>
-                  <div className={css.blogName}><FormattedMessage id="LandingPage.blogName1" /></div>
-                </div>
-              </NamedLink>
-
-              <NamedLink name="BlogPage" className={css.blogCard}>
-                <div className={`${css.blogImage} ${css.blogImagePlane}`} />
-                <div className={css.blogTextBlock}>
-                  <div className={css.blogTag}><FormattedMessage id="LandingPage.blogTag2" /></div>
-                  <div className={css.blogName}><FormattedMessage id="LandingPage.blogName2" /></div>
-                </div>
-              </NamedLink>
-
-              <NamedLink name="BlogPage" className={css.blogCard}>
-                <div className={`${css.blogImage} ${css.blogImageTeacher}`} />
-                <div className={css.blogTextBlock}>
-                  <div className={css.blogTag}><FormattedMessage id="LandingPage.blogTag3" /></div>
-                  <div className={css.blogName}><FormattedMessage id="LandingPage.blogName3" /></div>
-                </div>
-              </NamedLink>
+              {blog.status === 'loading'
+                ? BLOG_FALLBACK_IMAGES.map((image, index) => (
+                    <div key={index} className={css.blogCard} aria-hidden="true">
+                      <div className={css.blogImage} style={{ backgroundImage: `url(${image})` }} />
+                      <div className={css.blogTextBlock}>
+                        <div className={css.blogTagSkeleton} />
+                        <div className={css.blogNameSkeleton} />
+                      </div>
+                    </div>
+                  ))
+                : blog.articles.map((article, index) => (
+                    <NamedLink
+                      key={article.id}
+                      name="BlogArticlePage"
+                      params={{ slug: article.slug }}
+                      className={css.blogCard}
+                    >
+                      <div
+                        className={css.blogImage}
+                        style={blogCardBackground(article, index)}
+                      />
+                      <div className={css.blogTextBlock}>
+                        <div className={css.blogTag}>{blogCategoryLabel(article)}</div>
+                        <div className={css.blogName}>
+                          {article.title?.[locale] || article.title?.ru}
+                        </div>
+                      </div>
+                    </NamedLink>
+                  ))}
             </div>
 
             <NamedLink name="BlogPage" className={css.btnBlog}>
               <FormattedMessage id="LandingPage.blogButton" />
             </NamedLink>
           </section>
+          )}
  
 
         </div>

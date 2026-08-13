@@ -65,7 +65,97 @@
   ],
   "articles": [
     {
-      "id": "youdu-zapuskaet-mobilnoe-prilozhenie",
+      "id": "tg-31-1786544525478",
+      "slug": "ispravlenie-registratsii-na-youdu-legko-i-bystro-msq6heau",
+      "category": "telegram-news",
+      "title": {
+        "ru": "Исправление регистрации на YouDu: легко и быстро",
+        "en": "Registration Fix on YouDu: Easy and Fast"
+      },
+      "description": {
+        "ru": "Проблемы с регистрацией на YouDu? Теперь все исправлено! Попробуйте снова и завершите регистрацию легко.",
+        "en": "Having issues with registration on YouDu? Everything is fixed now! Try again and complete your registration easily."
+      },
+      "image": "/static/blog/default-telegram.jpg",
+      "readTime": 2,
+      "author": null,
+      "featured": false,
+      "createdAt": "2026-08-12"
+    },
+    {
+      "id": "tg-30-1786445910979",
+      "slug": "obnovleniya-reytingov-spetsialistov-prozrachnost-i-msojrqv7",
+      "category": "telegram-news",
+      "title": {
+        "ru": "Обновления рейтингов специалистов: прозрачность и честность",
+        "en": "Updates on Specialist Ratings: Transparency and Fairness"
+      },
+      "description": {
+        "ru": "Узнайте о новых изменениях в системе рейтингов специалистов, которые делают выбор более прозрачным. Оцените репутацию до регистрации!",
+        "en": "Discover the new changes in the specialist rating system that make your choice more transparent. Evaluate reputation before registration!"
+      },
+      "image": "/static/blog/default-telegram.jpg",
+      "readTime": 1,
+      "author": null,
+      "featured": false,
+      "createdAt": "2026-08-11"
+    },
+    {
+      "id": "tg-29-1785958472088",
+      "slug": "ukreplenie-sayta-zaschita-i-optimizatsiya-pered-ro-msghk8m0",
+      "category": "telegram-news",
+      "title": {
+        "ru": "Укрепление сайта: защита и оптимизация перед ростом трафика",
+        "en": "Website Strengthening: Protection and Optimization for Traffic Growth"
+      },
+      "description": {
+        "ru": "Узнайте, как мы улучшили защиту сайта и оптимизировали его для увеличения трафика. Готовьтесь к новым посетителям!",
+        "en": "Discover how we enhanced website security and optimized for increased traffic. Get ready for new visitors!"
+      },
+      "image": "/static/blog/default-telegram.jpg",
+      "readTime": 2,
+      "author": null,
+      "featured": false,
+      "createdAt": "2026-08-05"
+    },
+    {
+      "id": "tg-26-1785488006293",
+      "slug": "dobav-te-portfolio-v-profil-mastera-uvelich-te-dov-ms8pgivp",
+      "category": "telegram-news",
+      "title": {
+        "ru": "Добавьте портфолио в профиль мастера - увеличьте доверие клиентов",
+        "en": "Add Portfolio to Your Profile - Boost Client Trust"
+      },
+      "description": {
+        "ru": "Создайте портфолио своих работ и увеличьте доверие клиентов. Загрузите до 5 фотографий и привлекайте больше заказов уже сегодня!",
+        "en": "Create a portfolio of your work and boost client trust. Upload up to 5 photos and attract more orders today!"
+      },
+      "image": "/static/blog/default-telegram.jpg",
+      "readTime": 2,
+      "author": null,
+      "featured": false,
+      "createdAt": "2026-07-31"
+    },
+    {
+      "id": "tg-22-1785220623233",
+      "slug": "novaya-funktsiya-tehnicheskoy-podderzhki-na-youdu-ms4a9ksg",
+      "category": "telegram-news",
+      "title": {
+        "ru": "Новая функция технической поддержки на YouDu",
+        "en": "New Support Feature Now Available on YouDu"
+      },
+      "description": {
+        "ru": "Получите помощь с заданиями и оплатой на YouDu. Узнайте, как использовать новую службу поддержки!",
+        "en": "Get help with tasks and payments on YouDu. Learn how to use the new support service!"
+      },
+      "image": "/static/blog/default-telegram.jpg",
+      "readTime": 1,
+      "author": null,
+      "featured": false,
+      "createdAt": "2026-07-28"
+    },
+    {
+      "id": "youdu-mobile-app",
       "slug": "youdu-zapuskaet-mobilnoe-prilozhenie",
       "category": "telegram-news",
       "title": {
@@ -78,10 +168,9 @@
       },
       "image": "/static/blog/mobile-app.jpg",
       "readTime": 2,
-      "createdAt": "2026-07-27",
       "author": null,
-      "relatedCategory": null,
-      "featured": true
+      "featured": true,
+      "createdAt": "2026-07-27"
     }
   ]
 }

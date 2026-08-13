@@ -656,11 +656,6 @@
   overflow: hidden;
 }
 
-/* подставляем разные фоны */
-.blogImageVilla   { background-image: url('./blog-villa.png'); }
-.blogImagePlane   { background-image: url('./blog-plane.png'); }
-.blogImageTeacher { background-image: url('./blog-teacher.png'); }
-
 .blogTextBlock {
  display: flex;
  flex-direction: column;
@@ -679,6 +674,35 @@
   font-size: 16px;
   transition: color .2s;
   text-decoration: none;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Держат высоту карточки, пока статьи не пришли, чтобы не прыгала вёрстка */
+.blogTagSkeleton,
+.blogNameSkeleton {
+  border-radius: 4px;
+  background: linear-gradient(90deg, #f0f0f0 25%, #e6e6e6 37%, #f0f0f0 63%);
+  background-size: 400% 100%;
+  animation: blogSkeleton 1.4s ease infinite;
+}
+
+.blogTagSkeleton {
+  width: 96px;
+  height: 19px;
+}
+
+.blogNameSkeleton {
+  width: 100%;
+  max-width: 300px;
+  height: 19px;
+}
+
+@keyframes blogSkeleton {
+  0%   { background-position: 100% 50%; }
+  100% { background-position: 0 50%; }
 }
 
 .blogCard:hover .blogName {
