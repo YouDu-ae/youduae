@@ -401,6 +401,7 @@ const routeConfiguration = (layoutConfig, accessControlConfig) => {
       path: '/blog/:slug',
       name: 'BlogArticlePage',
       component: BlogArticlePage,
+      loadData: pageDataLoadingAPI.BlogArticlePage.loadData,
     },
     {
       path: '/admin/blog',

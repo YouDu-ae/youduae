@@ -1,8 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Helmet } from 'react-helmet-async';
-import { useParams } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 import { useIntl } from '../../util/reactIntl';
-import { apiBaseUrl } from '../../util/api';
 import { blogCoverUrl, blogCoverAbsoluteUrl } from '../../util/blog';
 import { Page, LayoutSingleColumn, NamedLink } from '../../components';
 import TopbarContainer from '../TopbarContainer/TopbarContainer';
@@ -11,41 +10,28 @@ import NotFoundPage from '../NotFoundPage/NotFoundPage';
 
 import css from './BlogArticlePage.module.css';
 
-const BlogArticlePage = () => {
-  const { slug } = useParams();
+const BlogArticlePage = props => {
   const intl = useIntl();
   const locale = intl.locale || 'ru';
 
-  const [article, setArticle] = useState(null);
-  const [categories, setCategories] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [notFound, setNotFound] = useState(false);
+  // Статью грузит loadData — и на сервере, и при переходах на клиенте
+  const { article, categories, fetchInProgress, fetchArticleError, articleNotFound } = useSelector(
+    state => state.BlogArticlePage
+  );
 
-  useEffect(() => {
-    const fetchArticle = async () => {
-      try {
-        setLoading(true);
-        const response = await fetch(`${apiBaseUrl()}/api/blog/articles/${slug}`);
-        if (!response.ok) {
-          setNotFound(true);
-          return;
-        }
-        const data = await response.json();
-        setArticle(data);
-        setCategories(data.categories || []);
-      } catch (error) {
-        console.error('Error loading article:', error);
-        setNotFound(true);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchArticle();
-  }, [slug]);
+  if (articleNotFound || fetchArticleError) {
+    // staticContext даёт серверу вернуть настоящий 404 вместо 200 с текстом ошибки
+    return <NotFoundPage staticContext={props.staticContext} />;
+  }
 
-  if (loading) {
+  if (fetchInProgress || !article) {
+    // Заголовок здесь не должен быть техническим: если серверная загрузка
+    // почему-то не успела, именно он уйдёт в превью ссылки и в выдачу.
+    const fallbackTitle =
+      locale === 'ru' ? 'Блог YouDu — статьи о жизни и работе в ОАЭ' : 'YouDu Blog';
+
     return (
-      <Page title="Loading...">
+      <Page title={fallbackTitle}>
         <LayoutSingleColumn topbar={<TopbarContainer />} footer={<FooterContainer />}>
           <div className={css.pageWrapper}>
             <div className={css.container} style={{ textAlign: 'center', padding: '100px 20px' }}>
@@ -55,10 +41,6 @@ const BlogArticlePage = () => {
         </LayoutSingleColumn>
       </Page>
     );
-  }
-
-  if (notFound || !article) {
-    return <NotFoundPage />;
   }
 
   const category = categories.find(c => c.id === article.category);
