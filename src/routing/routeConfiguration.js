@@ -94,7 +94,6 @@ const routeConfiguration = (layoutConfig, accessControlConfig) => {
       path: '/',
       name: 'LandingPage',
       component: LandingPage,
-      loadData: pageDataLoadingAPI.LandingPage.loadData,
     },
     {
       path: '/category/:categoryId',
