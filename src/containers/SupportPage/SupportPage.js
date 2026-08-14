@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { compose } from 'redux';
 import { connect } from 'react-redux';
 import { useIntl, FormattedMessage } from '../../util/reactIntl';
+import { apiBaseUrl } from '../../util/api';
 
 import { Page, LayoutSingleColumn, H2, NamedLink } from '../../components';
 import TopbarContainer from '../TopbarContainer/TopbarContainer';
@@ -56,7 +57,8 @@ const SupportPageComponent = props => {
   useEffect(() => {
     if (userId) {
       setLoadingTickets(true);
-      fetch(`/api/support/my-tickets?userId=${userId}`)
+      // Пользователя сервер определяет по сессии, передавать id клиенту не нужно
+      fetch(`${apiBaseUrl()}/api/support/my-tickets`, { credentials: 'include' })
         .then(res => res.json())
         .then(data => {
           setMyTickets(data.tickets || []);
@@ -77,8 +79,9 @@ const SupportPageComponent = props => {
     setError(null);
 
     try {
-      const response = await fetch('/api/support/create', {
+      const response = await fetch(`${apiBaseUrl()}/api/support/create`, {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           subject: formData.subject,
@@ -87,7 +90,6 @@ const SupportPageComponent = props => {
           relatedListingId: formData.relatedListingId || null,
           userEmail: formData.email,
           userName: formData.name,
-          userId: userId || null,
         }),
       });
 

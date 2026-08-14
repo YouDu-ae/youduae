@@ -63,6 +63,13 @@ const { authenticateFacebook, authenticateFacebookCallback } = require('./api/au
 const { authenticateGoogle, authenticateGoogleCallback } = require('./api/auth/google');
 const { authenticateApple, authenticateAppleCallback } = require('./api/auth/apple');
 
+const { requireUser, attachUser } = require('./api-util/auth');
+
+// Операторские маршруты закрыты той же сессией, что и админка блога: это
+// единственная в проекте аутентификация сотрудника (пароль + подтверждение
+// в Telegram), заводить вторую параллельную было бы хуже.
+const requireOperator = blogAdmin.checkSession;
+
 const router = express.Router();
 
 // ================ API router middleware: ================ //
@@ -128,8 +135,8 @@ router.post('/register-device-token', registerDeviceToken);
 router.post('/send-notification', writeLimiter, sendNotification);
 router.post('/notify-new-message', notifyNewMessage);
 router.post('/notify-new-review', notifyNewReview);
-router.post('/notify-portfolio-moderation', notifyPortfolioModeration);
-router.post('/notify-verification', notifyVerification);
+router.post('/notify-portfolio-moderation', requireUser, notifyPortfolioModeration);
+router.post('/notify-verification', requireUser, notifyVerification);
 
 // Google Places (для мобильного приложения — ключ на сервере, без referrer с телефона)
 router.get('/places/autocomplete', placesLimiter, placesProxy.autocomplete);
@@ -144,9 +151,9 @@ router.post('/telegram/sync-categories', writeLimiter, syncTelegramCategories);
 
 // Telegram Blog integration
 router.post('/telegram/blog-webhook', telegramBlogWebhook.handleBlogWebhook);
-router.get('/blog/pending', telegramBlogWebhook.getPendingPosts);
-router.post('/blog/approve', telegramBlogWebhook.approvePost);
-router.post('/blog/reject', telegramBlogWebhook.rejectPost);
+router.get('/blog/pending', requireOperator, telegramBlogWebhook.getPendingPosts);
+router.post('/blog/approve', requireOperator, telegramBlogWebhook.approvePost);
+router.post('/blog/reject', requireOperator, telegramBlogWebhook.rejectPost);
 
 // Blog articles API
 router.get('/blog/articles', blogArticles.getArticles);
@@ -227,14 +234,14 @@ router.get('/listing/public-id/:sharetribeUuid', listingId.getPublicId);
 router.get('/listing/stats', listingId.getStats);
 
 // Support tickets endpoints
-router.post('/support/create', writeLimiter, supportTickets.createTicket);
-router.get('/support/ticket/:ticketId', supportTickets.getTicket);
-router.get('/support/my-tickets', supportTickets.getMyTickets);
-router.post('/support/reply', writeLimiter, supportTickets.addUserReply);
-router.post('/support/admin/reply', supportTickets.addAdminReply);
-router.post('/support/admin/close', supportTickets.closeTicket);
-router.get('/support/admin/open', supportTickets.getOpenTickets);
-router.get('/support/stats', supportTickets.getStats);
+router.post('/support/create', writeLimiter, attachUser, supportTickets.createTicket);
+router.get('/support/ticket/:ticketId', requireUser, supportTickets.getTicket);
+router.get('/support/my-tickets', requireUser, supportTickets.getMyTickets);
+router.post('/support/reply', writeLimiter, requireUser, supportTickets.addUserReply);
+router.post('/support/admin/reply', requireOperator, supportTickets.addAdminReply);
+router.post('/support/admin/close', requireOperator, supportTickets.closeTicket);
+router.get('/support/admin/open', requireOperator, supportTickets.getOpenTickets);
+router.get('/support/stats', requireOperator, supportTickets.getStats);
 
 // body-parser rejects oversized payloads before any route runs. Without this the
 // client gets an HTML error page it cannot parse.

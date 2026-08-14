@@ -120,7 +120,10 @@ ${replyText.substring(0, 200)}${replyText.length > 200 ? '...' : ''}`;
  */
 async function createTicket(req, res) {
   try {
-    const { subject, message, category, relatedListingId, priority, userEmail, userName, userId } = req.body;
+    const { subject, message, category, relatedListingId, priority, userEmail, userName } = req.body;
+    // Привязка только к подтверждённой сессии: userId из тела запроса позволил бы
+    // записать обращение на чужой аккаунт. У гостевых тикетов владельца нет.
+    const userId = req.authUserId || null;
 
     if (!subject || !message || !userEmail) {
       return res.status(400).json({ error: 'subject, message, and userEmail are required' });
@@ -158,6 +161,10 @@ async function createTicket(req, res) {
   }
 }
 
+// Тикет виден только своему автору. Гостевые тикеты (без user_id) через
+// веб-интерфейс не отдаются вовсе: подтвердить владение ими нечем.
+const ownsTicket = (ticket, userId) => !!ticket.user_id && ticket.user_id === userId;
+
 /**
  * GET /api/support/ticket/:ticketId
  * Получение тикета по ID
@@ -177,6 +184,11 @@ async function getTicket(req, res) {
       return res.status(404).json({ error: 'Ticket not found' });
     }
 
+    if (!ownsTicket(ticket, req.authUserId)) {
+      // 404, а не 403: иначе перебором ID можно узнать, какие тикеты существуют
+      return res.status(404).json({ error: 'Ticket not found' });
+    }
+
     res.json(ticket);
   } catch (error) {
     console.error('Error getting ticket:', error);
@@ -190,18 +202,12 @@ async function getTicket(req, res) {
  */
 async function getMyTickets(req, res) {
   try {
-    const { userId } = req.query;
-
-    if (!userId) {
-      return res.status(400).json({ error: 'userId is required' });
-    }
-
     const database = getDb();
     if (!database) {
       return res.status(500).json({ error: 'Database not available' });
     }
 
-    const tickets = await database.getTicketsByUserId(userId);
+    const tickets = await database.getTicketsByUserId(req.authUserId);
 
     res.json({ tickets });
   } catch (error) {
@@ -229,6 +235,10 @@ async function addUserReply(req, res) {
 
     const ticket = await database.getTicketById(ticketId);
     if (!ticket) {
+      return res.status(404).json({ error: 'Ticket not found' });
+    }
+
+    if (!ownsTicket(ticket, req.authUserId)) {
       return res.status(404).json({ error: 'Ticket not found' });
     }
 
