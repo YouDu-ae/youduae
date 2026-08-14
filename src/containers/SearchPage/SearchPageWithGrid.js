@@ -67,6 +67,13 @@ import css from './SearchPage.module.css';
 
 const MODAL_BREAKPOINT = 768; // Search is in modal on mobile layout
 
+// Общая для маркетплейса картинка приглашает заказчиков («освободим от бытовых
+// забот»), а ленту мы показываем специалистам — им нужно обещание работы.
+// Плюс общая отдаётся в webp, который Telegram в превью ссылок часто не рисует.
+const socialSharingImages = rootURL => [
+  { url: `${rootURL}/static/feed-social.jpg`, width: 1200, height: 630 },
+];
+
 // SortBy component has its content in dropdown-popup.
 // With this offset we move the dropdown a few pixels on desktop layout.
 const FILTER_DROPDOWN_OFFSET = -14;
@@ -404,6 +411,8 @@ export class SearchPageComponent extends Component {
         description={description}
         title={title}
         schema={schema}
+        facebookImages={socialSharingImages(config.marketplaceRootURL)}
+        twitterImages={socialSharingImages(config.marketplaceRootURL)}
       >
         <TopbarContainer rootClassName={topbarClasses} currentSearchParams={validQueryParams} />
         <SearchBar
