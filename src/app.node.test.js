@@ -41,7 +41,6 @@ describe('Application - node environment', () => {
     const loginPath = '/login';
     const signupPath = '/signup';
     const urlRedirects = {
-      '/l/new': signupPath,
       '/l/listing-title-slug/1234/new/description': signupPath,
       '/l/listing-title-slug/1234/checkout': signupPath,
       '/profile-settings': loginPath,
@@ -62,6 +61,13 @@ describe('Application - node environment', () => {
       render(url, context);
       expect(context.url).toEqual(redirectPath);
     });
+  });
+
+  it('lets guests open the task creation wizard', () => {
+    // Задание заполняется до регистрации: гостя тут разворачивать нельзя
+    const context = {};
+    render('/l/new', context);
+    expect(context.url).toBeUndefined();
   });
 
   it('redirects to correct URLs', () => {

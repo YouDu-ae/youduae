@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useHistory, useLocation } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 import { FormattedMessage } from '../../util/reactIntl';
 import { Page, LayoutSingleColumn, PrimaryButton, SecondaryButton } from '../../components';
 import TopbarContainer from '../TopbarContainer/TopbarContainer';
@@ -33,9 +34,11 @@ const GuestListingWizard = () => {
   const location = useLocation();
   const config = useConfiguration();
   
-  // NOTE: This component is only shown to unauthenticated users via NewListingPageRouter
-  // No need to check authentication here
-  
+  // Мастер один для всех: гость в конце регистрируется, авторизованный публикует сразу.
+  // Раньше зарегистрированных уводило в шаблонный мастер Sharetribe, где не было
+  // фотографий и нельзя было пропустить цену.
+  const isAuthenticated = !!useSelector(state => state.user.currentUser)?.id;
+
   // Получаем категории из конфигурации Sharetribe
   const categoryConfiguration = config?.categoryConfiguration || {};
   const categories = categoryConfiguration.categories || [];
@@ -250,13 +253,15 @@ const GuestListingWizard = () => {
 
   const handleFinish = () => {
     if (validateCurrentStep()) {
-      // Все шаги пройдены, сохраняем финальные данные
-      console.log('💾 Saving guest listing data before redirect:', formData);
+      // Черновик читает /post-from-draft — он же создаёт, грузит фото и публикует
       saveGuestListingData(formData);
-      
-      // Редирект на /signup/provider (регистрация как заказчик)
-      // После успешной регистрации пользователь будет автоматически перенаправлен на /post-from-draft
-      // где его листинг будет создан из сохраненных данных
+
+      if (isAuthenticated) {
+        history.push('/post-from-draft');
+        return;
+      }
+
+      // Гостя сначала на регистрацию заказчиком, оттуда он вернётся к публикации
       history.push({
         pathname: '/signup/provider',
         state: { from: '/post-from-draft' }
@@ -643,7 +648,7 @@ const GuestListingWizard = () => {
                 className={css.finishButton}
                 onClick={handleFinish}
               >
-                Зарегистрироваться и опубликовать
+                {isAuthenticated ? 'Опубликовать задание' : 'Зарегистрироваться и опубликовать'}
               </PrimaryButton>
             </div>
           </div>
@@ -661,15 +666,16 @@ const GuestListingWizard = () => {
       <TopbarContainer />
       <LayoutSingleColumn>
         <div className={css.root}>
-          {/* Баннер для гостей */}
-          <div className={css.guestBanner}>
-            <div className={css.bannerContent}>
-              <div className={css.bannerTitle}>Создайте задание без регистрации</div>
-              <div className={css.bannerText}>
-                Заполните все детали, и в конце вам нужно будет зарегистрироваться для публикации
+          {!isAuthenticated && (
+            <div className={css.guestBanner}>
+              <div className={css.bannerContent}>
+                <div className={css.bannerTitle}>Создайте задание без регистрации</div>
+                <div className={css.bannerText}>
+                  Заполните все детали, и в конце вам нужно будет зарегистрироваться для публикации
+                </div>
               </div>
             </div>
-          </div>
+          )}
 
           {/* Строка с названием задания и процентом */}
           <div className={css.completionStatus}>

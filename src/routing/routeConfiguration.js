@@ -21,7 +21,6 @@ const EditListingPage = loadable(() => import(/* webpackChunkName: "EditListingP
 const EmailVerificationPage = loadable(() => import(/* webpackChunkName: "EmailVerificationPage" */ '../containers/EmailVerificationPage/EmailVerificationPage'));
 const ListingCreatedPage = loadable(() => import(/* webpackChunkName: "ListingCreatedPage" */ '../containers/ListingCreatedPage/ListingCreatedPage'));
 const GuestListingWizard = loadable(() => import(/* webpackChunkName: "GuestListingWizard" */ '../containers/GuestListingWizard/GuestListingWizard'));
-const NewListingPageRouter = loadable(() => import(/* webpackChunkName: "NewListingPageRouter" */ '../containers/NewListingPageRouter/NewListingPageRouter'));
 const PostFromDraftPage = loadable(() => import(/* webpackChunkName: "PostFromDraftPage" */ '../containers/PostFromDraftPage/PostFromDraftPageContainer'));
 const InboxPage = loadable(() => import(/* webpackChunkName: "InboxPage" */ '../containers/InboxPage/InboxPage'));
 const LandingPage = loadable(() => import(/* webpackChunkName: "LandingPage" */ '../containers/LandingPage/LandingPage'));
@@ -164,8 +163,8 @@ const routeConfiguration = (layoutConfig, accessControlConfig) => {
     {
       path: '/l/new',
       name: 'NewListingPage',
-      // Router decides: GuestListingWizard for unauthenticated, EditListingPage for authenticated
-      component: NewListingPageRouter,
+      // Один и тот же мастер для гостей и авторизованных
+      component: GuestListingWizard,
     },
     {
       path: '/listing-created',
