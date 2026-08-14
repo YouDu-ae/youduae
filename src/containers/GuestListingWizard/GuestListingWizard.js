@@ -718,7 +718,11 @@ const GuestListingWizard = () => {
   const progressPercent = ((getCurrentStepIndex() + 1) / STEP_ORDER.length) * 100;
 
   return (
-    <Page title="Создать задание" scrollingDisabled={false}>
+    <Page
+      title="Создать задание бесплатно — мастера в ОАЭ | YouDu"
+      description="Опишите задачу за пару минут и получите отклики от русскоговорящих мастеров в ОАЭ. Регистрация нужна только на публикации."
+      scrollingDisabled={false}
+    >
       <TopbarContainer />
       <LayoutSingleColumn>
         <div className={css.root}>
