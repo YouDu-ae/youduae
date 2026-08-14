@@ -605,17 +605,11 @@ const EnhancedSearchPage = props => {
   const userRoles = getCurrentUserTypeRoles(config, currentUser);
   const isOnlyCustomer = !userRoles.customer && userRoles.provider; // Исполнитель
   const canCreateListings = showCreateListingLinkForUser(config, currentUser);
-  
-  console.log('🔍 SearchPage access check:', {
-    userRoles,
-    isOnlyCustomer,
-    canCreateListings,
-    currentUser: currentUser?.id?.uuid,
-  });
 
-  // Если пользователь может создавать листинги (Заказчик), запрещаем доступ к поиску
-  if (canCreateListings && !isOnlyCustomer) {
-    console.log('🚫 Customer (can create listings) cannot access SearchPage, redirecting to ManageListingsPage');
+  // Гость роли ещё не выбрал, и для него проверка давала ложное срабатывание:
+  // лента уводила на «Мои задания», то есть на страницу для авторизованных.
+  // Из-за этого ни специалисты до регистрации, ни поисковики её не видели.
+  if (currentUser && canCreateListings && !isOnlyCustomer) {
     return <NamedRedirect name="ManageListingsPage" />;
   }
 

@@ -218,9 +218,17 @@ const toggle = i => {
               Выбирайте задания поблизости, предлагайте цену, получайте оплату
             </p>
 
-            <NamedLink name="CooperationSignupPage" className={css.heroBtn}>
-              Стать специалистом
-            </NamedLink>
+            <div className={css.heroActions}>
+              <NamedLink name="CooperationSignupPage" className={css.heroBtn}>
+                Стать специалистом
+              </NamedLink>
+
+              {/* Задания видно без регистрации: специалист сначала смотрит,
+                  есть ли для него работа, и только потом заводит аккаунт */}
+              <NamedLink name="SearchPage" className={css.heroBtnSecondary}>
+                Посмотреть задания
+              </NamedLink>
+            </div>
           </section>
 
           {/* Фоновая картинка */}

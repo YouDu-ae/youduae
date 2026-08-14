@@ -797,17 +797,9 @@ const EnhancedSearchPage = props => {
   const userRoles = getCurrentUserTypeRoles(config, currentUser);
   const isOnlyCustomer = !userRoles.customer && userRoles.provider; // Исполнитель
   const canCreateListings = showCreateListingLinkForUser(config, currentUser);
-  
-  console.log('🔍 SearchPageWithMap access check:', {
-    userRoles,
-    isOnlyCustomer,
-    canCreateListings,
-    currentUser: currentUser?.id?.uuid,
-  });
 
-  // Если пользователь может создавать листинги (Заказчик), запрещаем доступ к поиску
-  if (canCreateListings && !isOnlyCustomer) {
-    console.log('🚫 Customer (can create listings) cannot access SearchPage, redirecting to ManageListingsPage');
+  // Гостя разворачивать нельзя: у него ещё нет роли, а «Мои задания» требуют входа
+  if (currentUser && canCreateListings && !isOnlyCustomer) {
     return <NamedRedirect name="ManageListingsPage" />;
   }
 
