@@ -13,14 +13,15 @@ const { Money } = sdkTypes;
 const PostFromDraftPage = ({ onCreateListing, onPublishListing, onUpdateListing, onImageUpload }) => {
   const [error, setError] = useState(null);
   const [progress, setProgress] = useState('Загрузка данных...');
+  const [partialUpload, setPartialUpload] = useState(null);
   const history = useHistory();
 
   useEffect(() => {
     const createAndPublishListing = async () => {
       try {
         // 1. Получаем данные черновика из localStorage
-        const draft = getGuestListingData();
-        
+        const draft = await getGuestListingData();
+
         console.log('📥 Draft data retrieved:', draft);
         
         if (!draft || !draft.title) {
@@ -104,6 +105,10 @@ const PostFromDraftPage = ({ onCreateListing, onPublishListing, onUpdateListing,
         console.log('✅ Draft listing created:', listingId.uuid);
 
         // 3. Загружаем изображения (если есть)
+        // Считаем неудачные загрузки: раньше сбой фотографии проглатывался и
+        // задание публиковалось без неё, а пользователь узнавал об этом сам
+        let failedImages = 0;
+
         if (images && images.length > 0) {
           setProgress(`Загружаем изображения (0/${images.length})...`);
           console.log(`📸 Uploading ${images.length} images...`);
@@ -124,6 +129,7 @@ const PostFromDraftPage = ({ onCreateListing, onPublishListing, onUpdateListing,
               const base64String = imageData.base64 || '';
               if (!base64String) {
                 console.warn(`⚠️ Skipping image ${i + 1}: no base64 data`);
+                failedImages += 1;
                 continue;
               }
 
@@ -134,6 +140,7 @@ const PostFromDraftPage = ({ onCreateListing, onPublishListing, onUpdateListing,
               // Validate base64
               if (!base64Data || base64Data.length < 100) {
                 console.warn(`⚠️ Skipping image ${i + 1}: invalid base64 data`);
+                failedImages += 1;
                 continue;
               }
 
@@ -170,6 +177,7 @@ const PostFromDraftPage = ({ onCreateListing, onPublishListing, onUpdateListing,
               
               console.log(`✅ Image ${i + 1} added to listing:`, imageId.uuid);
             } catch (imageError) {
+              failedImages += 1;
               console.error(`❌ Error uploading image ${i + 1}:`, imageError);
               console.error('Image error details:', {
                 message: imageError.message,
@@ -209,9 +217,26 @@ const PostFromDraftPage = ({ onCreateListing, onPublishListing, onUpdateListing,
         console.log('✅ Listing published with state:', listingState);
 
         // 5. Очищаем черновик
-        clearGuestListingData();
-        
-        // 6. Редирект в зависимости от состояния листинга
+        await clearGuestListingData();
+
+        // 6. О непрошедших фотографиях говорим прямо, иначе задание уедет
+        // в ленту без них и заказчик заметит это в лучшем случае потом
+        if (failedImages > 0) {
+          const slug = (listing.attributes.title || title || 'listing')
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/(^-|-$)/g, '');
+
+          setPartialUpload({
+            failedImages,
+            totalImages: images.length,
+            listingPath:
+              listingState === 'published' ? `/l/${slug}/${listingId.uuid}` : '/listing-created',
+          });
+          return;
+        }
+
+        // 7. Редирект в зависимости от состояния листинга
         if (listingState === 'pendingApproval') {
           // Листинг требует модерации - редиректим на страницу успеха
           console.log('⏳ Listing pending approval - redirecting to ListingCreatedPage');
@@ -268,6 +293,28 @@ const PostFromDraftPage = ({ onCreateListing, onPublishListing, onUpdateListing,
   }, [history, onCreateListing, onPublishListing, onUpdateListing, onImageUpload]);
 
   const title = 'Создание задания';
+
+  if (partialUpload) {
+    const { failedImages, totalImages, listingPath } = partialUpload;
+    return (
+      <Page title={title} scrollingDisabled={false}>
+        <LayoutSingleColumn topbar={<TopbarContainer />} footer={<FooterContainer />}>
+          <div className={css.root}>
+            <div className={css.content}>
+              <h2 className={css.title}>Задание опубликовано</h2>
+              <p className={css.description}>
+                Но {failedImages} из {totalImages} фото загрузить не удалось. Их можно добавить,
+                отредактировав задание.
+              </p>
+              <button className={css.retryButton} onClick={() => history.replace(listingPath)}>
+                Открыть задание
+              </button>
+            </div>
+          </div>
+        </LayoutSingleColumn>
+      </Page>
+    );
+  }
 
   if (error) {
     return (

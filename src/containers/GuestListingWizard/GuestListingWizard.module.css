@@ -31,6 +31,18 @@
   overflow-wrap: anywhere;
 }
 
+.draftSaveError {
+  margin-bottom: 20px;
+  padding: 12px;
+  border-radius: 8px;
+  background-color: #fdecea;
+  color: #b3261e;
+  font-size: 14px;
+  font-weight: 600;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
 /* Guest Banner */
 .guestBanner {
   display: flex;

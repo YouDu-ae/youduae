@@ -61,51 +61,83 @@ const GuestListingWizard = () => {
   const [errors, setErrors] = useState({});
   const [availableSubcategories, setAvailableSubcategories] = useState([]);
   const [isUploadingImages, setIsUploadingImages] = useState(false);
+  const [draftSaveError, setDraftSaveError] = useState(null);
+  const [draftLoaded, setDraftLoaded] = useState(false);
 
   // Загружаем сохраненные данные при монтировании
   useEffect(() => {
-    const savedData = getGuestListingData();
-    
-    // Get title from URL query parameter
-    const queryParams = parse(location.search);
-    const titleFromUrl = queryParams.title || '';
-    
-    console.log('🎯 GuestListingWizard - URL params:', queryParams);
-    console.log('🎯 GuestListingWizard - Title from URL:', titleFromUrl);
-    
-    if (savedData) {
-      setFormData({
-        title: titleFromUrl || savedData.title || '',  // URL title has priority
-        description: savedData.description || '',
-        category: savedData.category || '',
-        subcategory: savedData.subcategory || '',
-        deadline: savedData.deadline || '',
-        paymentMethod: savedData.paymentMethod || '',
-        location: savedData.location || null,
-        price: savedData.price || '',
-        images: savedData.images || [],
-      });
-      
-      // Если есть сохраненная категория, загружаем подкатегории
-      if (savedData.category) {
-        const selectedCategory = categories.find(cat => cat.id === savedData.category);
-        if (selectedCategory?.subcategories) {
-          setAvailableSubcategories(selectedCategory.subcategories);
+    let cancelled = false;
+
+    const applySavedData = savedData => {
+      // Get title from URL query parameter
+      const queryParams = parse(location.search);
+      const titleFromUrl = queryParams.title || '';
+
+      if (savedData) {
+        setFormData({
+          title: titleFromUrl || savedData.title || '', // URL title has priority
+          description: savedData.description || '',
+          category: savedData.category || '',
+          subcategory: savedData.subcategory || '',
+          deadline: savedData.deadline || '',
+          paymentMethod: savedData.paymentMethod || '',
+          location: savedData.location || null,
+          price: savedData.price || '',
+          images: savedData.images || [],
+        });
+
+        // Если есть сохраненная категория, загружаем подкатегории
+        if (savedData.category) {
+          const selectedCategory = categories.find(cat => cat.id === savedData.category);
+          if (selectedCategory?.subcategories) {
+            setAvailableSubcategories(selectedCategory.subcategories);
+          }
         }
+      } else if (titleFromUrl) {
+        // If no saved data but there is title from URL
+        setFormData(prev => ({
+          ...prev,
+          title: titleFromUrl,
+        }));
       }
-    } else if (titleFromUrl) {
-      // If no saved data but there is title from URL
-      setFormData(prev => ({
-        ...prev,
-        title: titleFromUrl,
-      }));
-    }
+
+      setDraftLoaded(true);
+    };
+
+    getGuestListingData()
+      .then(savedData => {
+        if (!cancelled) {
+          applySavedData(savedData);
+        }
+      })
+      .catch(error => {
+        console.error('Не удалось прочитать черновик задания:', error);
+        if (!cancelled) {
+          applySavedData(null);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, [categories, location.search]);
 
   // Сохраняем данные при каждом изменении
   useEffect(() => {
-    saveGuestListingData(formData);
-  }, [formData]);
+    // До окончания чтения писать нельзя: пустая начальная форма затрёт черновик
+    if (!draftLoaded) {
+      return;
+    }
+
+    saveGuestListingData(formData)
+      .then(() => setDraftSaveError(null))
+      .catch(error => {
+        console.error('Не удалось сохранить черновик задания:', error);
+        setDraftSaveError(
+          'Не удалось сохранить черновик в браузере. Фотографии могут не попасть в задание — попробуйте удалить лишние или освободить место.'
+        );
+      });
+  }, [draftLoaded, formData]);
 
   const getCurrentStepIndex = () => STEP_ORDER.indexOf(currentStep);
 
@@ -254,10 +286,20 @@ const GuestListingWizard = () => {
     handleFieldChange('images', updatedImages);
   };
 
-  const handleFinish = () => {
+  const handleFinish = async () => {
     if (validateCurrentStep()) {
-      // Черновик читает /post-from-draft — он же создаёт, грузит фото и публикует
-      saveGuestListingData(formData);
+      // Дожидаемся записи: /post-from-draft читает черновик сразу на монтировании,
+      // и уйти туда раньше сохранения — значит опубликовать задание без фотографий
+      try {
+        await saveGuestListingData(formData);
+        setDraftSaveError(null);
+      } catch (error) {
+        console.error('Не удалось сохранить черновик перед публикацией:', error);
+        setDraftSaveError(
+          'Не удалось сохранить задание в браузере. Попробуйте убрать часть фотографий и повторить.'
+        );
+        return;
+      }
 
       if (isAuthenticated) {
         history.push('/post-from-draft');
@@ -618,9 +660,8 @@ const GuestListingWizard = () => {
                 {formData.images.map((image, index) => {
                   // Безопасно получаем URL для изображения
                   let imageUrl = '';
-                  if (image.preview) {
-                    // Если есть preview (сохраненное или только что созданное)
-                    imageUrl = image.preview;
+                  if (image.base64) {
+                    imageUrl = image.base64;
                   } else if (image instanceof File || image instanceof Blob) {
                     // Если это новый File/Blob объект
                     imageUrl = URL.createObjectURL(image);
@@ -696,6 +737,8 @@ const GuestListingWizard = () => {
           <div className={css.completionStatus}>
             Задание «{statusTitle()}» заполнено на {getCompletionPercentage()}%
           </div>
+
+          {draftSaveError && <div className={css.draftSaveError}>{draftSaveError}</div>}
 
           {/* Детальный прогресс бар */}
           <div className={css.progressContainer}>
