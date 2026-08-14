@@ -29,6 +29,9 @@ const STEP_ORDER = [STEPS.TITLE, STEPS.DETAILS, STEPS.LOCATION, STEPS.PRICING, S
 // count has to stay within the server's body limit even after compression.
 const MAX_PHOTOS = 8;
 
+// Столько символов названия влезает в строку статуса, не переводя её на вторую строку
+const MAX_TITLE_IN_STATUS = 30;
+
 const GuestListingWizard = () => {
   const history = useHistory();
   const location = useLocation();
@@ -267,6 +270,18 @@ const GuestListingWizard = () => {
         state: { from: '/post-from-draft' }
       });
     }
+  };
+
+  // Название показываем укороченным: иначе строка статуса растёт в высоту прямо
+  // во время набора, форма уезжает вниз, и мобильный браузер догоняет курсор.
+  const statusTitle = () => {
+    const title = formData.title.trim();
+    if (!title) {
+      return '..........';
+    }
+    return title.length > MAX_TITLE_IN_STATUS
+      ? `${title.slice(0, MAX_TITLE_IN_STATUS).trimEnd()}…`
+      : title;
   };
 
   const getCompletionPercentage = () => {
@@ -679,7 +694,7 @@ const GuestListingWizard = () => {
 
           {/* Строка с названием задания и процентом */}
           <div className={css.completionStatus}>
-            Задание «{formData.title || '..........'}» заполнено на {getCompletionPercentage()}%
+            Задание «{statusTitle()}» заполнено на {getCompletionPercentage()}%
           </div>
 
           {/* Детальный прогресс бар */}

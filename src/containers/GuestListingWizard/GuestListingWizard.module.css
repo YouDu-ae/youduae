@@ -1,14 +1,16 @@
 @import '../../styles/customMediaQueries.css';
 
 .root {
-  max-width: 1200px;
+  /* width обязателен: контейнер лежит в grid-колонке и без него подгоняется
+     под содержимое — из-за чего длинное название задания растягивало страницу */
+  width: 100%;
+  max-width: 720px;
   margin: 0 auto;
   padding: 16px 32px; /* Уменьшено на 20%: было 24px 48px */
   display: flex;
   flex-direction: column;
 }
 
-/* Для десктопа - используем больше пространства */
 @media (min-width: 1024px) {
   .root {
     padding: 24px 48px; /* Уменьшено на 20%: было 40px 80px */
@@ -25,6 +27,8 @@
   padding: 12px;
   background-color: #f0f4ff;
   border-radius: 8px;
+  /* Название без пробелов не должно выталкивать строку за экран */
+  overflow-wrap: anywhere;
 }
 
 /* Guest Banner */
