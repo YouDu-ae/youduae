@@ -195,6 +195,9 @@ function joinStrings(str1, str2) {
     .join(',');
 }
 
+const uniqueDomains = domains =>
+  [...new Set(domains.split(',').map(d => d.trim()).filter(Boolean))].join(',');
+
 const mergeAnalyticsConfig = (hostedAnalyticsConfig, defaultAnalyticsConfig) => {
   const { enabled, measurementId } = hostedAnalyticsConfig?.googleAnalytics || {};
   const googleAnalyticsId =
@@ -208,7 +211,12 @@ const mergeAnalyticsConfig = (hostedAnalyticsConfig, defaultAnalyticsConfig) => 
       ? plausibleHostedConfig.domain
       : '';
   const plausibleDomainsDefault = defaultAnalyticsConfig.plausibleDomains;
-  const plausibleDomains = joinStrings(plausibleDomainsHosted, plausibleDomainsDefault);
+  // Один и тот же домен часто задан и в Консоли, и в переменной окружения.
+  // Plausible засчитывает событие каждому домену из списка, поэтому дубль
+  // превращает один визит в два.
+  const plausibleDomains = uniqueDomains(
+    joinStrings(plausibleDomainsHosted, plausibleDomainsDefault)
+  );
   const plausibleDomainsMaybe = plausibleDomains ? { plausibleDomains } : {};
 
   return { googleAnalyticsId, ...plausibleDomainsMaybe };
