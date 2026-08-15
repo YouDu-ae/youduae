@@ -31,9 +31,9 @@ class SearchBar extends Component {
     this.props.onSubmit({ keywords: keyword });
   };
 
-  handleInputChange = values => {
-    // Вызываем debounced submit при каждом изменении
-    this.debouncedSubmit(values);
+  handleInputChange = keywords => {
+    // Значение берём из события: values из замыкания render отстают на один символ
+    this.debouncedSubmit({ keywords });
   };
 
   handleMapViewClick = () => {
@@ -55,7 +55,7 @@ class SearchBar extends Component {
           <FinalForm
             onSubmit={this.handleSubmit}
             initialValues={{ keywords: initialKeyword || '' }}
-            render={({ handleSubmit, values }) => (
+            render={({ handleSubmit }) => (
               <form onSubmit={handleSubmit} className={css.form}>
                 <div className={css.searchLine}>
                   <div className={css.inputWrapper}>
@@ -71,7 +71,7 @@ class SearchBar extends Component {
                           autoComplete="off"
                           onChange={e => {
                             input.onChange(e);
-                            this.handleInputChange(values);
+                            this.handleInputChange(e.target.value);
                           }}
                         />
                       )}

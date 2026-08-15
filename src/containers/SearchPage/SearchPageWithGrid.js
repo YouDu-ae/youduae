@@ -401,8 +401,19 @@ export class SearchPageComponent extends Component {
     // Keyword search handling
     const handleKeywordSearch = params => {
       const searchParams = { ...validQueryParams, keywords: params.keywords };
-      const search = cleanSearchFromConflictingParams(searchParams, sortConfig, filterConfigs);
-      this.props.history.push(createResourceLocatorString('SearchPage', routeConfiguration, {}, search));
+      const search = cleanSearchFromConflictingParams(searchParams, filterConfigs, sortConfig);
+      const url = createResourceLocatorString('SearchPage', routeConfiguration, {}, search);
+
+      // Поиск идёт по ходу набора, поэтому каждая буква оставляла бы свою запись
+      // в истории: «Назад» после поиска пришлось бы жать столько раз, сколько
+      // символов набрано. Отдельной записью делаем только первый поиск — чтобы
+      // «Назад» возвращало к ленте без фильтра.
+      const startsNewSearch = !validQueryParams.keywords;
+      if (startsNewSearch) {
+        this.props.history.push(url);
+      } else {
+        this.props.history.replace(url);
+      }
     };
 
     return (
