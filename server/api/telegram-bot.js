@@ -166,6 +166,18 @@ async function publishBlogPostFromTelegram(message) {
 }
 
 /**
+ * Escape user-generated text for parse_mode: 'HTML'.
+ *
+ * Telegram rejects the whole message with a 400 if an unescaped '<' or '&'
+ * appears, so a task titled "Ремонт & уборка" would silently notify nobody.
+ */
+const escapeHtml = value =>
+  String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+
+/**
  * Send message via Telegram Bot API
  */
 async function sendTelegramMessage(chatId, text, options = {}) {
@@ -364,6 +376,41 @@ async function handleWebhook(req, res) {
       } catch (error) {
         console.error('Error getting tickets:', error);
         await sendTelegramMessage(chatId, '⚠️ Ошибка получения тикетов');
+      }
+    }
+    // Admin command: tasks waiting for moderation. The alert on publish can be
+    // missed or fail to send, and a task nobody approves is invisible to everyone.
+    else if (text === '/pending' && chatId.toString() === TELEGRAM_ADMIN_CHAT_ID) {
+      try {
+        const pendingResponse = await integrationSdk.listings.query({
+          states: ['pendingApproval'],
+          perPage: 50,
+        });
+        const pending = pendingResponse.data.data;
+
+        if (pending.length === 0) {
+          await sendTelegramMessage(chatId, '✅ Заданий на модерации нет');
+          return res.sendStatus(200);
+        }
+
+        let message = `🕐 <b>Ждут модерации (${pending.length}):</b>\n\n`;
+        pending.slice(0, 10).forEach(listing => {
+          const id = listing.id.uuid;
+          const days = Math.floor(
+            (Date.now() - new Date(listing.attributes.createdAt)) / (24 * 60 * 60 * 1000)
+          );
+          const age = days === 0 ? 'сегодня' : `${days} дн. назад`;
+          message += `• <b>${escapeHtml(listing.attributes.title)}</b>\n`;
+          message += `  ${age} · <a href="https://console.sharetribe.com/a/listings/${id}">Одобрить →</a>\n\n`;
+        });
+        if (pending.length > 10) {
+          message += `<i>...и ещё ${pending.length - 10}</i>`;
+        }
+
+        await sendTelegramMessage(chatId, message);
+      } catch (error) {
+        console.error('Error getting pending listings:', error);
+        await sendTelegramMessage(chatId, '⚠️ Ошибка получения заданий на модерации');
       }
     }
     else {
@@ -901,8 +948,8 @@ async function notifyNewListingToCategory(data) {
     
     const message = `📋 <b>Новое задание!</b>
 
-"${listingTitle}"
-📁 ${categoryName}
+"${escapeHtml(listingTitle)}"
+📁 ${escapeHtml(categoryName)}
 💰 ${price || 'Цена договорная'}
 
 <a href="${listingUrl}">Откликнуться →</a>`;
@@ -953,6 +1000,31 @@ async function notifyAdminPortfolioModeration(data) {
 }
 
 /**
+ * Send notification to admin about a listing that landed in moderation.
+ */
+async function notifyAdminListingPendingApproval(data) {
+  if (!TELEGRAM_ADMIN_CHAT_ID) {
+    console.log('⚠️ TELEGRAM_ADMIN_CHAT_ID not set, skipping admin notification');
+    return false;
+  }
+
+  const { listingTitle, authorName, categoryName, price, listingUrl, consoleUrl } = data;
+
+  const message = `🕐 <b>Задание ждёт модерации!</b>
+
+📋 <b>${escapeHtml(listingTitle)}</b>
+👤 Заказчик: ${escapeHtml(authorName)}
+📂 Категория: ${escapeHtml(categoryName)}${price ? `\n💰 Бюджет: ${price}` : ''}
+
+<a href="${consoleUrl}">Одобрить в Console →</a>
+<a href="${listingUrl}">Как увидит специалист →</a>
+
+⚠️ Пока задание на модерации, его не видно в ленте и специалисты не получают уведомление.`;
+
+  return await sendTelegramMessage(TELEGRAM_ADMIN_CHAT_ID, message);
+}
+
+/**
  * Setup Telegram webhook
  */
 async function setupWebhook(webhookUrl) {
@@ -989,6 +1061,7 @@ module.exports = {
   notifyNewListing,
   notifyNewListingToCategory,
   notifyAdminPortfolioModeration,
+  notifyAdminListingPendingApproval,
   getExecutorsWithTelegramByCategory,
   sendTelegramMessage,
   getUserTelegramChatId,

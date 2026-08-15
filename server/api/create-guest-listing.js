@@ -148,17 +148,17 @@ module.exports = async (req, res) => {
 
     console.log('✅ create-guest-listing: listing published with state:', listingState);
 
-    // Send Telegram notifications to executors in this category
-    if (category && listingState === 'published') {
-      // Don't await - send notifications in background
-      notifyExecutorsAboutListing(listingId.uuid)
-        .then(result => {
-          console.log('📱 Telegram: new listing notification result:', JSON.stringify(result));
-        })
-        .catch(err => {
-          console.error('📱 Telegram notification error:', err.message);
-        });
-    }
+    // Telegram: executors when the task is live, admin when it went to moderation.
+    // The notifier picks the right branch itself, so state isn't filtered here —
+    // a task stuck in pendingApproval used to leave everyone in the dark.
+    // Don't await - send notifications in background
+    notifyExecutorsAboutListing(listingId.uuid)
+      .then(result => {
+        console.log('📱 Telegram: new listing notification result:', JSON.stringify(result));
+      })
+      .catch(err => {
+        console.error('📱 Telegram notification error:', err.message);
+      });
 
     res.status(200).json({
       success: true,

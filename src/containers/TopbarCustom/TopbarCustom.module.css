@@ -203,21 +203,17 @@
   text-decoration: none;
 }
 
-/* === КНОПКА ВОЙТИ === */
+/* === КНОПКИ ШАПКИ: «Создать задание» и «Войти» === */
 
-.enterBtn {
+.enterBtn,
+.ctaBtn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   height: 60px;
   padding: 20px 28px;
   text-decoration: none;
-  border: none; /* Убираем стандартную рамку кнопки */
-
-  background: #FFC934;
-  color: #000;
   border-radius: 20px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
 
   font-family: 'Inter', sans-serif;
   font-weight: 700;
@@ -225,24 +221,49 @@
   line-height: 19px;
   letter-spacing: -0.03em;
 
-  transition: background-color 0.2s ease, color 0.2s ease, transform 0.02s ease;
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease,
+    transform 0.02s ease;
   cursor: pointer;
   pointer-events: auto; /* Убедимся что клики проходят */
   position: relative; /* Для правильного z-index */
   z-index: 10; /* Поднимем над другими элементами */
 }
 
-.enterBtn:hover {
+/* Главное действие — единственная заливка в шапке, поэтому глаз цепляется за неё */
+.ctaBtn {
+  border: none;
+  background: #FFC934;
+  color: #000;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.ctaBtn:hover {
   background: #000000;
   color: #ffffff;
   text-decoration: none;
 }
 
-.enterBtn:active {
+/* Вход стоит рядом с CTA и намеренно тише: две одинаковые кнопки делили бы внимание */
+.enterBtn {
+  border: 1px solid #DDDDDD;
+  background: #FFFFFF;
+  color: #000;
+}
+
+.enterBtn:hover {
+  background: #000000;
+  border-color: #000000;
+  color: #ffffff;
+  text-decoration: none;
+}
+
+.enterBtn:active,
+.ctaBtn:active {
   transform: scale(0.98); /* Визуальная обратная связь при клике */
 }
 
-.enterBtn:focus {
+.enterBtn:focus,
+.ctaBtn:focus {
   outline: 2px solid #FFC934; /* Добавляем обводку при фокусе для accessibility */
   outline-offset: 2px;
 }
@@ -578,7 +599,9 @@
 }
 
 /* кнопки в панели */
-.burgerPrimaryBtn {
+.burgerCtaBtn {
+  display: inline-flex; /* стили писались под button, а это ссылка */
+  align-items: center;
   height: 40px;
   padding: 0 16px;
   border: none;
@@ -589,9 +612,10 @@
   font-weight: 700;
   font-size: 14px;
   cursor: pointer;
+  text-decoration: none;
   box-shadow: 0 4px 10px rgba(0,0,0,.1);
 }
-.burgerPrimaryBtn:hover { background: #000; color: #fff; }
+.burgerCtaBtn:hover { background: #000; color: #fff; text-decoration: none; }
 
 .burgerSecondaryBtn {
   height: 40px;

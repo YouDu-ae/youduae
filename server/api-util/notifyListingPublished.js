@@ -1,5 +1,8 @@
 const sharetribeIntegrationSdk = require('sharetribe-flex-integration-sdk');
-const { notifyNewListingToCategory } = require('../api/telegram-bot');
+const {
+  notifyNewListingToCategory,
+  notifyAdminListingPendingApproval,
+} = require('../api/telegram-bot');
 
 const CATEGORY_LABELS = {
   repairs_main: 'Ремонт и строительство',
@@ -36,6 +39,44 @@ const formatPrice = price => {
   return `${Math.round(price.amount / 100)} ${price.currency || 'AED'}`;
 };
 
+const rootUrl = () => process.env.REACT_APP_MARKETPLACE_ROOT_URL || 'https://youdu.ae';
+
+/**
+ * Tells the admin a task is waiting for moderation.
+ *
+ * Nothing watches the pendingApproval state, so until this existed a task could
+ * sit unapproved indefinitely — «Доставка» waited 28 days and nobody noticed.
+ * The metadata flag is written before the message goes out, so a client retry
+ * cannot produce a second alert; if the send itself fails, /pending in the bot
+ * still surfaces the task.
+ */
+const notifyAdminAboutPendingListing = async ({ integrationSdk, listingId, listing, included }) => {
+  const { title, price, publicData = {}, metadata = {} } = listing.attributes;
+
+  if (metadata.adminPendingNotifiedAt) {
+    return { skipped: 'admin-already-notified' };
+  }
+
+  await integrationSdk.listings.update({
+    id: listingId,
+    metadata: { adminPendingNotifiedAt: new Date().toISOString() },
+  });
+
+  const author = (included || []).find(entry => entry.type === 'user');
+  const categoryId = publicData.categoryLevel1;
+
+  const sent = await notifyAdminListingPendingApproval({
+    listingTitle: title,
+    authorName: author?.attributes?.profile?.displayName || 'без имени',
+    categoryName: CATEGORY_LABELS[categoryId] || categoryId || 'без категории',
+    price: formatPrice(price),
+    listingUrl: `${rootUrl()}/l/${listingId}`,
+    consoleUrl: `https://console.sharetribe.com/a/listings/${listingId}`,
+  });
+
+  return { adminNotified: Boolean(sent) };
+};
+
 /**
  * Sends the "new task in your category" Telegram alert to executors.
  *
@@ -51,9 +92,19 @@ const notifyExecutorsAboutListing = async listingId => {
     return { skipped: 'missing-integration-credentials' };
   }
 
-  const response = await integrationSdk.listings.show({ id: listingId });
+  const response = await integrationSdk.listings.show({ id: listingId, include: ['author'] });
   const listing = response.data.data;
   const { state, title, price, publicData = {}, metadata = {} } = listing.attributes;
+
+  // Moderation swallows the task: executors get nothing, so the admin has to.
+  if (state === 'pendingApproval') {
+    return notifyAdminAboutPendingListing({
+      integrationSdk,
+      listingId,
+      listing,
+      included: response.data.included,
+    });
+  }
 
   if (state !== 'published') {
     return { skipped: `state-${state}` };
@@ -72,14 +123,12 @@ const notifyExecutorsAboutListing = async listingId => {
     metadata: { telegramNotifiedAt: new Date().toISOString() },
   });
 
-  const rootUrl = process.env.REACT_APP_MARKETPLACE_ROOT_URL || 'https://youdu.ae';
-
   return notifyNewListingToCategory({
     categoryId,
     categoryName: CATEGORY_LABELS[categoryId] || categoryId,
     listingTitle: title,
     price: formatPrice(price),
-    listingUrl: `${rootUrl}/l/${listingId}`,
+    listingUrl: `${rootUrl()}/l/${listingId}`,
     listingId,
   });
 };

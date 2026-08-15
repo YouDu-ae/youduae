@@ -2,6 +2,7 @@ import { types as sdkTypes, createImageVariantConfig } from '../../util/sdkLoade
 import { storableError } from '../../util/errors';
 import { addMarketplaceEntities } from '../../ducks/marketplaceData.duck';
 import { trackListingCreated } from '../../analytics/plausibleEvents';
+import { notifyNewListing } from '../../util/api';
 
 const requestAction = actionType => params => ({ type: actionType, payload: { params } });
 
@@ -176,6 +177,17 @@ export const publishListingDraft = params => (dispatch, getState, sdk) => {
       dispatch(addMarketplaceEntities(response));
       dispatch(publishListingSuccess(response));
       trackListingCreated(response?.data?.data, { stage: 'published' });
+
+      // The guest flow lands here instead of EditListingPage, so without this
+      // call nobody hears about the task: neither executors nor, when it goes
+      // to moderation, the admin. Detached so a failure can't block publishing.
+      const publishedId = response?.data?.data?.id?.uuid;
+      if (publishedId) {
+        notifyNewListing(publishedId).catch(e => {
+          console.error('Failed to notify about new listing:', e);
+        });
+      }
+
       return response;
     })
     .catch(e => {

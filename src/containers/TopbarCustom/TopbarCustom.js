@@ -158,7 +158,7 @@ const TopbarCustom = props => {
   const GuestMenu = () => (
     <ul className={css.burgerList}>
       <li>
-        <NamedLink name="NewListingPage" className={css.burgerLink} onClick={closeBurger}>
+        <NamedLink name="NewListingPage" className={css.burgerCtaBtn} onClick={closeBurger}>
           <FormattedMessage id="TopbarDesktop.createListing" />
         </NamedLink>
       </li>
@@ -195,7 +195,7 @@ const TopbarCustom = props => {
       </li>
       <li className={css.burgerDivider} />
       <li>
-        <button type="button" className={css.burgerPrimaryBtn} onClick={handleLoginClick}>
+        <button type="button" className={css.burgerSecondaryBtn} onClick={handleLoginClick}>
           <FormattedMessage id="TopbarDesktop.login" />
         </button>
       </li>
@@ -374,7 +374,7 @@ const TopbarCustom = props => {
               <FormattedMessage id="TopbarDesktop.forSpecialists" />
             </NamedLink>
             <div className={css.rightButtons}>
-              <NamedLink name="NewListingPage" className={css.navLink}>
+              <NamedLink name="NewListingPage" className={css.ctaBtn}>
                 <FormattedMessage id="TopbarDesktop.createListing" />
               </NamedLink>
               {renderAuthSection()}
