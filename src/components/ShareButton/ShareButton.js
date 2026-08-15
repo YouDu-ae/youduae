@@ -2,7 +2,14 @@ import React, { useEffect, useRef, useState } from 'react';
 import classNames from 'classnames';
 
 import { FormattedMessage } from '../../util/reactIntl';
-import { ExternalLink, Menu, MenuContent, MenuItem, MenuLabel } from '../../components';
+import {
+  ExternalLink,
+  Menu,
+  MenuContent,
+  MenuItem,
+  MenuLabel,
+  OutsideClickHandler,
+} from '../../components';
 
 import { IconCheck, IconLink, IconMore, IconSend, IconTelegram, IconWhatsApp } from './ShareIcons';
 import css from './ShareButton.module.css';
@@ -120,61 +127,65 @@ const ShareButton = props => {
   const classes = classNames(rootClassName || css.root, className);
 
   return (
-    <Menu
-      className={classes}
-      isOpen={isOpen}
-      onToggleActive={setIsOpen}
-      preferScreenWidthOnMobile
-      contentPlacementOffset={0}
-    >
-      <MenuLabel rootClassName={css.label} isOpenClassName={css.labelOpen}>
-        <IconSend className={css.labelIcon} />
-        <span className={css.labelText}>
-          <FormattedMessage id="ShareButton.label" />
-        </span>
-      </MenuLabel>
+    // Menu only closes itself on blur, and Safari doesn't focus a button when
+    // it's clicked, so the popover would stay open after a click elsewhere.
+    <OutsideClickHandler className={classes} onOutsideClick={() => setIsOpen(false)}>
+      <Menu
+        className={css.menu}
+        isOpen={isOpen}
+        onToggleActive={setIsOpen}
+        preferScreenWidthOnMobile
+        contentPlacementOffset={0}
+      >
+        <MenuLabel rootClassName={css.label} isOpenClassName={css.labelOpen}>
+          <IconSend className={css.labelIcon} />
+          <span className={css.labelText}>
+            <FormattedMessage id="ShareButton.label" />
+          </span>
+        </MenuLabel>
 
-      <MenuContent className={css.content} contentClassName={css.list}>
-        <MenuItem key="telegram">
-          <ExternalLink href={telegramUrl} className={css.item} onClick={() => setIsOpen(false)}>
-            <IconTelegram className={classNames(css.itemIcon, css.telegram)} />
-            <FormattedMessage id="ShareButton.telegram" />
-          </ExternalLink>
-        </MenuItem>
+        <MenuContent className={css.content} contentClassName={css.list}>
+          <MenuItem key="telegram">
+            <ExternalLink href={telegramUrl} className={css.item} onClick={() => setIsOpen(false)}>
+              <IconTelegram className={classNames(css.itemIcon, css.telegram)} />
+              <FormattedMessage id="ShareButton.telegram" />
+            </ExternalLink>
+          </MenuItem>
 
-        <MenuItem key="whatsapp">
-          <ExternalLink href={whatsappUrl} className={css.item} onClick={() => setIsOpen(false)}>
-            <IconWhatsApp className={classNames(css.itemIcon, css.whatsapp)} />
-            <FormattedMessage id="ShareButton.whatsapp" />
-          </ExternalLink>
-        </MenuItem>
+          <MenuItem key="whatsapp">
+            <ExternalLink href={whatsappUrl} className={css.item} onClick={() => setIsOpen(false)}>
+              <IconWhatsApp className={classNames(css.itemIcon, css.whatsapp)} />
+              <FormattedMessage id="ShareButton.whatsapp" />
+            </ExternalLink>
+          </MenuItem>
 
-        <MenuItem key="copy">
-          <button type="button" className={css.item} onClick={handleCopy}>
-            {copied ? (
-              <>
-                <IconCheck className={classNames(css.itemIcon, css.strokeIcon, css.copied)} />
-                <FormattedMessage id="ShareButton.copied" />
-              </>
-            ) : (
-              <>
-                <IconLink className={classNames(css.itemIcon, css.strokeIcon)} />
-                <FormattedMessage id="ShareButton.copyLink" />
-              </>
-            )}
-          </button>
-        </MenuItem>
-
-        {hasNativeShare ? (
-          <MenuItem key="native">
-            <button type="button" className={css.item} onClick={handleNativeShare}>
-              <IconMore className={css.itemIcon} />
-              <FormattedMessage id="ShareButton.nativeShare" />
+          <MenuItem key="copy">
+            <button type="button" className={css.item} onClick={handleCopy}>
+              {copied ? (
+                <>
+                  <IconCheck className={classNames(css.itemIcon, css.strokeIcon, css.copied)} />
+                  <FormattedMessage id="ShareButton.copied" />
+                </>
+              ) : (
+                <>
+                  <IconLink className={classNames(css.itemIcon, css.strokeIcon)} />
+                  <FormattedMessage id="ShareButton.copyLink" />
+                </>
+              )}
             </button>
           </MenuItem>
-        ) : null}
-      </MenuContent>
-    </Menu>
+
+          {hasNativeShare ? (
+            <MenuItem key="native">
+              <button type="button" className={css.item} onClick={handleNativeShare}>
+                <IconMore className={css.itemIcon} />
+                <FormattedMessage id="ShareButton.nativeShare" />
+              </button>
+            </MenuItem>
+          ) : null}
+        </MenuContent>
+      </Menu>
+    </OutsideClickHandler>
   );
 };
 

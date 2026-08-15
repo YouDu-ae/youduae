@@ -1,5 +1,9 @@
-/* Added on top of Menu's own root, which sets height: 100% */
 .root {
+  display: inline-block;
+}
+
+/* Added on top of Menu's own root, which sets height: 100% */
+.menu {
   display: inline-block;
   height: auto;
 }
