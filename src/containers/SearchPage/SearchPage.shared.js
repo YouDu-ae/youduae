@@ -190,7 +190,9 @@ export const validFilterParams = (params, filterConfigs, dropNonFilterParams = t
   const builtInFilterParamNames = defaultFiltersConfig.map(f => {
     return ['category', 'listingType'].includes(f.schemaType) ? `pub_${f.key}` : f.key;
   });
-  const filterParamNames = [...listingFieldParamNames, ...builtInFilterParamNames];
+  // 'keywords' is a core Sharetribe search feature that should always be allowed,
+  // regardless of whether it's explicitly configured in defaultFilters.
+  const filterParamNames = [...listingFieldParamNames, ...builtInFilterParamNames, 'keywords'];
 
   // Note: currently, we only support nested enums with a single default filter
   //       that has schema type: "category"
