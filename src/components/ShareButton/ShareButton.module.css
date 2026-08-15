@@ -1,0 +1,117 @@
+/* Added on top of Menu's own root, which sets height: 100% */
+.root {
+  display: inline-block;
+  height: auto;
+}
+
+.label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 16px;
+  border: 1px solid var(--colorGrey100);
+  border-radius: 20px;
+  background-color: var(--colorWhite);
+  color: var(--colorGrey700);
+
+  font-size: 15px;
+  font-weight: var(--fontWeightSemiBold);
+  line-height: 20px;
+  white-space: nowrap;
+
+  cursor: pointer;
+  transition: var(--transitionStyleButton);
+
+  &:hover,
+  &:focus {
+    border-color: var(--colorGrey300);
+    color: var(--colorBlack);
+    box-shadow: var(--boxShadowPopupLight);
+    outline: none;
+  }
+}
+
+.labelOpen {
+  border-color: var(--colorGrey300);
+  color: var(--colorBlack);
+}
+
+.labelIcon {
+  /* Nudged up so the paper plane sits on the text's optical centre */
+  margin-top: -2px;
+  flex-shrink: 0;
+}
+
+.labelText {
+  padding-top: 1px;
+}
+
+/* Added on top of MenuContent's own root, which handles positioning */
+.content {
+  margin-top: 6px;
+  border-top: none;
+  border-radius: 12px;
+  box-shadow: var(--boxShadowPopup);
+  overflow: hidden;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 6px 0;
+  list-style: none;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 20px;
+  border: 0;
+  background-color: transparent;
+  color: var(--colorGrey700);
+
+  font-size: 15px;
+  font-weight: var(--fontWeightMedium);
+  line-height: 20px;
+  text-align: left;
+  text-decoration: none;
+  white-space: nowrap;
+
+  cursor: pointer;
+  transition: var(--transitionStyleButton);
+
+  &:hover,
+  &:focus {
+    background-color: var(--colorGrey50);
+    color: var(--colorBlack);
+    text-decoration: none;
+    outline: none;
+  }
+}
+
+.itemIcon {
+  flex-shrink: 0;
+  color: var(--colorGrey300);
+}
+
+/* sanitize.css sets `svg { fill: currentColor }`, which beats the fill="none"
+   attribute, so outlined icons need the override in CSS. */
+.strokeIcon {
+  fill: none;
+}
+
+.telegram {
+  color: #29a1d9;
+}
+
+.whatsapp {
+  color: #25d366;
+}
+
+.copied {
+  color: var(--colorSuccess);
+}

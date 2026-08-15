@@ -57,6 +57,7 @@ import {
   NamedRedirect,
   OrderPanel,
   LayoutSingleColumn,
+  ShareButton,
 } from '../../components';
 
 // Related components and modules
@@ -404,6 +405,10 @@ const isOnlyCustomer = !userRoles.customer && userRoles.provider; // Испол�
   // Read more about product schema
   // https://developers.google.com/search/docs/advanced/structured-data/product
   const productURL = `${config.marketplaceRootURL}${location.pathname}${location.search}${location.hash}`;
+  // Deliberately without search params: the visitor's own UTM tags shouldn't
+  // travel on to whoever they send the task to.
+  const shareUrl = `${config.marketplaceRootURL}${location.pathname}`;
+  const shareText = intl.formatMessage({ id: 'ListingPage.shareText' }, { title, marketplaceName });
   const currentStock = currentListing.currentStock?.attributes?.quantity || 0;
   const schemaAvailability = !currentListing.currentStock
     ? null
@@ -488,7 +493,14 @@ const isOnlyCustomer = !userRoles.customer && userRoles.provider; // Испол�
                 <div className={css.mobilePriceValue}>{formattedPrice}</div>
               </div>
             )}
-            
+
+            {/* Черновики и задания на модерации ещё не видны по ссылке */}
+            {!isDraftVariant && !isPendingApprovalVariant && (
+              <div className={css.shareRow}>
+                <ShareButton url={shareUrl} title={title} text={shareText} />
+              </div>
+            )}
+
             <SectionTextMaybe text={description} showAsIngress />
 
             <CustomListingFields

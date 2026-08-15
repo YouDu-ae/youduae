@@ -957,3 +957,13 @@ padding: 0 20px;
   color: var(--colorBlack);
   letter-spacing: -0.02em;
 }
+
+.shareRow {
+  padding: 0 20px;
+  margin-bottom: 28px;
+
+  @media (--viewportMedium) {
+    padding: 0;
+    margin-bottom: 32px;
+  }
+}
