@@ -34,6 +34,7 @@ const createMyExecutorProfile = require('./api/create-my-executor-profile');
 const addPortfolioItem = require('./api/add-portfolio-item');
 const userCompletedTransactions = require('./api/user-completed-transactions');
 const platformStats = require('./api/platform-stats');
+const landingReviews = require('./api/landing-reviews');
 const listingResponses = require('./api/listing-responses');
 const acceptOffer = require('./api/accept-offer');
 const completeTransaction = require('./api/complete-transaction');
@@ -130,6 +131,10 @@ router.post('/create-my-executor-profile', createMyExecutorProfile);
 router.post('/add-portfolio-item', addPortfolioItem);
 router.get('/user-completed-transactions', expensiveLimiter, userCompletedTransactions);
 router.get('/platform-stats', expensiveLimiter, platformStats);
+// Every landing page visitor calls this, and the response is cached for 15
+// minutes, so it relies on the router-wide apiLimiter rather than the stricter
+// expensiveLimiter: UAE carrier NAT puts many visitors on one address.
+router.get('/landing-reviews', landingReviews);
 router.get('/listing-responses', expensiveLimiter, listingResponses);
 router.post('/accept-offer', acceptOffer);
 router.post('/complete-transaction', completeTransaction);

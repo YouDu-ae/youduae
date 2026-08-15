@@ -123,6 +123,7 @@ const fetchCompletedCount = async (integrationSdk, { userId, role }) => {
 
 module.exports = {
   ROLE,
+  REVIEW_TYPE_BY_ROLE,
   COMPLETED_TRANSITIONS,
   parseRole,
   resolveIsVerified,

@@ -469,124 +469,93 @@
   text-align: center;
 }
 
-/* сцена для абсолютного позиционирования карточек (десктоп) */
-.reviewsStage {
-  position: relative;
-  width: 100%;
-  overflow: hidden;
+/* Карточек ровно столько, сколько есть настоящих отзывов, поэтому сетка, а не
+   коллаж из абсолютных координат: новый отзыв не требует пересчёта вёрстки. */
+.reviewsGrid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 24px;
+  max-width: 1100px;
+  margin: 0 auto;
 }
 
-.reviewsCanvas {
-  position: relative;
-  width: 1200px;        /* базовая ширина композиции */
-  height: 500px;
-  left: 50%;
-  transform: translateX(-50%);
-}
-
-/* сама карточка */
 .reviewCard {
-  position: absolute;
-  border-radius: 20px;
+  flex: 0 1 330px;
+  max-width: 350px;
   display: flex;
   flex-direction: column;
-  gap: 17px;
-  padding-top: 28px;
-  padding-left: 28px;
-  padding-right: 20px;
-  overflow: hidden;
+  gap: 16px;
+  border-radius: 20px;
+  padding: 28px 24px 24px 28px;
+  background: var(--reviewCardBg);
+  color: var(--reviewCardText);
   transition: transform 0.3s ease;
 }
 
-/* индивидуальные карточки */
-.card1 {
-  background: #000;
-  width: 309px;
-  height: 240px;
-  transform: rotate(-4deg);
-  color: #fff;
+/* Тона идут по кругу, сколько бы отзывов ни пришло */
+.reviewCard:nth-child(5n + 1) {
+  --reviewCardBg: #000;
+  --reviewCardText: #fff;
+  --reviewStar: #ffc934;
+  --reviewAvatarBg: rgba(255, 255, 255, 0.18);
 }
 
-.card2 {
-  background: #95CBE5;
-  width: 321px;
-  height: 259px;
-  transform: rotate(0deg);
-  color: #fff;
+/* Тёмный текст, а не белый как в прежнем макете: на этом голубом белый давал
+   контраст около 1.9:1, и строка с заданием почти не читалась */
+.reviewCard:nth-child(5n + 2) {
+  --reviewCardBg: #95cbe5;
+  --reviewCardText: #08323f;
+  --reviewStar: #08323f;
+  --reviewAvatarBg: rgba(255, 255, 255, 0.45);
 }
-.card2 .starSmall { background: #fff; }
-.card2 .star { background: #fff; }
-.card2 .reviewText { color: #fff; }
 
-.card3 {
-  background: #F7F7F7;
-  width: 353px;
-  height: 221px;
-  margin-top: 6px;
-  transform: rotate(0deg);
-  color: #000;
+.reviewCard:nth-child(5n + 3) {
+  --reviewCardBg: #f7f7f7;
+  --reviewCardText: #000;
+  --reviewStar: #ffc934;
+  --reviewAvatarBg: rgba(0, 0, 0, 0.07);
 }
-.card3 .reviewText { color: #000; }
 
-.card4 {
-  background: #C4E1EE;
-  width: 348px;
-  height: 221px;
-  transform: rotate(-12deg);
-  color: #000;
+.reviewCard:nth-child(5n + 4) {
+  --reviewCardBg: #c4e1ee;
+  --reviewCardText: #000;
+  --reviewStar: #000;
+  --reviewAvatarBg: rgba(0, 0, 0, 0.08);
 }
-.card4 .starSmall { background: #000; }
-.card4 .star { background: #000; }
-.card4 .reviewText { color: #000; }
 
-.card5 {
-  background: #F7F7F7;
-  width: 313px;
-  height: 221px;
-  transform: rotate(-2deg);
-  color: #000;
+.reviewCard:nth-child(5n + 5) {
+  --reviewCardBg: #ffc934;
+  --reviewCardText: #000;
+  --reviewStar: #000;
+  --reviewAvatarBg: rgba(0, 0, 0, 0.1);
 }
-.card5 .reviewText { color: #000; }
 
-.card6 {
-  background: #FFC934;
-  width: 349px;
-  height: 240px;
-  transform: rotate(10deg);
-  color: #000;
-}
-.card6 .starSmall { background: #000; }
-.card6 .star { background: #000; }
-.card6 .reviewText { color: #000; }
+/* Небольшой наклон сохраняет «разбросанный» вид прежней композиции */
+.reviewCard:nth-child(3n + 1) { transform: rotate(-2deg); }
+.reviewCard:nth-child(3n + 2) { transform: rotate(1deg); }
+.reviewCard:nth-child(3n + 3) { transform: rotate(-1deg); }
 
-.rotL { transform: rotate(0deg); }
-.rotR { transform: rotate(8deg); }
-
-/* координаты карточек (подгони при желании) */
-.pos1 { left: 146px;   top: 28px; }
-.pos2 { left: 428px;   top: 12px; }
-.pos3 { left: 688px;   top: 15px; }
-.pos4 { left: 157px;   top: 220px; }
-.pos5 { left: 432px;   top: 245px; }
-.pos6 { left: 646px;   top: 195px; }
+/* После правил наклона, иначе не перебивает их */
+.reviewCard:hover { transform: rotate(0deg) translateY(-4px); }
 
 /* шапка карточки */
 .reviewHeader { display: flex; align-items: center; gap: 12px; }
 
-/* аватар + подключение картинок через CSS (как просила) */
+/* Инициалы вместо фото: заказчики не давали согласия на портрет в рекламе */
 .avatar {
+  flex: none;
   width: 43px; height: 43px;
   border-radius: 50%;
-  background-size: cover; background-position: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--reviewAvatarBg);
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: -0.02em;
 }
-
-/* файлы лежат рядом с этим .module.css */
-.ava1 { background-image: url('./avatar1.png'); }
-.ava2 { background-image: url('./avatar2.png'); }
-.ava3 { background-image: url('./avatar3.png'); }
-.ava4 { background-image: url('./avatar4.png'); }
-.ava5 { background-image: url('./avatar5.png'); }
-.ava6 { background-image: url('./avatar6.png'); }
 
 .person {
   font-family: 'Inter', sans-serif;
@@ -594,21 +563,32 @@
   font-size: 16px; line-height: 19px;
   letter-spacing: -0.03em;
 }
-.ratingRow { display: flex; align-items: center; gap: 3px; }
-.starSmall {
-  width: 15px; height: 15px; background: #ffc934;
+
+.reviewBody { display: flex; flex-direction: column; gap: 6px; }
+
+/* Название задания вместо имени специалиста: у большинства из них аккаунт уже
+   удалён, а задание объясняет, за что отзыв */
+.reviewTask {
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 19px;
+  color: inherit;
+  opacity: 0.7;
+}
+
+.reviewText { font-size: 16px; font-weight: 400; line-height: 20px; }
+
+.stars { display: flex; gap: 1px; margin-top: auto; }
+.star {
+  width: 25px; height: 25px; background: var(--reviewStar);
   clip-path: polygon(50% 0%,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%);
 }
-.ratingText { color: #909090; font-size: 16px; font-weight: 400; }
 
-.reviewBody { display: flex; flex-direction: column; gap: 5px; }
-.reviewFrom { color: #909090; font-size: 16px; font-weight: 400; line-height: 19px; }
-.reviewText { color: #fff; font-size: 16px; font-weight: 400; line-height: 19px; }
-
-.stars { display: flex; gap: 1px; }
-.star {
-  width: 25px; height: 25px; background: #ffc934;
-  clip-path: polygon(50% 0%,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%);
+/* Пока отзывы грузятся, чтобы блок не прыгал */
+.reviewSkeleton {
+  border-radius: 20px;
+  min-height: 210px;
+  background: #f2f2f2;
 }
  
 /* ========================= */
@@ -821,13 +801,7 @@
  .btnBlog { height: 50px; border-radius: 13px; margin-top: 30px; }
  .blogGrid { gap: 10px; }
 .reviewCard { border-radius: 13px;}
-.reviewsCanvas { width: 768px; margin-bottom: 135px; }
-.pos1 { left: 60px;   top: 28px; }
-.pos2 { left: 400px;   top: 185px; }
-.pos3 { left: 350px;   top: 20px; }
-.pos4 { left: 60px;   top: 210px; }
-.pos5 { left: 80px;   top: 380px; }
-.pos6 { left: 350px;   top: 350px; }
+.reviewsGrid { max-width: 700px; }
 
 }
   
@@ -873,17 +847,11 @@
  .blogCard { height: 335px; width: 384px; gap: 5px; }
 
  .reviews .h2 { font-size: 25px; line-height: 30px; text-align: center; }
- .person, .ratingText, .reviewFrom, .reviewText { font-size: 14px; line-height: 17px; }
+ .person, .reviewTask, .reviewText { font-size: 14px; line-height: 17px; }
  .reviews { padding: 0;}
- .reviewCard { width: 100%; max-width: 380px; padding: 20px; height: auto; left: 50%; }
+ .reviewCard { padding: 20px; }
 
-.reviewsCanvas {  width: 300px; height: 920px; margin-bottom: 115px;}
-.card1 { top: 0px; transform: translateX(-50%) rotate(-4deg); }
-.card3  { top: 160px; transform: translateX(-50%) rotate(0deg); }
-.card4  {top: 460px; transform: translateX(-50%) rotate(-8deg); }
-.card5   {top: 800px; transform: translateX(-50%) rotate(-2deg); }
-.card6  {top: 650px; transform: translateX(-50%) rotate(7deg); }
-.card2 { top: 340px; transform: translateX(-50%) rotate(5deg); }
+.reviewsGrid { max-width: 380px; gap: 16px; }
 
 }
 

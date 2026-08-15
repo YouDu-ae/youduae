@@ -19,6 +19,24 @@ const LandingPage = () => {
   const locale = intl.locale || 'ru';
   const [taskTitle, setTaskTitle] = useState('');
   const [blog, setBlog] = useState({ status: 'loading', articles: [], categories: [] });
+  const [reviews, setReviews] = useState({ status: 'loading', items: [] });
+
+  useEffect(() => {
+    let cancelled = false;
+
+    fetch(`${apiBaseUrl()}/api/landing-reviews`)
+      .then(res => (res.ok ? res.json() : Promise.reject(new Error(`HTTP ${res.status}`))))
+      .then(data => {
+        if (!cancelled) setReviews({ status: 'ready', items: data.reviews || [] });
+      })
+      .catch(() => {
+        if (!cancelled) setReviews({ status: 'failed', items: [] });
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -53,6 +71,12 @@ const LandingPage = () => {
   };
 
   const showBlogSection = blog.status === 'loading' || blog.articles.length > 0;
+
+  // Настоящих отзывов пока немного, и блок скрывается, если их нет совсем:
+  // пустой раздел «Отзывы об исполнителях» вредит доверию сильнее, чем его отсутствие.
+  const showReviewsSection = reviews.status === 'loading' || reviews.items.length > 0;
+  const reviewInitials = review =>
+    review.authorInitials || review.authorName.trim().charAt(0).toUpperCase();
 
   const siteTitle = intl.formatMessage({ id: 'LandingPage.schemaTitle' });
   const schemaDescription = intl.formatMessage({ id: 'LandingPage.schemaDescription' });
@@ -327,152 +351,49 @@ const LandingPage = () => {
   
 
           {/* ===== ОТЗЫВЫ ===== */}
+          {showReviewsSection && (
           <section className={css.reviews}>
             <h2 className={css.h2}><FormattedMessage id="LandingPage.reviewsTitle" /></h2>
 
-            <div className={css.reviewsStage}>
-              <div className={css.reviewsCanvas}>
-                {/* card 1 */}
-                <article className={`${css.reviewCard} ${css.pos1} ${css.card1}`}>
-                  <header className={css.reviewHeader}>
-                    <div className={`${css.avatar} ${css.ava1}`} />
-                    <div>
-                      <div className={css.person}>Краснова Евгения</div>
-                      <div className={css.ratingRow}>
-                        <span className={css.starSmall} />
-                        <span className={css.ratingText}>4,7 Риэлтор</span>
+            <div className={css.reviewsGrid}>
+              {reviews.status === 'loading'
+                ? [0, 1, 2].map(index => (
+                    <div key={index} className={css.reviewSkeleton} aria-hidden="true" />
+                  ))
+                : reviews.items.map(review => (
+                    <article key={review.id} className={css.reviewCard}>
+                      <header className={css.reviewHeader}>
+                        <div className={css.avatar} aria-hidden="true">
+                          {reviewInitials(review)}
+                        </div>
+                        <div className={css.person}>{review.authorName}</div>
+                      </header>
+                      <div className={css.reviewBody}>
+                        <div className={css.reviewTask}>
+                          <FormattedMessage
+                            id="LandingPage.reviewTask"
+                            values={{ title: review.taskTitle }}
+                          />
+                        </div>
+                        <div className={css.reviewText}>{review.content}</div>
                       </div>
-                    </div>
-                  </header>
-                  <div className={css.reviewBody}>
-                    <div className={css.reviewFrom}>
-                      <FormattedMessage id="LandingPage.reviewFrom" values={{ name: 'Елена' }} />
-                    </div>
-                    <div className={css.reviewText}>Все отлично! Помогли подобрать <br />апартаменты под наш запрос. <br />Порекомендовали друзьям.</div>
-                  </div>
-                  <div className={css.stars}>
-                    <span className={css.star} /><span className={css.star} /><span className={css.star} /><span className={css.star} /><span className={css.star} />
-                  </div>
-                </article>
-
-                {/* card 3 */}
-                <article className={`${css.reviewCard} ${css.rotR} ${css.pos3} ${css.card3}`}>
-                  <header className={css.reviewHeader}>
-                    <div className={`${css.avatar} ${css.ava3}`} />
-                    <div>
-                      <div className={css.person}>Дебушева Вероника</div>
-                      <div className={css.ratingRow}>
-                        <span className={css.starSmall} />
-                        <span className={css.ratingText}>5 Английский язык</span>
+                      <div
+                        className={css.stars}
+                        role="img"
+                        aria-label={intl.formatMessage(
+                          { id: 'LandingPage.reviewRating' },
+                          { rating: review.rating }
+                        )}
+                      >
+                        {Array.from({ length: review.rating }, (_, index) => (
+                          <span key={index} className={css.star} />
+                        ))}
                       </div>
-                    </div>
-                  </header>
-                  <div className={css.reviewBody}>
-                    <div className={css.reviewFrom}>
-                      <FormattedMessage id="LandingPage.reviewFrom" values={{ name: 'Саша' }} />
-                    </div>
-                    <div className={css.reviewText}>Прошло несколько занятий и уже вижу <br />результат у ребенка. Рекомендую!</div>
-                  </div>
-                  <div className={css.stars}>
-                    <span className={css.star} /><span className={css.star} /><span className={css.star} /><span className={css.star} /><span className={css.star} />
-                  </div>
-                </article>
-
-                {/* card 2 */}
-                <article className={`${css.reviewCard} ${css.pos2} ${css.card2}`}>
-                  <header className={css.reviewHeader}>
-                    <div className={`${css.avatar} ${css.ava2}`} />
-                    <div>
-                      <div className={css.person}>Эльвира Муратовна</div>
-                      <div className={css.ratingRow}>
-                        <span className={css.starSmall} />
-                        <span className={css.ratingText}>4,6 Клининг</span>
-                      </div>
-                    </div>
-                  </header>
-                  <div className={css.reviewBody}>
-                    <div className={css.reviewFrom}>
-                      <FormattedMessage id="LandingPage.reviewFrom" values={{ name: 'Ольга' }} />
-                    </div>
-                    <div className={css.reviewText}>Периодически приглашаю Эльвиру <br />для поддержания чистоты в доме. <br />Вежливая, аккуратная, выполняет <br />работу качественно</div>
-                  </div>
-                  <div className={css.stars}>
-                    <span className={css.star} /><span className={css.star} /><span className={css.star} /><span className={css.star} /><span className={css.star} />
-                  </div>
-                </article>
-
-                {/* card 4 */}
-                <article className={`${css.reviewCard} ${css.pos4} ${css.card4}`}>
-                  <header className={css.reviewHeader}>
-                    <div className={`${css.avatar} ${css.ava4}`} />
-                    <div>
-                      <div className={css.person}>Попов Виталий</div>
-                      <div className={css.ratingRow}>
-                        <span className={css.starSmall} />
-                        <span className={css.ratingText}>4,9 Юрист</span>
-                      </div>
-                    </div>
-                  </header>
-                  <div className={css.reviewBody}>
-                    <div className={css.reviewFrom}>
-                      <FormattedMessage id="LandingPage.reviewFrom" values={{ name: 'Nick' }} />
-                    </div>
-                    <div className={css.reviewText}>Знает свое дело. Брал консультацию <br />по видеосвязи, всё толково объясняет.</div>
-                  </div>
-                  <div className={css.stars}>
-                    <span className={css.star} /><span className={css.star} /><span className={css.star} /><span className={css.star} /><span className={css.star} />
-                  </div>
-                </article>
- 
-
-                {/* card 6 */}
-                <article className={`${css.reviewCard} ${css.pos6} ${css.card6}`}>
-                  <header className={css.reviewHeader}>
-                    <div className={`${css.avatar} ${css.ava6}`} />
-                    <div>
-                      <div className={css.person}>Максимов Анатолий</div>
-                      <div className={css.ratingRow}>
-                        <span className={css.starSmall} />
-                        <span className={css.ratingText}>4,9 Сантехник</span>
-                      </div>
-                    </div>
-                  </header>
-                  <div className={css.reviewBody}>
-                    <div className={css.reviewFrom}>
-                      <FormattedMessage id="LandingPage.reviewFrom" values={{ name: 'Vika' }} />
-                    </div>
-                    <div className={css.reviewText}>Быстро и без проблем поменял мне <br />сантехнику, приехал вовремя как <br />договаривались</div>
-                  </div>
-                  <div className={css.stars}>
-                    <span className={css.star} /><span className={css.star} /><span className={css.star} /><span className={css.star} /><span className={css.star} />
-                  </div>
-                </article>
-
-                {/* card 5 */}
-                <article className={`${css.reviewCard} ${css.rotL} ${css.pos5} ${css.card5}`}>
-                  <header className={css.reviewHeader}>
-                    <div className={`${css.avatar} ${css.ava5}`} />
-                    <div>
-                      <div className={css.person}>Глазко Александр</div>
-                      <div className={css.ratingRow}>
-                        <span className={css.starSmall} />
-                        <span className={css.ratingText}>5 Массажист</span>
-                      </div>
-                    </div>
-                  </header>
-                  <div className={css.reviewBody}>
-                    <div className={css.reviewFrom}>
-                      <FormattedMessage id="LandingPage.reviewFrom" values={{ name: 'Светлана' }} />
-                    </div>
-                    <div className={css.reviewText}>Специалист не новичок, знающий, <br />внимательный, золотые руки!</div>
-                  </div>
-                  <div className={css.stars}>
-                    <span className={css.star} /><span className={css.star} /><span className={css.star} /><span className={css.star} /><span className={css.star} />
-                  </div>
-                </article>
-              </div>
+                    </article>
+                  ))}
             </div>
           </section>
+          )}
  
 
           {/* ===== БЛОГ ===== */}
