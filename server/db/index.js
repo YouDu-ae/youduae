@@ -147,6 +147,24 @@ const initDatabase = async () => {
         ON telegram_subscribers USING GIN (categories);
       CREATE INDEX IF NOT EXISTS idx_tg_subscribers_active
         ON telegram_subscribers (is_active, notifications_enabled);
+
+      -- Every reminder the scheduler has already sent. The unique key is what
+      -- keeps a nagging bot from existing: a reminder is claimed here before it
+      -- is sent, so a re-run, an overlapping run, or a retry stays silent.
+      -- subject_id is whatever makes the reminder unique for its type — a
+      -- listing id for per-task reminders, a date for daily digests.
+      CREATE TABLE IF NOT EXISTS reminder_log (
+        id SERIAL PRIMARY KEY,
+        reminder_type VARCHAR(50) NOT NULL,
+        subject_id VARCHAR(100) NOT NULL,
+        recipient_user_id VARCHAR(100) NOT NULL,
+        details JSONB,
+        sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE (reminder_type, subject_id, recipient_user_id)
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_reminder_log_sent
+        ON reminder_log (reminder_type, sent_at);
     `);
     
     console.log('Database tables initialized');
@@ -739,6 +757,49 @@ const getTelegramSubscribersByCategory = async categoryId => {
 };
 
 /**
+ * Reserve the right to send one reminder, returning false if it already went out.
+ *
+ * The insert is the lock: the unique constraint means only the first caller for
+ * a given (type, subject, recipient) gets a row back, so two overlapping
+ * scheduler runs cannot both decide to notify the same person about the same
+ * thing. Callers must release the claim if delivery fails.
+ */
+const claimReminder = async ({ reminderType, subjectId, recipientUserId, details = null }) => {
+  const result = await pool.query(
+    `INSERT INTO reminder_log (reminder_type, subject_id, recipient_user_id, details)
+     VALUES ($1, $2, $3, $4)
+     ON CONFLICT (reminder_type, subject_id, recipient_user_id) DO NOTHING
+     RETURNING id`,
+    [reminderType, subjectId, recipientUserId, details]
+  );
+  return result.rowCount > 0;
+};
+
+/**
+ * Give the claim back so a later run can retry, e.g. when Telegram was down.
+ */
+const releaseReminder = async ({ reminderType, subjectId, recipientUserId }) => {
+  await pool.query(
+    `DELETE FROM reminder_log
+     WHERE reminder_type = $1 AND subject_id = $2 AND recipient_user_id = $3`,
+    [reminderType, subjectId, recipientUserId]
+  );
+};
+
+const getReminderStats = async () => {
+  const result = await pool.query(
+    `SELECT reminder_type,
+            COUNT(*)::int AS total,
+            COUNT(*) FILTER (WHERE sent_at > NOW() - INTERVAL '7 days')::int AS last_week,
+            MAX(sent_at) AS last_sent
+     FROM reminder_log
+     GROUP BY reminder_type
+     ORDER BY reminder_type`
+  );
+  return result.rows;
+};
+
+/**
  * Stop sending to a chat that Telegram rejects, e.g. after the user blocks the
  * bot. Keeping the row preserves history and lets a re-link revive it.
  */
@@ -813,6 +874,10 @@ module.exports = {
   updateTicketTelegramId,
   getTicketByTelegramMessageId,
   getTicketStats,
+  // Reminder scheduler functions
+  claimReminder,
+  releaseReminder,
+  getReminderStats,
   // Telegram subscriber functions
   upsertTelegramSubscriber,
   updateTelegramSubscriberCategories,

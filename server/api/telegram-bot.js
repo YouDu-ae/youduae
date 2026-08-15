@@ -1000,6 +1000,72 @@ async function notifyAdminPortfolioModeration(data) {
 }
 
 /**
+ * Russian plural forms: 1 отклик, 2 отклика, 5 откликов.
+ */
+const pluralRu = (count, one, few, many) => {
+  const mod100 = count % 100;
+  if (mod100 >= 11 && mod100 <= 14) return many;
+  const mod10 = count % 10;
+  if (mod10 === 1) return one;
+  if (mod10 >= 2 && mod10 <= 4) return few;
+  return many;
+};
+
+/**
+ * Message builders are separate from delivery so the wording can be reviewed
+ * and tested without sending anything to a real person.
+ */
+function buildUnansweredOffersMessage({ listingTitle, offerCount, listingUrl }) {
+  const responded = pluralRu(offerCount, 'откликнулся', 'откликнулись', 'откликнулись');
+  const specialists = pluralRu(offerCount, 'специалист', 'специалиста', 'специалистов');
+
+  return `👀 <b>Отклики ждут вашего ответа</b>
+
+На задание «${escapeHtml(listingTitle)}» ${responded} ${offerCount} ${specialists}, но ответа пока нет.
+
+<a href="${listingUrl}">Посмотреть отклики →</a>
+
+Специалисты берут другие заказы, если не получают ответа в первый день.`;
+}
+
+function buildSpecialistDigestMessage({ tasks, feedUrl }) {
+  const waiting = pluralRu(tasks.length, 'Задание ждёт', 'Задания ждут', 'Заданий ждут');
+
+  const lines = tasks.map(task => {
+    const meta = [task.categoryName, task.price].filter(Boolean).join(' · ');
+    return `• <a href="${task.url}">${escapeHtml(task.title)}</a>\n   ${escapeHtml(meta)}`;
+  });
+
+  return `📋 <b>${waiting} исполнителя</b>
+
+На эти задания в ваших категориях пока никто не откликнулся:
+
+${lines.join('\n\n')}
+
+<a href="${feedUrl}">Все задания →</a>`;
+}
+
+/**
+ * Remind a task author that specialists are still waiting for an answer.
+ */
+async function notifyUnansweredOffers(userId, data) {
+  const chatId = await getUserTelegramChatId(userId);
+  if (!chatId) return false;
+
+  return await sendTelegramMessage(chatId, buildUnansweredOffersMessage(data));
+}
+
+/**
+ * Daily digest of tasks in the specialist's categories that nobody answered yet.
+ */
+async function notifySpecialistDigest(userId, data) {
+  const chatId = await getUserTelegramChatId(userId);
+  if (!chatId) return false;
+
+  return await sendTelegramMessage(chatId, buildSpecialistDigestMessage(data));
+}
+
+/**
  * Send notification to admin about a listing that landed in moderation.
  */
 async function notifyAdminListingPendingApproval(data) {
@@ -1062,6 +1128,10 @@ module.exports = {
   notifyNewListingToCategory,
   notifyAdminPortfolioModeration,
   notifyAdminListingPendingApproval,
+  notifyUnansweredOffers,
+  notifySpecialistDigest,
+  buildUnansweredOffersMessage,
+  buildSpecialistDigestMessage,
   getExecutorsWithTelegramByCategory,
   sendTelegramMessage,
   getUserTelegramChatId,
