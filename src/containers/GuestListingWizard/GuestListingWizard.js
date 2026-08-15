@@ -2,7 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { useHistory, useLocation } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { FormattedMessage } from '../../util/reactIntl';
-import { Page, LayoutSingleColumn, PrimaryButton, SecondaryButton } from '../../components';
+import {
+  Page,
+  LayoutSingleColumn,
+  PrimaryButton,
+  SecondaryButton,
+  CategorySpecialistsCard,
+} from '../../components';
 import TopbarContainer from '../TopbarContainer/TopbarContainer';
 import { useConfiguration } from '../../context/configurationContext';
 import {
@@ -775,6 +781,12 @@ const GuestListingWizard = () => {
               <div className={css.progressFill} style={{ width: `${progressPercent}%` }} />
             </div>
           </div>
+
+          {/* Пока категория не выбрана, показываем число специалистов площадки */}
+          <CategorySpecialistsCard
+            categoryId={formData.category}
+            categoryName={categories.find(cat => cat.id === formData.category)?.name}
+          />
 
           {/* Содержимое шага */}
           {renderStepContent()}

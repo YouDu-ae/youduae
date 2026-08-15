@@ -220,6 +220,17 @@ export const searchExecutors = category => {
   });
 };
 
+// Counts of specialists per service category, with a few avatars each.
+//
+// One cheap request covering every category at once: the task wizard needs the
+// numbers as soon as it opens, before a category is picked.
+// See `server/api/category-specialists.js`.
+export const fetchCategorySpecialists = () => {
+  return get('/api/category-specialists', {
+    headers: { 'Content-Type': 'application/json' },
+  });
+};
+
 // Query offers (transactions) for a specific listing
 // This uses the backend to query transactions, avoiding auth issues on client
 export const queryOffers = listingId => {

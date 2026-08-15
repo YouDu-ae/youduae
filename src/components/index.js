@@ -126,6 +126,7 @@ export { default as UserNav } from './UserNav/UserNav';
 ///////////////////////////////////////////////
 
 export { default as Avatar, AvatarSmall, AvatarMedium, AvatarLarge } from './Avatar/Avatar';
+export { default as CategorySpecialistsCard } from './CategorySpecialistsCard/CategorySpecialistsCard';
 export { default as CustomExtendedDataField } from './CustomExtendedDataField/CustomExtendedDataField';
 export { default as ServiceCategorySelector } from './ServiceCategorySelector/ServiceCategorySelector';
 export { default as SubcategoryFilter } from './SubcategoryFilter/SubcategoryFilter';
