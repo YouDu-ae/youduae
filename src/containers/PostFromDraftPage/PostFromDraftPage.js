@@ -3,6 +3,7 @@ import { useHistory } from 'react-router-dom';
 import { types as sdkTypes } from '../../util/sdkLoader';
 import { getGuestListingData, clearGuestListingData } from '../../util/guestListingStorage';
 import { Page, LayoutSingleColumn, IconSpinner } from '../../components';
+import { useConfiguration } from '../../context/configurationContext';
 import TopbarContainer from '../TopbarContainer/TopbarContainer';
 import FooterContainer from '../FooterContainer/FooterContainer';
 
@@ -10,11 +11,27 @@ import css from './PostFromDraftPage.module.css';
 
 const { Money } = sdkTypes;
 
+// Запасные значения на случай, если конфигурация не успела подгрузиться.
+// Совпадают с configListing.js — разойдясь с ним, задание становится
+// «Outdated listing!» в редакторе.
+const FALLBACK_LISTING_TYPE = {
+  listingType: 'free-listing',
+  transactionType: { alias: 'assignment-flow-v3/release-1', unitType: 'inquiry' },
+};
+
 const PostFromDraftPage = ({ onCreateListing, onPublishListing, onUpdateListing, onImageUpload }) => {
   const [error, setError] = useState(null);
   const [progress, setProgress] = useState('Загрузка данных...');
   const [partialUpload, setPartialUpload] = useState(null);
   const history = useHistory();
+  const config = useConfiguration();
+
+  // Тип задания берём из конфигурации, а не переписываем руками: редактор сверяет
+  // сохранённые listingType и unitType с ней и иначе отказывается открывать задание.
+  const typeConfig = config?.listing?.listingTypes?.[0] || FALLBACK_LISTING_TYPE;
+  const listingType = typeConfig.listingType;
+  const transactionProcessAlias = typeConfig.transactionType.alias;
+  const unitType = typeConfig.transactionType.unitType;
 
   useEffect(() => {
     const createAndPublishListing = async () => {
@@ -88,9 +105,9 @@ const PostFromDraftPage = ({ onCreateListing, onPublishListing, onUpdateListing,
             category,
             deadline: deadline || 'week',
             paymentMethod: paymentMethod || 'cash',
-            listingType: 'free-listing',
-            transactionProcessAlias: 'assignment-flow-v3/release-1',
-            unitType: 'item',
+            listingType,
+            transactionProcessAlias,
+            unitType,
             ...locationPublicData,
           },
           ...geolocationMaybe,
@@ -290,6 +307,8 @@ const PostFromDraftPage = ({ onCreateListing, onPublishListing, onUpdateListing,
     };
 
     createAndPublishListing();
+    // Тип задания намеренно не в зависимостях: эффект создаёт задание и должен
+    // отработать ровно один раз, а не повторяться при обновлении конфигурации.
   }, [history, onCreateListing, onPublishListing, onUpdateListing, onImageUpload]);
 
   const title = 'Создание задания';

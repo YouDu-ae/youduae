@@ -30,10 +30,14 @@ module.exports = async (req, res) => {
     const sdk = getSdk(req, res);
     
     // Prepare listing data with proper category mapping
+    // unitType обязан совпадать с configListing.js: EditListingDetailsPanel сверяет
+    // listingType и unitType задания с конфигом, и при расхождении вместо формы
+    // редактирования показывает «Outdated listing!». Процесс assignment-flow-v3
+    // поддерживает только inquiry (см. PROCESSES в src/transactions/transaction.js).
     const publicData = {
       listingType: 'free-listing',
       transactionProcessAlias: 'assignment-flow-v3/release-1',
-      unitType: 'item',
+      unitType: 'inquiry',
     };
     
     // Map category and subcategory to categoryLevel1 and categoryLevel2
