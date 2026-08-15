@@ -45,13 +45,14 @@ const PostFromDraftPage = ({ onCreateListing, onPublishListing, onUpdateListing,
           throw new Error('Черновик пуст или неполный. Пожалуйста, заполните форму заново.');
         }
 
-        const { title, description, category, deadline, paymentMethod, location, price, images } = draft;
+        const { title, description, category, subcategory, deadline, paymentMethod, location, price, images } = draft;
 
         // 2. Создаем черновик листинга
         setProgress('Создаем задание...');
         console.log('📝 Creating listing:', { 
           title, 
           category,
+          subcategory,
           deadline,
           paymentMethod,
           price,
@@ -98,11 +99,21 @@ const PostFromDraftPage = ({ onCreateListing, onPublishListing, onUpdateListing,
         const address = location?.selectedPlace?.address || location?.address || '';
         const locationPublicData = address ? { location: { address } } : {};
 
+        // Map category fields to standard Sharetribe naming (categoryLevel1, categoryLevel2)
+        // for compatibility with EditListingDetailsPanel and search filters
+        const categoryPublicData = {};
+        if (category) {
+          categoryPublicData.categoryLevel1 = category;
+        }
+        if (subcategory) {
+          categoryPublicData.categoryLevel2 = subcategory;
+        }
+
         const createParams = {
           title,
           description: description || 'Описание задания',
           publicData: {
-            category,
+            ...categoryPublicData,
             deadline: deadline || 'week',
             paymentMethod: paymentMethod || 'cash',
             listingType,
