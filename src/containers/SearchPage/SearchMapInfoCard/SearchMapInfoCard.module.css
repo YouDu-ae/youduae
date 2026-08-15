@@ -76,6 +76,18 @@
   width: 100%;
 }
 
+.fallbackCover {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
+  background-size: cover;
+  background-position: center;
+  background-color: #f7f4ea;
+}
+
 .info {
   display: flex;
   padding: 11px 13px;

@@ -16,7 +16,10 @@ exports[`ListingCard matches snapshot 1`] = `
         class="aspectBox"
       >
         <div
-          style="position: absolute; top: 0px; right: 0px; bottom: 0px; left: 0px;"
+          aria-label="listing1 title"
+          class="fallbackCover"
+          role="img"
+          style="background-image: url(/static/listing-covers/default.jpg);"
         />
       </div>
     </div>
@@ -25,12 +28,16 @@ exports[`ListingCard matches snapshot 1`] = `
     class="info"
   >
     <div
-      class="price"
-      title="55"
+      class="priceRow"
     >
-      <span>
-        ListingCard.price
-      </span>
+      <div
+        class="price"
+        title="55"
+      >
+        <span>
+          ListingCard.price
+        </span>
+      </div>
     </div>
     <div
       class="mainInfo"
@@ -68,7 +75,10 @@ exports[`ListingCard matches snapshot without price 1`] = `
         class="aspectBox"
       >
         <div
-          style="position: absolute; top: 0px; right: 0px; bottom: 0px; left: 0px;"
+          aria-label="listing1 title"
+          class="fallbackCover"
+          role="img"
+          style="background-image: url(/static/listing-covers/default.jpg);"
         />
       </div>
     </div>
@@ -76,6 +86,18 @@ exports[`ListingCard matches snapshot without price 1`] = `
   <div
     class="info"
   >
+    <div
+      class="priceRow"
+    >
+      <div
+        class="price"
+        title="55"
+      >
+        <span>
+          ListingCard.price
+        </span>
+      </div>
+    </div>
     <div
       class="mainInfo"
     >

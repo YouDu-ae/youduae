@@ -7,6 +7,7 @@ import { formatMoney } from '../../../util/currency';
 import { ensureListing } from '../../../util/data';
 import { isPriceVariationsEnabled, requireListingImage } from '../../../util/configHelpers';
 
+import { listingCoverFallback, shouldPreviewListingCovers } from '../../../util/listingCover';
 import { AspectRatioWrapper, ResponsiveImage, ListingCardThumbnail } from '../../../components';
 
 import css from './SearchMapInfoCard.module.css';
@@ -23,7 +24,10 @@ const ListingCard = props => {
       : price?.currency
       ? price.currency
       : null;
-  const firstImage = listing.images && listing.images.length > 0 ? listing.images[0] : null;
+  const firstImage =
+    !shouldPreviewListingCovers() && listing.images && listing.images.length > 0
+      ? listing.images[0]
+      : null;
 
   const {
     aspectWidth = 1,
@@ -85,14 +89,22 @@ const ListingCard = props => {
             width={aspectWidth}
             height={aspectHeight}
           >
-            <ResponsiveImage
-              rootClassName={classNames(css.rootForImage, css.borderRadiusInheritTop)}
-              alt={title}
-              noImageMessage={intl.formatMessage({ id: 'SearchMapInfoCard.noImage' })}
-              image={firstImage}
-              variants={variants}
-              sizes="250px"
-            />
+            {firstImage ? (
+              <ResponsiveImage
+                rootClassName={classNames(css.rootForImage, css.borderRadiusInheritTop)}
+                alt={title}
+                image={firstImage}
+                variants={variants}
+                sizes="250px"
+              />
+            ) : (
+              <div
+                className={classNames(css.fallbackCover, css.borderRadiusInheritTop)}
+                style={{ backgroundImage: `url(${listingCoverFallback(listing)})` }}
+                role="img"
+                aria-label={title}
+              />
+            )}
           </AspectRatioWrapper>
         ) : (
           <ListingCardThumbnail

@@ -15,6 +15,7 @@ import { ensureListing, ensureUser } from '../../util/data';
 import { richText } from '../../util/richText';
 import { createSlug } from '../../util/urlHelpers';
 import { isBookingProcessAlias } from '../../transactions/transaction';
+import { listingCoverFallback, shouldPreviewListingCovers } from '../../util/listingCover';
 
 import {
   AspectRatioWrapper,
@@ -118,7 +119,9 @@ const ListingCardImage = props => {
   } = props;
 
   const firstImage =
-    currentListing.images && currentListing.images.length > 0 ? currentListing.images[0] : null;
+    !shouldPreviewListingCovers() && currentListing.images && currentListing.images.length > 0
+      ? currentListing.images[0]
+      : null;
   const variants = firstImage
     ? Object.keys(firstImage?.attributes?.variants).filter(k => k.startsWith(variantPrefix))
     : [];
@@ -131,13 +134,22 @@ const ListingCardImage = props => {
       height={aspectHeight}
       {...setActivePropsMaybe}
     >
-      <LazyImage
-        rootClassName={css.rootForImage}
-        alt={title}
-        image={firstImage}
-        variants={variants}
-        sizes={renderSizes}
-      />
+      {firstImage ? (
+        <LazyImage
+          rootClassName={css.rootForImage}
+          alt={title}
+          image={firstImage}
+          variants={variants}
+          sizes={renderSizes}
+        />
+      ) : (
+        <div
+          className={css.fallbackCover}
+          style={{ backgroundImage: `url(${listingCoverFallback(currentListing)})` }}
+          role="img"
+          aria-label={title}
+        />
+      )}
     </AspectRatioWrapper>
   ) : (
     <ListingCardThumbnail
