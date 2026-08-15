@@ -580,7 +580,7 @@
   "ListingPage.reviewsError": "Не удалось загрузить отзывы.",
   "ListingPage.reviewsTitle": "Отзывы ({count})",
   "ListingPage.schemaTitle": "{title} | {marketplaceName}",
-  "ListingPage.shareText": "Задание на {marketplaceName}: {title}",
+  "ListingPage.shareText": "Задание на YouDu: {title}",
   "ListingPage.changeExecutor": "Сменить исполнителя",
   "ListingPage.changeExecutorError": "Не удалось сменить исполнителя. Попробуйте ещё раз.",
   "ListingPage.changeExecutorInProgress": "Смена исполнителя…",

@@ -408,7 +408,7 @@ const isOnlyCustomer = !userRoles.customer && userRoles.provider; // Испол�
   // Deliberately without search params: the visitor's own UTM tags shouldn't
   // travel on to whoever they send the task to.
   const shareUrl = `${config.marketplaceRootURL}${location.pathname}`;
-  const shareText = intl.formatMessage({ id: 'ListingPage.shareText' }, { title, marketplaceName });
+  const shareText = intl.formatMessage({ id: 'ListingPage.shareText' }, { title });
   const currentStock = currentListing.currentStock?.attributes?.quantity || 0;
   const schemaAvailability = !currentListing.currentStock
     ? null
