@@ -1015,17 +1015,35 @@ const pluralRu = (count, one, few, many) => {
  * Message builders are separate from delivery so the wording can be reviewed
  * and tested without sending anything to a real person.
  */
-function buildUnansweredOffersMessage({ listingTitle, offerCount, listingUrl }) {
-  const responded = pluralRu(offerCount, 'откликнулся', 'откликнулись', 'откликнулись');
-  const specialists = pluralRu(offerCount, 'специалист', 'специалиста', 'специалистов');
+const CLOSING_NUDGE = 'Специалисты берут другие заказы, если не получают ответа в первый день.';
+
+function buildUnansweredOffersMessage({ tasks }) {
+  if (tasks.length === 1) {
+    const { title, offerCount, url } = tasks[0];
+    const responded = pluralRu(offerCount, 'откликнулся', 'откликнулись', 'откликнулись');
+    const specialists = pluralRu(offerCount, 'специалист', 'специалиста', 'специалистов');
+
+    return `👀 <b>Отклики ждут вашего ответа</b>
+
+На задание «${escapeHtml(title)}» ${responded} ${offerCount} ${specialists}, но ответа пока нет.
+
+<a href="${url}">Посмотреть отклики →</a>
+
+${CLOSING_NUDGE}`;
+  }
+
+  const lines = tasks.map(task => {
+    const offers = pluralRu(task.offerCount, 'отклик', 'отклика', 'откликов');
+    return `• <a href="${task.url}">${escapeHtml(task.title)}</a> — ${task.offerCount} ${offers}`;
+  });
 
   return `👀 <b>Отклики ждут вашего ответа</b>
 
-На задание «${escapeHtml(listingTitle)}» ${responded} ${offerCount} ${specialists}, но ответа пока нет.
+На ваши задания откликнулись специалисты, но ответа пока нет:
 
-<a href="${listingUrl}">Посмотреть отклики →</a>
+${lines.join('\n')}
 
-Специалисты берут другие заказы, если не получают ответа в первый день.`;
+${CLOSING_NUDGE}`;
 }
 
 function buildSpecialistDigestMessage({ tasks, feedUrl }) {

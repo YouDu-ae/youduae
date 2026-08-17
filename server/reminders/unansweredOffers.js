@@ -101,6 +101,23 @@ const groupByListing = ({ transactions, included }) => {
   return [...listings.values()];
 };
 
+/**
+ * One message per author, not per task. Authors who ignore offers tend to have
+ * several tasks doing it at once — on production one person had three — and
+ * three notifications arriving at once read as spam instead of a nudge.
+ */
+const groupByAuthor = candidates => {
+  const authors = new Map();
+
+  candidates.forEach(candidate => {
+    const tasks = authors.get(candidate.authorId) || [];
+    tasks.push(candidate);
+    authors.set(candidate.authorId, tasks);
+  });
+
+  return [...authors.entries()].map(([authorId, tasks]) => ({ authorId, tasks }));
+};
+
 const runUnansweredOffers = async ({ dryRun = false, log = console.log } = {}) => {
   const integrationSdk = createIntegrationSdk();
   if (!integrationSdk) {
@@ -109,65 +126,75 @@ const runUnansweredOffers = async ({ dryRun = false, log = console.log } = {}) =
 
   const raw = await fetchStaleOffers(integrationSdk);
   const candidates = groupByListing(raw);
+  const authorGroups = groupByAuthor(candidates);
 
   log(
-    `[unanswered_offers] откликов без ответа: ${raw.transactions.length}, заданий: ${candidates.length}`
+    `[unanswered_offers] откликов без ответа: ${raw.transactions.length}, заданий: ${candidates.length}, заказчиков: ${authorGroups.length}`
   );
 
   let sent = 0;
   let alreadySent = 0;
   let failed = 0;
 
-  for (const candidate of candidates) {
-    const claim = {
-      reminderType: REMINDER_TYPE,
-      subjectId: candidate.listingId,
-      recipientUserId: candidate.authorId,
-    };
-
+  for (const { authorId, tasks } of authorGroups) {
     if (dryRun) {
       log(
-        `[unanswered_offers] DRY RUN → «${candidate.title}»: ${candidate.offerCount} откл., автор ${candidate.authorId}`
+        `[unanswered_offers] DRY RUN → заказчик ${authorId}: ${tasks
+          .map(task => `«${task.title}» (${task.offerCount})`)
+          .join(', ')}`
       );
       sent += 1;
       continue;
     }
 
-    const claimed = await db.claimReminder({
-      ...claim,
-      details: { offerCount: candidate.offerCount, title: candidate.title },
-    });
+    // Claim per task so a task already covered by an earlier run drops out of
+    // the message instead of blocking the whole group.
+    const claims = [];
+    for (const task of tasks) {
+      const claim = {
+        reminderType: REMINDER_TYPE,
+        subjectId: task.listingId,
+        recipientUserId: authorId,
+      };
+      const claimed = await db.claimReminder({
+        ...claim,
+        details: { offerCount: task.offerCount, title: task.title },
+      });
+      if (claimed) claims.push({ claim, task });
+    }
 
-    if (!claimed) {
+    if (claims.length === 0) {
       alreadySent += 1;
       continue;
     }
 
     try {
-      const delivered = await notifyUnansweredOffers(candidate.authorId, {
-        listingTitle: candidate.title,
-        offerCount: candidate.offerCount,
-        listingUrl: listingUrl(candidate.listingId),
+      const delivered = await notifyUnansweredOffers(authorId, {
+        tasks: claims.map(({ task }) => ({
+          title: task.title,
+          offerCount: task.offerCount,
+          url: listingUrl(task.listingId),
+        })),
       });
 
       if (delivered) {
         sent += 1;
       } else {
-        // No linked Telegram, or the chat is gone. Keep the claim so the author
+        // No linked Telegram, or the chat is gone. Keep the claims so the author
         // is not queued forever for a channel that cannot reach them.
         failed += 1;
       }
     } catch (error) {
       // Let a later run retry: the failure was ours, not the recipient's.
-      await db.releaseReminder(claim);
+      await Promise.all(claims.map(({ claim }) => db.releaseReminder(claim)));
       failed += 1;
-      log(`[unanswered_offers] ошибка отправки ${candidate.listingId}: ${error.message}`);
+      log(`[unanswered_offers] ошибка отправки заказчику ${authorId}: ${error.message}`);
     }
 
     await sleep(TELEGRAM_SEND_DELAY_MS);
   }
 
-  return { candidates: candidates.length, sent, alreadySent, failed };
+  return { candidates: authorGroups.length, tasks: candidates.length, sent, alreadySent, failed };
 };
 
 module.exports = { runUnansweredOffers };
