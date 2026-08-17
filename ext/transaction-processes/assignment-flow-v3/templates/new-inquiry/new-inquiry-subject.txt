@@ -1,2 +1,1 @@
-Новый отклик на задание "{{listing.title}}"
-
+Новый отклик на задание «{{transaction.listing.title}}»

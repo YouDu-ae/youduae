@@ -1,0 +1,1 @@
+Новый отзыв о работе с вами — от {{transaction.customer.display-name}}

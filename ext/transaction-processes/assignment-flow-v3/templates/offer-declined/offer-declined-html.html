@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Отклик не принят</title>
+  </head>
+  <body style="margin:0;padding:0;background-color:#f4f4f5;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f4f4f5;">
+      <tr>
+        <td align="center" style="padding:24px 12px;">
+          <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;width:100%;background-color:#ffffff;border-radius:16px;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">
+            <tr>
+              <td style="padding:28px 32px 0 32px;">
+                <span style="font-size:22px;font-weight:700;color:#111827;letter-spacing:-0.5px;">YouDu</span>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:20px 32px 0 32px;">
+                <h1 style="margin:0 0 12px 0;font-size:24px;line-height:32px;font-weight:700;color:#111827;">
+                  Отклик не принят
+                </h1>
+                <p style="margin:0 0 16px 0;font-size:16px;line-height:24px;color:#374151;">
+                  Здравствуйте, {{recipient.display-name}}! По заданию
+                  «{{transaction.listing.title}}» заказчик выбрал другого исполнителя.
+                </p>
+                <p style="margin:0 0 20px 0;font-size:16px;line-height:24px;color:#374151;">
+                  На YouDu каждый день появляются новые задания — посмотрите, что подходит вам сейчас.
+                </p>
+              </td>
+            </tr>
+            <tr>
+              <td align="center" style="padding:8px 32px;">
+                <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                  <tr>
+                    <td align="center" bgcolor="#ffc934" style="border-radius:12px;">
+                      <a href="{{marketplace.url}}/s" style="display:inline-block;padding:14px 32px;font-size:16px;font-weight:700;color:#111827;text-decoration:none;border-radius:12px;">
+                        Найти другие задания
+                      </a>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:24px 32px 0 32px;">
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f9fafb;border-radius:12px;">
+                  <tr>
+                    <td style="padding:20px 24px;">
+                      <p style="margin:0 0 10px 0;font-size:14px;line-height:20px;font-weight:700;color:#111827;">
+                        Что повышает шансы на отклик
+                      </p>
+                      <p style="margin:0;font-size:14px;line-height:22px;color:#4b5563;">
+                        Заполненный профиль с фото, пройденная верификация, подробный комментарий
+                        к отклику и реалистичная цена.
+                      </p>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:24px 32px 32px 32px;">
+                <div style="border-top:1px solid #eeeeee;padding-top:20px;">
+                  <p style="margin:0;font-size:12px;line-height:18px;color:#9ca3af;">
+                    Вы получили это письмо, потому что пользуетесь {{marketplace.name}}.<br />
+                    <a href="{{marketplace.url}}" style="color:#9ca3af;">{{marketplace.url}}</a>
+                  </p>
+                </div>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>

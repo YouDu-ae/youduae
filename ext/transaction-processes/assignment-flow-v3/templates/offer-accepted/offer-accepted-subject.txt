@@ -1,0 +1,1 @@
+Вас выбрали исполнителем — «{{transaction.listing.title}}»

@@ -1,97 +1,110 @@
-# Assignment Flow v3 - Transaction Process
+# Assignment Flow v3 — процесс транзакций YouDu
 
-Это пользовательский процесс транзакций для маркетплейса в стиле YouDo.
+Пользовательский процесс транзакций для маркетплейса заданий.
+
+## Роли
+
+В YouDu роли Sharetribe инвертированы относительно привычной логики маркетплейса:
+
+| Роль Sharetribe | Кто это в YouDu | Почему |
+| --- | --- | --- |
+| `provider` | Заказчик, автор задания | Задание — это листинг, его владелец «предоставляет» листинг |
+| `customer` | Специалист, исполнитель | Специалист инициирует транзакцию, откликаясь на задание |
+
+Эту инверсию нужно держать в голове при любых правках: `:to :actor.role/provider`
+в уведомлении означает письмо **заказчику**, а не исполнителю.
 
 ## Workflow
 
-1. **inquiry** - Customer (исполнитель) отправляет отклик с ценой и комментарием
-2. **accepted** - Provider (заказчик) принимает отклик
-3. **completed** - Provider завершает работу
-4. **reviewed** - Обе стороны оставляют отзывы друг о друге
+1. **inquiry** — специалист отправляет отклик с ценой и комментарием
+2. **accepted** — заказчик принимает отклик
+3. **declined** — заказчик отклоняет отклик (финальное состояние)
+4. **completed** — заказчик отмечает задание выполненным
+5. **reviewed** — обе стороны оставили отзывы (публикуются одновременно)
 
-## Установка в Sharetribe Console
+Если одна из сторон не оставит отзыв за 7 дней, отзывы публикуются автоматически.
 
-### 1. Загрузите процесс
+## Email-уведомления
+
+Все письма — часть процесса, отдельной настройки в Console не требуют.
+Шаблоны лежат в `templates/<имя-шаблона>/` и состоят из двух обязательных файлов:
+`<имя>-subject.txt` и `<имя>-html.html`. Текстовая версия письма генерируется
+Sharetribe из HTML автоматически.
+
+| Событие | Получатель | Шаблон |
+| --- | --- | --- |
+| Новый отклик | Заказчик | `new-inquiry` |
+| Отклик без ответа сутки | Заказчик | `new-inquiry-reminder` |
+| Отклик принят | Специалист | `offer-accepted` |
+| Отклик отклонён | Специалист | `offer-declined` |
+| Задание завершено | Специалист | `work-completed` |
+| Заказчик оставил отзыв первым | Специалист | `review-by-provider-first` |
+| Специалист оставил отзыв первым | Заказчик | `review-by-customer-first` |
+| Отзывы опубликованы | Специалист | `review-by-provider-second` |
+| Отзывы опубликованы | Заказчик | `review-by-customer-second` |
+
+`new-inquiry-reminder` — отложенное уведомление (`:at`, сутки после входа в
+`state/inquiry`). Sharetribe отменяет его автоматически, если заказчик успел
+принять или отклонить отклик. Напоминание приходит по каждому неотвеченному
+отклику отдельно, группировки на стороне процесса нет.
+
+### Доступные переменные
+
+Контекст письма описан в
+[Email templates reference](https://www.sharetribe.com/docs/references/email-templates/).
+Часто используемое:
+
+- `{{recipient.display-name}}` — получатель письма
+- `{{marketplace.name}}`, `{{marketplace.url}}`
+- `{{transaction.id}}`, `{{transaction.listing.id}}`, `{{transaction.listing.title}}`
+- `{{transaction.provider.display-name}}` — заказчик
+- `{{transaction.customer.display-name}}` — специалист
+- `{{transaction.protected-data.offer.price}}`, `.currency`, `.comment` — данные отклика
+
+Пути указываются полностью от корня контекста. Сокращения вида `{{listing.title}}`
+не резолвятся и молча дают пустую строку.
+
+Ссылки на страницу сделки различаются по роли: заказчику — `/sale/<id>`,
+специалисту — `/order/<id>`. Заказчика в письмах о новом отклике ведём на
+страницу задания `/l/<listing-id>`, где видны все отклики сразу.
+
+## Деплой
+
+Локальная проверка процесса и шаблонов:
 
 ```bash
-flex-cli process push --process assignment-flow-v3 --path ext/transaction-processes/assignment-flow-v3/process.edn
+flex-cli process --path ext/transaction-processes/assignment-flow-v3
 ```
 
-Или через Console UI:
-1. Откройте [Sharetribe Console](https://flex-console.sharetribe.com/)
-2. Перейдите в **Build** → **Transaction processes**
-3. Нажмите **Add new process**
-4. Загрузите файл `process.edn`
-5. Укажите alias: `assignment-flow-v3/release-1`
+Предпросмотр письма в браузере (и текстовой версии в терминале):
 
-### 2. Создайте email templates
+```bash
+flex-cli notifications preview \
+  --template ext/transaction-processes/assignment-flow-v3/templates/new-inquiry \
+  -m <marketplace-ident>
+```
 
-В разделе **Build** → **Email templates** создайте следующие шаблоны:
+Публикация новой версии и перевод алиаса на неё:
 
-#### new-inquiry
-- **Subject:** используйте содержимое файла `templates/new-inquiry-subject.txt`
-- **HTML body:** используйте содержимое файла `templates/new-inquiry-html.html`
+```bash
+flex-cli process push \
+  --process assignment-flow-v3 \
+  --path ext/transaction-processes/assignment-flow-v3 \
+  -m <marketplace-ident>
 
-#### offer-accepted
-- **Subject:** используйте содержимое файла `templates/offer-accepted-subject.txt`
-- **HTML body:** используйте содержимое файла `templates/offer-accepted-html.html`
+flex-cli process list --process assignment-flow-v3 -m <marketplace-ident>
 
-#### work-completed
-- **Subject:** используйте содержимое файла `templates/work-completed-subject.txt`
-- **HTML body:** используйте содержимое файла `templates/work-completed-html.html`
+flex-cli process update-alias \
+  --process assignment-flow-v3 \
+  --alias release-1 \
+  --version <новая-версия> \
+  -m <marketplace-ident>
+```
 
-#### review-by-provider-first
-- **Subject:** используйте содержимое файла `templates/review-by-provider-first-subject.txt`
-- **HTML body:** используйте содержимое файла `templates/review-by-provider-first-html.html`
+Транзакции закреплены за той версией процесса, на которой были созданы, поэтому
+перевод алиаса влияет только на новые сделки. Алиас `release-1` захардкожен во
+фронтенде, менять его не нужно.
 
-#### review-by-customer-first
-- **Subject:** используйте содержимое файла `templates/review-by-customer-first-subject.txt`
-- **HTML body:** используйте содержимое файла `templates/review-by-customer-first-html.html`
+## Документация
 
-#### review-by-provider-second
-- **Subject:** используйте содержимое файла `templates/review-by-provider-second-subject.txt`
-- **HTML body:** используйте содержимое файла `templates/review-by-provider-second-html.html`
-
-#### review-by-customer-second
-- **Subject:** используйте содержимое файла `templates/review-by-customer-second-subject.txt`
-- **HTML body:** используйте содержимое файла `templates/review-by-customer-second-html.html`
-
-### 3. Настройте листинги
-
-В Console перейдите в **Build** → **Listing types** и:
-1. Выберите тип листинга **free-listing**
-2. В разделе **Transaction process** выберите `assignment-flow-v3/release-1`
-3. Сохраните изменения
-
-## Особенности
-
-### Система отзывов
-
-- **Взаимные отзывы:** Обе стороны (Customer и Provider) могут оставить отзывы друг о друге
-- **Двухэтапная публикация:** Отзывы публикуются после того, как обе стороны оставят свои оценки
-- **Срок давности:** Если одна из сторон не оставит отзыв в течение 7 дней, отзывы публикуются автоматически
-- **Защита от дублирования:** Каждая сторона может оставить только один отзыв
-
-### Email уведомления
-
-- ✉️ При создании отклика → Provider получает уведомление
-- ✉️ При принятии отклика → Customer получает уведомление
-- ✉️ При завершении работы → Provider получает уведомление
-- ✉️ При оставлении отзыва → другая сторона получает уведомление
-
-## Проверка
-
-После загрузки процесса проверьте:
-
-1. Создайте новый листинг с типом `free-listing`
-2. От имени Customer оставьте отклик
-3. От имени Provider примите отклик
-4. От имени Provider завершите работу
-5. Оставьте отзывы от обеих сторон
-
-Все email уведомления должны отправляться автоматически.
-
-## Поддержка
-
-Документация Sharetribe: https://www.sharetribe.com/docs/
-
+Sharetribe: https://www.sharetribe.com/docs/

@@ -70,15 +70,47 @@
    :actions [{:name :action/publish-reviews}],
    :from :state/reviewed-by-provider,
    :to :state/reviewed}],
- 
- :states
- [{:id :state/inquiry}
-  {:id :state/accepted}
-  {:id :state/declined, :type :final}
-  {:id :state/completed}
-  {:id :state/reviewed-by-provider}
-  {:id :state/reviewed-by-customer}
-  {:id :state/reviewed, :type :final}],
 
-}
+ :notifications
+ [{:name :notification/new-offer,
+   :on :transition/inquire,
+   :to :actor.role/provider,
+   :template :new-inquiry}
+  ;; Cancelled automatically if the task author accepts or declines within a day.
+  {:name :notification/new-offer-reminder,
+   :on :transition/inquire,
+   :to :actor.role/provider,
+   :at
+   {:fn/plus
+    [{:fn/timepoint [:time/first-entered-state :state/inquiry]}
+     {:fn/period ["P1D"]}]},
+   :template :new-inquiry-reminder}
+  {:name :notification/offer-accepted,
+   :on :transition/accept-offer,
+   :to :actor.role/customer,
+   :template :offer-accepted}
+  {:name :notification/offer-declined,
+   :on :transition/decline-offer,
+   :to :actor.role/customer,
+   :template :offer-declined}
+  {:name :notification/work-completed,
+   :on :transition/complete,
+   :to :actor.role/customer,
+   :template :work-completed}
+  {:name :notification/review-by-provider-first,
+   :on :transition/review-1-by-provider,
+   :to :actor.role/customer,
+   :template :review-by-provider-first}
+  {:name :notification/review-by-customer-first,
+   :on :transition/review-1-by-customer,
+   :to :actor.role/provider,
+   :template :review-by-customer-first}
+  {:name :notification/review-by-provider-second,
+   :on :transition/review-2-by-provider,
+   :to :actor.role/customer,
+   :template :review-by-provider-second}
+  {:name :notification/review-by-customer-second,
+   :on :transition/review-2-by-customer,
+   :to :actor.role/provider,
+   :template :review-by-customer-second}]}
 

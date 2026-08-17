@@ -1,2 +1,0 @@
-{{customer.display-name}} оставил отзыв о вас
-

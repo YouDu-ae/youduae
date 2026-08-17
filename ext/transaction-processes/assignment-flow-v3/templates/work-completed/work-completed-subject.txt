@@ -1,0 +1,1 @@
+Задание «{{transaction.listing.title}}» завершено — оставьте отзыв
