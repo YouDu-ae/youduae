@@ -231,6 +231,23 @@ export const fetchCategorySpecialists = () => {
   });
 };
 
+// Completed-order counts for a category, city-wide and for one district.
+//
+// Coordinates are optional: without them only the city figure comes back. Cells
+// below the publication threshold are returned as null, so an empty response is
+// a normal outcome and not an error.
+// See `server/api/area-stats.js`.
+export const fetchAreaStats = ({ category, lat, lng }) => {
+  const params = new URLSearchParams({ category });
+  if (lat != null && lng != null) {
+    params.set('lat', lat);
+    params.set('lng', lng);
+  }
+  return get(`/api/area-stats?${params.toString()}`, {
+    headers: { 'Content-Type': 'application/json' },
+  });
+};
+
 // Query offers (transactions) for a specific listing
 // This uses the backend to query transactions, avoiding auth issues on client
 export const queryOffers = listingId => {

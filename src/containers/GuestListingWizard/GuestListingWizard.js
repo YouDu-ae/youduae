@@ -786,6 +786,7 @@ const GuestListingWizard = () => {
           <CategorySpecialistsCard
             categoryId={formData.category}
             categoryName={categories.find(cat => cat.id === formData.category)?.name}
+            location={formData.location}
           />
 
           {/* Содержимое шага */}

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { string } from 'prop-types';
+import { object, string } from 'prop-types';
 
-import { fetchCategorySpecialists } from '../../util/api';
+import { fetchAreaStats, fetchCategorySpecialists } from '../../util/api';
 import { useRouteConfiguration } from '../../context/routeConfigurationContext';
 import { pathByRouteName } from '../../util/routes';
 
@@ -35,9 +35,16 @@ const pluralize = (count, one, few, many) => {
 };
 
 const CategorySpecialistsCard = props => {
-  const { categoryId, categoryName, className } = props;
+  const { categoryId, categoryName, className, location } = props;
   const routeConfiguration = useRouteConfiguration();
   const [summary, setSummary] = useState(null);
+  const [areaStats, setAreaStats] = useState(null);
+
+  // Адрес приходит из LocationAutocompleteInput только после выбора подсказки,
+  // до этого координат нет и остаётся городская статистика.
+  const origin = location?.selectedPlace?.origin;
+  const lat = origin?.lat ?? null;
+  const lng = origin?.lng ?? null;
 
   useEffect(() => {
     let cancelled = false;
@@ -57,6 +64,32 @@ const CategorySpecialistsCard = props => {
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    if (!categoryId) {
+      setAreaStats(null);
+      return undefined;
+    }
+
+    let cancelled = false;
+
+    fetchAreaStats({ category: categoryId, lat, lng })
+      .then(data => {
+        if (!cancelled) {
+          setAreaStats(data);
+        }
+      })
+      .catch(error => {
+        console.error('Не удалось загрузить статистику по району:', error);
+        if (!cancelled) {
+          setAreaStats(null);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [categoryId, lat, lng]);
 
   if (!summary) {
     return null;
@@ -95,6 +128,26 @@ const CategorySpecialistsCard = props => {
     ? `В категории «${categoryName}» мастеров пока нет — задание попадёт в общую ленту, откликнуться может любой.`
     : 'Задание попадёт в общую ленту — её смотрят все специалисты площадки.';
 
+  // Район точнее и убедительнее города, поэтому он вытесняет городскую строку,
+  // когда набралось достаточно выполненных заданий именно там. Сервер отдаёт
+  // ячейку только после порога, так что здесь достаточно проверить наличие.
+  const proofCell = areaStats?.area || areaStats?.city || null;
+  const proofPlace = areaStats?.area ? `в районе ${areaStats.area.communityLabel}` : 'в Дубае';
+
+  const proof = proofCell
+    ? `Через YouDu ${proofPlace} уже выполнено ${proofCell.orders} ${pluralize(
+        proofCell.orders,
+        'задание',
+        'задания',
+        'заданий'
+      )} этой категории — работали ${proofCell.specialists} ${pluralize(
+        proofCell.specialists,
+        'мастер',
+        'мастера',
+        'мастеров'
+      )}.`
+    : null;
+
   const classes = className ? `${css.root} ${className}` : css.root;
 
   return (
@@ -110,6 +163,7 @@ const CategorySpecialistsCard = props => {
       <div className={css.body}>
         <div className={css.title}>{title}</div>
         <div className={css.text}>{text}</div>
+        {proof && <div className={css.proof}>{proof}</div>}
         {showCategory && (
           // Новая вкладка, чтобы не уводить заказчика с недозаполненного задания
           <a
@@ -130,6 +184,8 @@ CategorySpecialistsCard.propTypes = {
   categoryId: string,
   categoryName: string,
   className: string,
+  // Объект LocationAutocompleteInput; читается только selectedPlace.origin.
+  location: object,
 };
 
 export default CategorySpecialistsCard;

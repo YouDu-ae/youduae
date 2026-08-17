@@ -30,6 +30,7 @@ const notifyNewListing = require('./api/notify-new-listing');
 const listingStatus = require('./api/listing-status');
 const searchExecutors = require('./api/search-executors');
 const categorySpecialists = require('./api/category-specialists');
+const areaStats = require('./api/area-stats');
 const createMyExecutorProfile = require('./api/create-my-executor-profile');
 const addPortfolioItem = require('./api/add-portfolio-item');
 const userCompletedTransactions = require('./api/user-completed-transactions');
@@ -127,6 +128,9 @@ router.post('/notify-new-listing', writeLimiter, notifyNewListing);
 router.get('/listing-status', listingStatus);
 router.get('/search-executors', expensiveLimiter, searchExecutors);
 router.get('/category-specialists', categorySpecialists);
+// Same reasoning as /landing-reviews: heavily cached, called by everyone filling
+// in a task, so the router-wide apiLimiter is the right ceiling here.
+router.get('/area-stats', areaStats);
 router.post('/create-my-executor-profile', createMyExecutorProfile);
 router.post('/add-portfolio-item', addPortfolioItem);
 router.get('/user-completed-transactions', expensiveLimiter, userCompletedTransactions);

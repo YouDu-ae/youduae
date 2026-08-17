@@ -1,5 +1,6 @@
 const { getSdk } = require('../api-util/sdk');
 const { notifyExecutorsAboutListing } = require('../api-util/notifyListingPublished');
+const { resolveCommunity } = require('../api-util/communities');
 
 module.exports = async (req, res) => {
   const { 
@@ -70,9 +71,22 @@ module.exports = async (req, res) => {
         parseFloat(location.selectedPlace.origin.lat),
         parseFloat(location.selectedPlace.origin.lng)
       );
+
+      // Stored so listings can later be filtered by district in search. District
+      // statistics do not read it — they derive the community from geolocation,
+      // so a stale value here cannot skew the numbers.
+      const community = resolveCommunity(
+        location.selectedPlace.origin.lat,
+        location.selectedPlace.origin.lng
+      );
+      if (community) {
+        publicData.communityId = community.id;
+      }
+
       console.log('📍 create-guest-listing: geolocation added', {
         lat: location.selectedPlace.origin.lat,
         lng: location.selectedPlace.origin.lng,
+        communityId: community?.id || null,
       });
     } else {
       console.warn('⚠️ create-guest-listing: location data incomplete', {
