@@ -28,7 +28,10 @@ const sweep = async () => {
   running = true;
 
   try {
-    await runReminders({ log: message => console.log(`[reminders] ${message}`) });
+    const results = await runReminders({ log: message => console.log(`[reminders] ${message}`) });
+    // Without this the logs show what was considered but never what was
+    // actually delivered, which is the only number that matters.
+    console.log('[reminders] итог:', JSON.stringify(results));
   } catch (error) {
     // A broken sweep must never take the web server down with it.
     console.error('[reminders] сбой обхода:', error.message);

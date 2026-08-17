@@ -135,6 +135,7 @@ const runSpecialistDigest = async ({ dryRun = false, log = console.log } = {}) =
 
   let sent = 0;
   let alreadySent = 0;
+  let unreachable = 0;
   let failed = 0;
 
   for (const recipient of recipients) {
@@ -185,7 +186,10 @@ const runSpecialistDigest = async ({ dryRun = false, log = console.log } = {}) =
       if (delivered) {
         sent += 1;
       } else {
-        failed += 1;
+        // Unreachable today does not mean unreachable tomorrow, and the claim
+        // is keyed on the date, so releasing it only reopens today's digest.
+        await db.releaseReminder(claim);
+        unreachable += 1;
       }
     } catch (error) {
       await db.releaseReminder(claim);
@@ -196,7 +200,7 @@ const runSpecialistDigest = async ({ dryRun = false, log = console.log } = {}) =
     await sleep(TELEGRAM_SEND_DELAY_MS);
   }
 
-  return { candidates: recipients.length, sent, alreadySent, failed };
+  return { candidates: recipients.length, sent, alreadySent, unreachable, failed };
 };
 
 module.exports = { runSpecialistDigest };

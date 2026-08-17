@@ -134,6 +134,7 @@ const runUnansweredOffers = async ({ dryRun = false, log = console.log } = {}) =
 
   let sent = 0;
   let alreadySent = 0;
+  let unreachable = 0;
   let failed = 0;
 
   for (const { authorId, tasks } of authorGroups) {
@@ -180,9 +181,14 @@ const runUnansweredOffers = async ({ dryRun = false, log = console.log } = {}) =
       if (delivered) {
         sent += 1;
       } else {
-        // No linked Telegram, or the chat is gone. Keep the claims so the author
-        // is not queued forever for a channel that cannot reach them.
-        failed += 1;
+        // No linked Telegram yet. Give the claims back rather than burning
+        // them: on the first production sweep every single task author was
+        // unreachable, and keeping the claims would have silenced those
+        // reminders permanently even if the author linked the bot an hour
+        // later. The seven-day age cap is what stops this from retrying
+        // forever.
+        await Promise.all(claims.map(({ claim }) => db.releaseReminder(claim)));
+        unreachable += 1;
       }
     } catch (error) {
       // Let a later run retry: the failure was ours, not the recipient's.
@@ -194,7 +200,14 @@ const runUnansweredOffers = async ({ dryRun = false, log = console.log } = {}) =
     await sleep(TELEGRAM_SEND_DELAY_MS);
   }
 
-  return { candidates: authorGroups.length, tasks: candidates.length, sent, alreadySent, failed };
+  return {
+    candidates: authorGroups.length,
+    tasks: candidates.length,
+    sent,
+    alreadySent,
+    unreachable,
+    failed,
+  };
 };
 
 module.exports = { runUnansweredOffers };
