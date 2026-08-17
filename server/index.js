@@ -45,6 +45,7 @@ const renderer = require('./renderer');
 const dataLoader = require('./dataLoader');
 const { generateCSPNonce, csp } = require('./csp');
 const sdkUtils = require('./api-util/sdk');
+const { startReminderTimer, stopReminderTimer } = require('./reminders/timer');
 
 const buildPath = path.resolve(__dirname, '..', 'build');
 const dev = process.env.REACT_APP_ENV === 'development';
@@ -351,6 +352,9 @@ const server = app.listen(PORT, async () => {
       const db = require('./db');
       await db.initDatabase();
       console.log('Database initialized successfully');
+
+      // Only after the schema exists, since the sweep writes to reminder_log.
+      startReminderTimer();
     } catch (error) {
       console.error('Failed to initialize database:', error);
     }
@@ -362,6 +366,7 @@ const server = app.listen(PORT, async () => {
 ['SIGINT', 'SIGTERM'].forEach(signal => {
   process.on(signal, () => {
     console.log('Shutting down...');
+    stopReminderTimer();
     server.close(() => {
       console.log('Server shut down.');
     });
