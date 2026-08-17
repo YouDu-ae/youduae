@@ -120,7 +120,7 @@ module.exports = {
 <li>запах остался после замены угля — значит, дело в блоке, не в салфетке.</li>
 </ul>
 <p>В задании на YouDu напишите марку и что видите за панелью: «только сетка», «чёрная шторка», «хочу штатный уголь, не универсал». Тогда не приедет человек со спреем и пакетом случайных фильтров.</p>
-<p><a href="/l/new">Описать задачу мастеру →</a> · <a href="/blog/chistka-kondicionera-v-dubae">Как мыть сплит и когда это не про фильтры</a> · <a href="/category/repairs_main">Мастера по ремонту и кондиционерам</a></p>
+<p><a href="/l/new">Описать задачу мастеру →</a> · <a href="/blog/chistka-kondicionera-v-dubae">Как мыть сплит и когда это не про фильтры</a> · <a href="/blog/uv-c-ozon-osushitel-chiller-hvac-dubai">UV-C, озон и осушитель в потолочном FCU</a> · <a href="/category/repairs_main">Мастера по ремонту и кондиционерам</a></p>
 
 <h2>Коротко</h2>
 <p>Сетка сплита защищает змеевик и моется. Настоящий HEPA ловит мелкие частицы и почти никогда не живёт внутри настенного блока: вентилятору не хватает силы, страдает холод и DEWA. Уголь снимает запахи и газы, водой не моется и в Дубае садится за считанные месяцы. Надписи catechin, plasma и «HEPA для любого AC» не делают из кондиционера очиститель. Пыль после шамаля и аллергия закрываются связкой: чистая сетка + чистый змеевик + отдельный прибор с True HEPA, а не одной покупкой на маркетплейсе.</p>
@@ -215,7 +215,7 @@ module.exports = {
 <li>the smell survived a carbon swap — the block is dirty, not the tissue.</li>
 </ul>
 <p>On YouDu write the brand and what you see: “mesh only,” “black strip,” “OEM carbon, not a universal.” Then you do not get a spray can and a bag of random pads.</p>
-<p><a href="/l/new">Describe the job →</a> · <a href="/blog/chistka-kondicionera-v-dubae">How to wash a split</a> · <a href="/category/repairs_main">Repairs and AC specialists</a></p>
+<p><a href="/l/new">Describe the job →</a> · <a href="/blog/chistka-kondicionera-v-dubae">How to wash a split</a> · <a href="/blog/uv-c-ozon-osushitel-chiller-hvac-dubai">UV-C, ozone and a dehumidifier on a ceiling FCU</a> · <a href="/category/repairs_main">Repairs and AC specialists</a></p>
 
 <h2>In short</h2>
 <p>The split mesh protects the coil and gets washed. True HEPA catches fine particles and almost never lives inside a wall head: the fan cannot drive it, cooling and DEWA suffer. Carbon takes smells and gases, is not washed, and in Dubai saturates in months. Catechin, plasma and “HEPA for any AC” do not turn the unit into a purifier. Desert dust and allergy are a trio: clean mesh, clean coil, a separate True HEPA machine — not one marketplace SKU.</p>

@@ -200,7 +200,7 @@ module.exports = {
 <h2>Коротко</h2>
 <p>В Дубае кондиционер грязнится быстрее, чем привыкли выходцы из Европы и СНГ. Фильтр — ежемесячная привычка, её можно закрыть своими руками за двадцать минут. Запах, вода и слабый холод после мойки сеток почти никогда не лечатся дома: это змеевик, крыльчатка, дренаж, конденсатор, иногда воздуховоды. «Газ закончился» без поиска утечки — повод искать другого мастера. В аренде крупные работы обычно на владельце, быт — на жильце; спор решает договор и порог суммы, а не голос агента в чате.</p>
 <p>Если нужно, чтобы приехал человек и сделал именно эту работу, а не «спрей за 15 минут», соберите тип системы и симптомы в задание — откликнутся специалисты по чистке и ремонту кондиционеров на YouDu.</p>
-<p><a href="/l/new">Создать задание на чистку кондиционера</a> · <a href="/category/repairs_main">Смотреть мастеров категории «Ремонт и строительство»</a></p>
+<p><a href="/l/new">Создать задание на чистку кондиционера</a> · <a href="/blog/uv-c-ozon-osushitel-chiller-hvac-dubai">UV-C, озон и осушитель в потолочном HVAC</a> · <a href="/category/repairs_main">Смотреть мастеров категории «Ремонт и строительство»</a></p>
 `,
     en: `
 <p>In Dubai an air conditioner is not a small appliance. From April to October it often runs around the clock. Gulf humidity, desert dust and hard water do in months what a milder climate does in years. That is why “washing the filter” and “cleaning the AC” are different jobs — and mixing them up costs both comfort and the DEWA bill.</p>
@@ -343,7 +343,7 @@ module.exports = {
 <li>after renovation, before dust becomes a permanent coat on the coil.</li>
 </ul>
 <p>The best window for a deep clean is before peak summer, not an August night when every technician is on emergency calls. Filters still get washed every month in season.</p>
-<p><a href="/l/new">Post an AC cleaning task</a> · <a href="/category/repairs_main">See specialists in Repairs and Construction</a></p>
+<p><a href="/l/new">Post an AC cleaning task</a> · <a href="/blog/uv-c-ozon-osushitel-chiller-hvac-dubai">UV-C, ozone and a dehumidifier on ceiling HVAC</a> · <a href="/category/repairs_main">See specialists in Repairs and Construction</a></p>
 `,
   },
 };
