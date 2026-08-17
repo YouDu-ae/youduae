@@ -765,8 +765,8 @@ async function notifyNewOffer(userId, data) {
   
   const message = `📬 <b>Новый отклик!</b>
 
-<b>${executorName}</b> откликнулся на ваше задание:
-"${listingTitle}"
+Отклик от <b>${escapeHtml(executorName)}</b> на ваше задание:
+"${escapeHtml(listingTitle)}"
 
 💰 Цена: ${offerPrice || 'Не указана'}
 
@@ -786,8 +786,10 @@ async function notifyOfferAccepted(userId, data) {
   
   const message = `✅ <b>Вас выбрали!</b>
 
-<b>${customerName}</b> выбрал вас исполнителем:
-"${listingTitle}"
+Вас выбрали исполнителем задания:
+"${escapeHtml(listingTitle)}"
+
+👤 Заказчик: <b>${escapeHtml(customerName)}</b>
 
 <a href="${listingUrl}">Открыть задание →</a>`;
 
@@ -805,7 +807,7 @@ async function notifyOfferDeclined(userId, data) {
   
   const message = `❌ <b>Отклик отклонён</b>
 
-К сожалению, ваш отклик на задание "${listingTitle}" был отклонён.
+К сожалению, ваш отклик на задание "${escapeHtml(listingTitle)}" был отклонён.
 
 Не расстраивайтесь — на YouDu много других заданий!`;
 
@@ -823,8 +825,8 @@ async function notifyNewMessage(userId, data) {
   
   const message = `💬 <b>Новое сообщение</b>
 
-От: <b>${senderName}</b>
-"${messagePreview}"
+От: <b>${escapeHtml(senderName)}</b>
+"${escapeHtml(messagePreview)}"
 
 <a href="${conversationUrl}">Ответить →</a>`;
 
@@ -842,8 +844,8 @@ async function notifyNewListing(userId, data) {
   
   const message = `📋 <b>Новое задание</b>
 
-"${listingTitle}"
-📁 ${category}
+"${escapeHtml(listingTitle)}"
+📁 ${escapeHtml(category)}
 💰 ${price || 'Цена договорная'}
 
 <a href="${listingUrl}">Откликнуться →</a>`;
@@ -988,7 +990,7 @@ async function notifyAdminPortfolioModeration(data) {
   
   const message = `📸 <b>Новые фото на модерацию!</b>
 
-👤 Пользователь: <b>${userName}</b>
+👤 Пользователь: <b>${escapeHtml(userName)}</b>
 🖼 Фото: ${photosCount} шт.
 
 <a href="${profileUrl}">Профиль пользователя →</a>

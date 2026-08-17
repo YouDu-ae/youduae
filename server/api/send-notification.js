@@ -148,7 +148,7 @@ async function sendNewReviewNotification(userId, reviewerName, rating) {
     userId,
     {
       title: 'Новый отзыв',
-      body: `${reviewerName} оставил отзыв ${stars}`,
+      body: `Отзыв от ${reviewerName} ${stars}`,
     },
     {
       type: 'review',
