@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { compose } from 'redux';
 import { connect } from 'react-redux';
-import { useHistory } from 'react-router-dom';
+import { useHistory, useLocation } from 'react-router-dom';
 import { FormattedMessage, useIntl } from '../../util/reactIntl';
 import { useConfiguration } from '../../context/configurationContext';
 import { ensureCurrentUser } from '../../util/data';
@@ -19,6 +19,8 @@ export const WelcomePageComponent = props => {
   const config = useConfiguration();
   const intl = useIntl();
   const history = useHistory();
+  const location = useLocation();
+  const arrivedFromEmailVerification = (location?.search || '').includes('verified=1');
   
   // Mark that user has seen welcome page (for redirect logic)
   useEffect(() => {
@@ -74,6 +76,12 @@ export const WelcomePageComponent = props => {
                 <path d="M30 50 L45 65 L70 35" stroke="white" strokeWidth="8" fill="none" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </div>
+
+            {arrivedFromEmailVerification ? (
+              <p className={css.verifiedBadge}>
+                <FormattedMessage id="WelcomePage.emailVerified" />
+              </p>
+            ) : null}
 
             <h1 className={css.title}>
               <FormattedMessage id="WelcomePage.welcomeTitle" values={{ name: userName }} />

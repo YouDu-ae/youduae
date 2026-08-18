@@ -1507,6 +1507,7 @@
   "WelcomePage.title": "Welcome",
   "WelcomePage.schemaTitle": "Welcome to YouDu",
   "WelcomePage.defaultName": "there",
+  "WelcomePage.emailVerified": "Email verified",
   "WelcomePage.welcomeTitle": "Welcome, {name}!",
   "WelcomePage.subtitle": "You've successfully joined YouDu. Here's how to get started:",
   "WelcomePage.providerGuideTitle": "How to post a task and select a specialist",

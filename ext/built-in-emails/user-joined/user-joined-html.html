@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Добро пожаловать в YouDu</title>
+  </head>
+  <body style="margin:0;padding:0;background-color:#f4f4f5;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f4f4f5;">
+      <tr>
+        <td align="center" style="padding:24px 12px;">
+          <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;width:100%;background-color:#ffffff;border-radius:16px;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">
+            <tr>
+              <td style="padding:28px 32px 0 32px;">
+                <span style="font-size:22px;font-weight:700;color:#111827;letter-spacing:-0.5px;">YouDu</span>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:20px 32px 0 32px;">
+                <h1 style="margin:0 0 12px 0;font-size:24px;line-height:32px;font-weight:700;color:#111827;">
+                  {{recipient.first-name}}, добро пожаловать в {{marketplace.name}}!
+                </h1>
+                <p style="margin:0 0 8px 0;font-size:16px;line-height:24px;color:#374151;">
+                  Email подтверждён, аккаунт активен.
+                  {{#eq recipient.public-data.userType 'provider'}}
+                    Вот как разместить задание и выбрать исполнителя.
+                  {{else}}
+                    Вот как находить задания и получать заказы.
+                  {{/eq}}
+                </p>
+              </td>
+            </tr>
+
+            {{#eq recipient.public-data.userType 'provider'}}
+            <tr>
+              <td style="padding:12px 32px 0 32px;">
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                  <tr>
+                    <td width="36" valign="top" style="padding:8px 0;">
+                      <div style="width:28px;height:28px;line-height:28px;text-align:center;border-radius:14px;background-color:#ffc934;font-size:14px;font-weight:700;color:#111827;">1</div>
+                    </td>
+                    <td valign="top" style="padding:8px 0;">
+                      <p style="margin:0;font-size:16px;font-weight:700;color:#111827;">Опишите задание</p>
+                      <p style="margin:4px 0 0 0;font-size:15px;line-height:22px;color:#4b5563;">Что нужно сделать, бюджет, фото и точка на карте — чем понятнее, тем быстрее придут отклики.</p>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td width="36" valign="top" style="padding:8px 0;">
+                      <div style="width:28px;height:28px;line-height:28px;text-align:center;border-radius:14px;background-color:#ffc934;font-size:14px;font-weight:700;color:#111827;">2</div>
+                    </td>
+                    <td valign="top" style="padding:8px 0;">
+                      <p style="margin:0;font-size:16px;font-weight:700;color:#111827;">Сравните предложения</p>
+                      <p style="margin:4px 0 0 0;font-size:15px;line-height:22px;color:#4b5563;">Исполнители присылают цену, сроки и комментарий. Смотрите рейтинг и отзывы, задавайте вопросы в чате.</p>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td width="36" valign="top" style="padding:8px 0;">
+                      <div style="width:28px;height:28px;line-height:28px;text-align:center;border-radius:14px;background-color:#ffc934;font-size:14px;font-weight:700;color:#111827;">3</div>
+                    </td>
+                    <td valign="top" style="padding:8px 0;">
+                      <p style="margin:0;font-size:16px;font-weight:700;color:#111827;">Выберите исполнителя и завершите задание</p>
+                      <p style="margin:4px 0 0 0;font-size:15px;line-height:22px;color:#4b5563;">Принять отклик, обсудить детали и оставить отзыв можно прямо в чате задания.</p>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            <tr>
+              <td align="center" style="padding:20px 32px 0 32px;">
+                <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                  <tr>
+                    <td align="center" bgcolor="#ffc934" style="border-radius:12px;">
+                      <a href="{{marketplace.url}}/l/new" style="display:inline-block;padding:14px 32px;font-size:16px;font-weight:700;color:#111827;text-decoration:none;border-radius:12px;">
+                        Создать первое задание
+                      </a>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            {{else}}
+            <tr>
+              <td style="padding:12px 32px 0 32px;">
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                  <tr>
+                    <td width="36" valign="top" style="padding:8px 0;">
+                      <div style="width:28px;height:28px;line-height:28px;text-align:center;border-radius:14px;background-color:#ffc934;font-size:14px;font-weight:700;color:#111827;">1</div>
+                    </td>
+                    <td valign="top" style="padding:8px 0;">
+                      <p style="margin:0;font-size:16px;font-weight:700;color:#111827;">Заполните профиль и пройдите верификацию</p>
+                      <p style="margin:4px 0 0 0;font-size:15px;line-height:22px;color:#4b5563;">Верифицированные специалисты получают больше заказов: заказчики видят подтверждённый статус.</p>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td width="36" valign="top" style="padding:8px 0;">
+                      <div style="width:28px;height:28px;line-height:28px;text-align:center;border-radius:14px;background-color:#ffc934;font-size:14px;font-weight:700;color:#111827;">2</div>
+                    </td>
+                    <td valign="top" style="padding:8px 0;">
+                      <p style="margin:0;font-size:16px;font-weight:700;color:#111827;">Найдите задания в своих категориях</p>
+                      <p style="margin:4px 0 0 0;font-size:15px;line-height:22px;color:#4b5563;">Фильтры по категории и району помогают быстро найти работу рядом с вами.</p>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td width="36" valign="top" style="padding:8px 0;">
+                      <div style="width:28px;height:28px;line-height:28px;text-align:center;border-radius:14px;background-color:#ffc934;font-size:14px;font-weight:700;color:#111827;">3</div>
+                    </td>
+                    <td valign="top" style="padding:8px 0;">
+                      <p style="margin:0;font-size:16px;font-weight:700;color:#111827;">Отправьте отклик с ценой</p>
+                      <p style="margin:4px 0 0 0;font-size:15px;line-height:22px;color:#4b5563;">Укажите цену, сроки и короткий комментарий — заказчик увидит его в чате и сможет сразу вас выбрать.</p>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            <tr>
+              <td align="center" style="padding:20px 32px 0 32px;">
+                <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                  <tr>
+                    <td align="center" bgcolor="#ffc934" style="border-radius:12px;">
+                      <a href="{{marketplace.url}}/s" style="display:inline-block;padding:14px 32px;font-size:16px;font-weight:700;color:#111827;text-decoration:none;border-radius:12px;">
+                        Найти задания
+                      </a>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            {{/eq}}
+
+            <tr>
+              <td align="center" style="padding:14px 32px 0 32px;">
+                <p style="margin:0;font-size:15px;line-height:22px;color:#374151;">
+                  Не пропускайте
+                  {{#eq recipient.public-data.userType 'provider'}}отклики{{else}}новые задания{{/eq}}:
+                  <a href="{{marketplace.url}}/welcome" style="color:#111827;font-weight:700;">подключите Telegram-уведомления</a>.
+                </p>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:24px 32px 32px 32px;">
+                <div style="border-top:1px solid #eeeeee;padding-top:20px;">
+                  <p style="margin:0;font-size:12px;line-height:18px;color:#9ca3af;">
+                    Вы получили это письмо, потому что зарегистрировались на {{marketplace.name}}.<br />
+                    <a href="{{marketplace.url}}" style="color:#9ca3af;">{{marketplace.url}}</a>
+                  </p>
+                </div>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>

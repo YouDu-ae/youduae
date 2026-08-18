@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Подтвердите email</title>
+  </head>
+  <body style="margin:0;padding:0;background-color:#f4f4f5;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f4f4f5;">
+      <tr>
+        <td align="center" style="padding:24px 12px;">
+          <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;width:100%;background-color:#ffffff;border-radius:16px;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">
+            <tr>
+              <td style="padding:28px 32px 0 32px;">
+                <span style="font-size:22px;font-weight:700;color:#111827;letter-spacing:-0.5px;">YouDu</span>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:20px 32px 0 32px;">
+                <h1 style="margin:0 0 12px 0;font-size:24px;line-height:32px;font-weight:700;color:#111827;">
+                  Подтвердите ваш email
+                </h1>
+                <p style="margin:0 0 16px 0;font-size:16px;line-height:24px;color:#374151;">
+                  Здравствуйте, {{recipient.first-name}}! Остался один шаг, чтобы начать пользоваться {{marketplace.name}}.
+                </p>
+                <p style="margin:0 0 20px 0;font-size:16px;line-height:24px;color:#374151;">
+                  После подтверждения мы будем присылать вам уведомления об откликах, сообщениях и статусе заданий —
+                  и вы сразу попадёте на страницу с короткой инструкцией, как пользоваться сервисом.
+                </p>
+              </td>
+            </tr>
+            <tr>
+              <td align="center" style="padding:8px 32px;">
+                <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                  <tr>
+                    <td align="center" bgcolor="#ffc934" style="border-radius:12px;">
+                      <a href="{{marketplace.url}}/verify-email?t={{email-verification.token}}" style="display:inline-block;padding:14px 32px;font-size:16px;font-weight:700;color:#111827;text-decoration:none;border-radius:12px;">
+                        Подтвердить email
+                      </a>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:12px 32px 0 32px;">
+                <p style="margin:0;font-size:13px;line-height:20px;color:#9ca3af;text-align:center;">
+                  Кнопка не открывается? Скопируйте ссылку:<br />
+                  {{marketplace.url}}/verify-email?t={{email-verification.token}}<br />
+                  Ссылка действует 48 часов.
+                </p>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:24px 32px 32px 32px;">
+                <div style="border-top:1px solid #eeeeee;padding-top:20px;">
+                  <p style="margin:0;font-size:12px;line-height:18px;color:#9ca3af;">
+                    Вы получили это письмо, потому что зарегистрировались на {{marketplace.name}}.
+                    Если это были не вы, просто проигнорируйте письмо.<br />
+                    <a href="{{marketplace.url}}" style="color:#9ca3af;">{{marketplace.url}}</a>
+                  </p>
+                </div>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>

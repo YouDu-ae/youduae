@@ -1,0 +1,1 @@
+{{recipient.first-name}}, добро пожаловать в {{marketplace.name}} — с чего начать

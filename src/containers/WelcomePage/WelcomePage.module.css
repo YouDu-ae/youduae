@@ -41,6 +41,17 @@
   }
 }
 
+.verifiedBadge {
+  display: inline-block;
+  margin: 0 0 16px 0;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background-color: #e8f5ec;
+  color: #1c7c3f;
+  font-size: 15px;
+  font-weight: 600;
+}
+
 .title {
   font-size: 32px;
   font-weight: 700;
