@@ -494,6 +494,49 @@
   hyphens: auto;
 }
 
+.taskSummary {
+  margin: 24px 24px 0 24px;
+  padding: 14px 16px;
+  background: #f8f8f8;
+  border: 1px solid #eeeeee;
+  border-radius: 12px;
+
+  @media (--viewportLarge) {
+    margin: 24px 0 0 0;
+  }
+}
+
+.taskSummaryRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  font-size: 15px;
+  line-height: 1.45;
+}
+
+.taskSummaryRow + .taskSummaryRow {
+  margin-top: 8px;
+}
+
+.taskSummaryLabel {
+  color: #666;
+  flex-shrink: 0;
+}
+
+.taskSummaryValue {
+  color: #1a1a1a;
+  font-weight: 600;
+  text-align: right;
+}
+
+.taskSummaryNote {
+  margin-top: 8px;
+  color: #1a1a1a;
+  font-weight: 500;
+  text-align: left;
+}
+
 /* Passed-in props for FeedSection subcomponent */
 .bookingLocationContainer,
 .deliveryInfoContainer,

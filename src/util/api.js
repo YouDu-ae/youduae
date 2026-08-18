@@ -259,6 +259,10 @@ export const checkMyOffer = listingId => {
   return get(`/api/check-my-offer?listingId=${listingId}`);
 };
 
+export const fetchTaskChatSummary = transactionId => {
+  return get(`/api/task-chat-summary?transactionId=${transactionId}`);
+};
+
 // Update listing publicData status (accept-offer, reopen, change executor, etc.)
 export const updateListingStatus = ({
   listingId,

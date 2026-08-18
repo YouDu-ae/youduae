@@ -20,6 +20,7 @@ import DetailCardImage from './DetailCardImage';
 import DeliveryInfoMaybe from './DeliveryInfoMaybe';
 import BookingLocationMaybe from './BookingLocationMaybe';
 import InquiryMessageMaybe from './InquiryMessageMaybe';
+import TaskSummaryMaybe from './TaskSummaryMaybe';
 import FeedSection from './FeedSection';
 import ActionButtonsMaybe from './ActionButtonsMaybe';
 import DiminishedActionButtonMaybe from './DiminishedActionButtonMaybe';
@@ -168,6 +169,7 @@ export class TransactionPanelComponent extends Component {
       customer,
       provider,
       hasTransitions = false,
+      transactionId,
       protectedData,
       messages,
       initialMessageFailed = false,
@@ -284,6 +286,13 @@ export class TransactionPanelComponent extends Component {
               protectedData={protectedData}
               showInquiryMessage={isInquiryProcess}
               isCustomer={isCustomer}
+            />
+
+            <TaskSummaryMaybe
+              processName={stateData.processName}
+              transactionId={transactionId}
+              listing={listing}
+              offer={protectedData?.offer}
             />
 
             {!isInquiryProcess ? (
