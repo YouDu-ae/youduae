@@ -15,6 +15,7 @@ import { requireListingImage } from '../../util/configHelpers';
 import { markTransactionAsViewed } from '../../util/transactionNotifications';
 
 import {
+  ASSIGNMENT_PROCESS_NAME,
   INQUIRY_PROCESS_NAME,
   TX_TRANSITION_ACTOR_CUSTOMER as CUSTOMER,
   TX_TRANSITION_ACTOR_PROVIDER as PROVIDER,
@@ -23,7 +24,7 @@ import {
   isBookingProcess,
 } from '../../transactions/transaction';
 
-import { transitionPrivileged } from '../../util/api';
+import { transitionPrivileged, updateListingStatus } from '../../util/api';
 
 import { getMarketplaceEntities } from '../../ducks/marketplaceData.duck';
 import { isScrollingDisabled, manageDisableScrolling } from '../../ducks/ui.duck';
@@ -52,6 +53,7 @@ import ActivityFeed from './ActivityFeed/ActivityFeed';
 import DisputeModal from './DisputeModal/DisputeModal';
 import ReviewModal from './ReviewModal/ReviewModal';
 import TransactionPanel from './TransactionPanel/TransactionPanel';
+import { listingTaskStatus } from './TransactionPanel/TaskSummaryMaybe';
 
 import {
   makeTransition,
@@ -64,7 +66,7 @@ import {
 import { fetchCurrentUserNotifications } from '../../ducks/user.duck';
 import css from './TransactionPage.module.css';
 import { getCurrentUserTypeRoles, hasPermissionToViewData } from '../../util/userHelpers.js';
-import { trackJobCompleted } from '../../analytics/plausibleEvents';
+import { trackJobCompleted, trackProviderSelected } from '../../analytics/plausibleEvents';
 
 // Submit dispute and close the review modal
 const onDisputeOrder = (
@@ -83,6 +85,16 @@ const onDisputeOrder = (
       // Do nothing.
     });
 };
+
+/**
+ * The task author can hire a specialist straight from the conversation while
+ * the offer is still pending and nobody else has been hired yet.
+ */
+export const canAcceptOfferInChat = ({ isProviderRole, processName, lastTransition, listing }) =>
+  !!isProviderRole &&
+  processName === ASSIGNMENT_PROCESS_NAME &&
+  lastTransition === 'transition/inquire' &&
+  listingTaskStatus(listing) === 'open';
 
 /**
  * TransactionPage handles data loading for Sale and Order views to transaction pages in Inbox.
@@ -553,6 +565,73 @@ const confirmCompleteTask = async () => {
   }
 };
 
+// --- Выбор исполнителя прямо из переписки (только автор задания = Provider)
+const offerInThisChat = transaction?.attributes?.protectedData?.offer;
+const canAcceptOffer = canAcceptOfferInChat({
+  isProviderRole,
+  processName: stateData.processName,
+  lastTransition,
+  listing,
+});
+
+const [isAcceptOfferModalOpen, setAcceptOfferModalOpen] = useState(false);
+const [acceptOfferBusy, setAcceptOfferBusy] = useState(false);
+const [acceptOfferErr, setAcceptOfferErr] = useState(null);
+
+const openAcceptOfferModal = () => {
+  setAcceptOfferErr(null);
+  setAcceptOfferModalOpen(true);
+};
+
+const onDismissAcceptOfferModal = () => {
+  if (acceptOfferBusy) {
+    return;
+  }
+  setAcceptOfferModalOpen(false);
+  setAcceptOfferErr(null);
+};
+
+const confirmAcceptOffer = async () => {
+  setAcceptOfferBusy(true);
+  setAcceptOfferErr(null);
+  try {
+    await transitionPrivileged({
+      isSpeculative: false,
+      orderData: {},
+      bodyParams: {
+        id: transaction.id,
+        transition: 'transition/accept-offer',
+        params: {},
+      },
+      queryParams: {},
+    });
+
+    const executorId = customer?.id?.uuid;
+    if (listing?.id?.uuid) {
+      await updateListingStatus({
+        listingId: listing.id.uuid,
+        assignedTo: executorId,
+        status: 'in-progress',
+      });
+    }
+
+    trackProviderSelected({
+      listingId: listing?.id?.uuid,
+      transactionId: transaction?.id?.uuid,
+      providerId: executorId,
+      priceAmount: offerInThisChat?.price,
+      priceCurrency: offerInThisChat?.currency,
+    });
+
+    setAcceptOfferModalOpen(false);
+    window.location.reload();
+  } catch (e) {
+    setAcceptOfferErr(intl.formatMessage({ id: 'TransactionPage.acceptOfferError' }));
+  } finally {
+    setAcceptOfferBusy(false);
+  }
+};
+
   // TransactionPanel is presentational component
   // that currently handles showing everything inside layout's main view area.
   const panel = isDataAvailable ? (
@@ -577,6 +656,10 @@ const confirmCompleteTask = async () => {
       onComplete={openCloseTaskModal}
       completeBusy={completeBusy}
       completeErr={completeErr}
+      canAcceptOffer={canAcceptOffer}
+      onAcceptOffer={openAcceptOfferModal}
+      acceptOfferBusy={acceptOfferBusy}
+      acceptOfferErr={acceptOfferErr}
       stateData={stateData}
       transactionRole={transactionRole}
       showBookingLocation={showBookingLocation}
@@ -675,6 +758,43 @@ const confirmCompleteTask = async () => {
               onClick={confirmCompleteTask}
             >
               <FormattedMessage id="TransactionPage.closeTaskConfirmButton" />
+            </PrimaryButton>
+          </div>
+        </Modal>
+        <Modal
+          id="AcceptOfferModal"
+          isOpen={isAcceptOfferModalOpen}
+          onClose={onDismissAcceptOfferModal}
+          onManageDisableScrolling={onManageDisableScrolling}
+          containerClassName={css.closeTaskModal}
+          contentClassName={css.closeTaskModalContent}
+          usePortal
+        >
+          <h2 className={css.closeTaskModalTitle}>
+            <FormattedMessage id="TransactionPage.confirmAcceptOfferTitle" />
+          </h2>
+          <p className={css.closeTaskModalText}>
+            <FormattedMessage
+              id="TransactionPage.confirmAcceptOffer"
+              values={{ name: otherUserDisplayName }}
+            />
+          </p>
+          {acceptOfferErr ? <p className={css.closeTaskModalError}>{acceptOfferErr}</p> : null}
+          <div className={css.closeTaskModalActions}>
+            <SecondaryButton
+              type="button"
+              disabled={acceptOfferBusy}
+              onClick={onDismissAcceptOfferModal}
+            >
+              <FormattedMessage id="TransactionPage.acceptOfferCancelButton" />
+            </SecondaryButton>
+            <PrimaryButton
+              type="button"
+              inProgress={acceptOfferBusy}
+              disabled={acceptOfferBusy}
+              onClick={confirmAcceptOffer}
+            >
+              <FormattedMessage id="TransactionPage.acceptOfferConfirmButton" />
             </PrimaryButton>
           </div>
         </Modal>

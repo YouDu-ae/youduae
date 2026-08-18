@@ -537,6 +537,32 @@
   text-align: left;
 }
 
+.acceptOffer {
+  margin: 12px 24px 0 24px;
+
+  @media (--viewportLarge) {
+    margin: 12px 0 0 0;
+  }
+}
+
+.acceptOfferHint {
+  margin: 0 0 10px 0;
+  color: #666;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.acceptOfferError {
+  margin: 0 0 10px 0;
+  color: var(--colorFail);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.acceptOfferButton {
+  min-height: 48px;
+}
+
 /* Passed-in props for FeedSection subcomponent */
 .bookingLocationContainer,
 .deliveryInfoContainer,

@@ -8,7 +8,13 @@ import { userDisplayNameAsString } from '../../../util/data';
 import { isMobileSafari } from '../../../util/userAgent';
 import { createSlug } from '../../../util/urlHelpers';
 
-import { AvatarLarge, NamedLink, UserDisplayName, VerificationBadge } from '../../../components';
+import {
+  AvatarLarge,
+  NamedLink,
+  PrimaryButton,
+  UserDisplayName,
+  VerificationBadge,
+} from '../../../components';
 
 import { stateDataShape } from '../TransactionPage.stateData';
 import SendMessageForm from '../SendMessageForm/SendMessageForm';
@@ -294,6 +300,26 @@ export class TransactionPanelComponent extends Component {
               listing={listing}
               offer={protectedData?.offer}
             />
+
+            {this.props.canAcceptOffer ? (
+              <div className={css.acceptOffer}>
+                <p className={css.acceptOfferHint}>
+                  <FormattedMessage id="TransactionPanel.acceptOffer.hint" />
+                </p>
+                {this.props.acceptOfferErr ? (
+                  <p className={css.acceptOfferError}>{this.props.acceptOfferErr}</p>
+                ) : null}
+                <PrimaryButton
+                  type="button"
+                  className={css.acceptOfferButton}
+                  inProgress={this.props.acceptOfferBusy}
+                  disabled={this.props.acceptOfferBusy}
+                  onClick={this.props.onAcceptOffer}
+                >
+                  <FormattedMessage id="TransactionPanel.acceptOffer.button" />
+                </PrimaryButton>
+              </div>
+            ) : null}
 
             {!isInquiryProcess ? (
               <div className={css.orderDetails}>
