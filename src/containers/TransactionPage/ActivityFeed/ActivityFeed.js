@@ -196,6 +196,53 @@ const ReviewComponentMaybe = props => {
 
 const isMessage = item => item && item.type === 'message';
 
+const normalizeMessageContent = value => (value || '').trim();
+
+/**
+ * Offer comments live in protectedData, not in the Sharetribe message list.
+ * Put the text into the chat so both parties see the same first line they
+ * already saw on the listing. Skip when a real message already carries it
+ * (new offers copy the comment via initiate-privileged).
+ */
+export const messagesWithOfferComment = (transaction, messages = []) => {
+  const comment = normalizeMessageContent(transaction?.attributes?.protectedData?.offer?.comment);
+  if (!comment) {
+    return messages;
+  }
+
+  const alreadyInChat = messages.some(
+    message => normalizeMessageContent(message?.attributes?.content) === comment
+  );
+  if (alreadyInChat) {
+    return messages;
+  }
+
+  const customer = transaction.customer;
+  if (!customer?.id) {
+    return messages;
+  }
+
+  const inquire = (transaction.attributes?.transitions || []).find(
+    t => t.transition === 'transition/inquire'
+  );
+  const baseTime = inquire?.createdAt
+    ? new Date(inquire.createdAt)
+    : new Date(transaction.attributes?.createdAt || Date.now());
+
+  return [
+    {
+      id: { uuid: `offer-comment-${transaction.id.uuid}` },
+      type: 'message',
+      attributes: {
+        content: comment,
+        createdAt: new Date(baseTime.getTime() + 1000),
+      },
+      sender: customer,
+    },
+    ...messages,
+  ];
+};
+
 // Compare function for sorting an array containing messages and transitions
 const compareItems = (a, b) => {
   const itemDate = item => (isMessage(item) ? item.attributes.createdAt : item.createdAt);
@@ -259,7 +306,11 @@ export const ActivityFeed = props => {
 
   // combine messages and transaction transitions
   const hideOldTransitions = hasOlderMessages || fetchMessagesInProgress;
-  const items = organizedItems(messages, relevantTransitions, hideOldTransitions);
+  const items = organizedItems(
+    messagesWithOfferComment(transaction, messages),
+    relevantTransitions,
+    hideOldTransitions
+  );
 
   const messageListItem = message => {
     const formattedDate = formatDateWithProximity(message.attributes.createdAt, intl, todayString);

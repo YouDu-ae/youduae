@@ -105,4 +105,104 @@ describe('ActivityFeed', () => {
     expect(secondMsg.getByText('message 2')).toBeInTheDocument();
     expect(secondMsg.getByText('2023-11-10')).toBeInTheDocument();
   });
+
+  it('shows the specialist offer comment as a chat message for both parties', () => {
+    const customer = createUser('specialist');
+    const provider = createUser('task-author');
+    const listing = createListing('listing');
+    const inquireAt = new Date(Date.UTC(2023, 4, 1, 11, 14));
+    const transaction = createTransaction({
+      id: 'tx-offer-comment',
+      processName: 'assignment-flow-v3',
+      lastTransition: 'transition/inquire',
+      customer,
+      provider,
+      listing,
+      lastTransitionedAt: inquireAt,
+      transitions: [
+        {
+          createdAt: inquireAt,
+          by: TX_TRANSITION_ACTOR_CUSTOMER,
+          transition: 'transition/inquire',
+        },
+      ],
+    });
+    transaction.attributes.protectedData = {
+      offer: {
+        price: 500,
+        currency: 'AED',
+        comment: 'Добрый день пишу по поводу столешницы',
+      },
+    };
+
+    const props = {
+      messages: [],
+      transaction,
+      stateData: {
+        processName: 'assignment-flow-v3',
+        processState: 'inquiry',
+      },
+      currentUser: createCurrentUser('task-author'),
+      hasOlderMessages: false,
+      fetchMessagesInProgress: false,
+      onOpenReviewModal: noop,
+      onShowOlderMessages: noop,
+      intl: fakeIntl,
+    };
+
+    render(<ActivityFeed {...props} />);
+
+    expect(screen.getByText('Добрый день пишу по поводу столешницы')).toBeInTheDocument();
+  });
+
+  it('does not duplicate the offer comment when it is already a real message', () => {
+    const customer = createUser('specialist');
+    const provider = createUser('task-author');
+    const listing = createListing('listing');
+    const inquireAt = new Date(Date.UTC(2023, 4, 1, 11, 14));
+    const transaction = createTransaction({
+      id: 'tx-offer-comment-dup',
+      processName: 'assignment-flow-v3',
+      lastTransition: 'transition/inquire',
+      customer,
+      provider,
+      listing,
+      lastTransitionedAt: inquireAt,
+      transitions: [
+        {
+          createdAt: inquireAt,
+          by: TX_TRANSITION_ACTOR_CUSTOMER,
+          transition: 'transition/inquire',
+        },
+      ],
+    });
+    transaction.attributes.protectedData = {
+      offer: { comment: 'Добрый день пишу по поводу столешницы' },
+    };
+
+    render(
+      <ActivityFeed
+        messages={[
+          createMessage(
+            'msg-offer',
+            { content: 'Добрый день пишу по поводу столешницы', createdAt: inquireAt },
+            { sender: customer }
+          ),
+        ]}
+        transaction={transaction}
+        stateData={{
+          processName: 'assignment-flow-v3',
+          processState: 'inquiry',
+        }}
+        currentUser={createCurrentUser('task-author')}
+        hasOlderMessages={false}
+        fetchMessagesInProgress={false}
+        onOpenReviewModal={noop}
+        onShowOlderMessages={noop}
+        intl={fakeIntl}
+      />
+    );
+
+    expect(screen.getAllByText('Добрый день пишу по поводу столешницы')).toHaveLength(1);
+  });
 });

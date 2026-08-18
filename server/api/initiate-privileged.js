@@ -71,9 +71,31 @@ module.exports = (req, res) => {
     .then(async apiResponse => {
       const { status, statusText, data } = apiResponse;
       console.log('✅ initiate-privileged: success, status =', status);
+
+      const transition = req.body?.bodyParams?.transition;
+      const tx = data?.data;
+      const offerComment = (
+        tx?.attributes?.protectedData?.offer?.comment ||
+        req.body?.bodyParams?.params?.protectedData?.offer?.comment ||
+        ''
+      ).trim();
+
+      // Copy the offer comment into the transaction chat so both parties see
+      // it in История, not only on the listing card.
+      const SHARETRIBE_MESSAGE_MAX = 1000;
+      if (transition === 'transition/inquire' && offerComment && tx?.id) {
+        try {
+          const userSdk = getSdk(req, res);
+          await userSdk.messages.send({
+            transactionId: tx.id,
+            content: offerComment.slice(0, SHARETRIBE_MESSAGE_MAX),
+          });
+        } catch (messageError) {
+          console.error('⚠️ Could not copy offer comment into chat:', messageError.message);
+        }
+      }
       
       // Send Telegram notification for new offer (inquire transition)
-      const transition = req.body?.bodyParams?.transition;
       if (transition === 'transition/inquire' && data?.data) {
         try {
           const tx = data.data;
