@@ -530,6 +530,10 @@
   text-align: right;
 }
 
+.taskSummaryValueHighlight {
+  color: #1c7c3f;
+}
+
 .taskSummaryNote {
   margin-top: 8px;
   color: #1a1a1a;

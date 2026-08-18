@@ -205,6 +205,15 @@ export const TransactionPageComponent = props => {
       }, 500);
     }
   }, [transaction?.id, currentUser?.id, props.onUpdateNotificationCount]);
+  // Closing a task promises a review form, so the page reopens itself with
+  // this flag and shows the form as soon as the fresh transaction is loaded.
+  const askedForReviewForm = (props.location?.search || '').includes('review=1');
+  useEffect(() => {
+    if (askedForReviewForm && transaction?.attributes?.lastTransition === 'transition/complete') {
+      setReviewModalOpen(true);
+    }
+  }, [askedForReviewForm, transaction?.attributes?.lastTransition]);
+
   const txTransitions = transaction?.attributes?.transitions || [];
   const isProviderRole = transactionRole === PROVIDER;
   const isCustomerRole = transactionRole === CUSTOMER;
@@ -563,7 +572,7 @@ const confirmCompleteTask = async () => {
     });
 
     setCloseTaskModalOpen(false);
-    window.location.reload();
+    window.location.assign(`${window.location.pathname}?review=1`);
   } catch (e) {
     setCompleteErr(intl.formatMessage({ id: 'TransactionPage.completeTaskError' }));
   } finally {

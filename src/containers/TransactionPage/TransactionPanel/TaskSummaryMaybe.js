@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from 'react';
+import classNames from 'classnames';
+
 import { FormattedMessage } from '../../../util/reactIntl';
 import { ASSIGNMENT_PROCESS_NAME } from '../../../transactions/transaction';
 import { fetchTaskChatSummary } from '../../../util/api';
@@ -10,13 +12,35 @@ export const listingTaskStatus = listing => {
   if (publicData.cancelled === true || publicData.status === 'cancelled') {
     return 'cancelled';
   }
-  if (publicData.status === 'closed' || listing?.attributes?.state === 'closed') {
-    return 'closed';
-  }
+  // Hiring closes the listing in Sharetribe, so the hired flags have to win
+  // over the closed state, otherwise a task in progress reads as finished.
   if (publicData.hired === true || publicData.status === 'in-progress') {
     return 'inProgress';
   }
+  if (publicData.status === 'closed' || listing?.attributes?.state === 'closed') {
+    return 'closed';
+  }
   return 'open';
+};
+
+const FINISHED_STATES = ['completed', 'reviewed-by-customer', 'reviewed-by-provider', 'reviewed'];
+
+/**
+ * What this conversation is about right now. The transaction knows more than
+ * the listing here: the listing is closed as soon as anyone is hired, so it
+ * cannot tell "work in progress" from "task finished".
+ */
+export const chatTaskStatus = (processState, listing) => {
+  if (FINISHED_STATES.includes(processState)) {
+    return 'completed';
+  }
+  if (processState === 'accepted') {
+    return 'hired';
+  }
+  if (processState === 'declined') {
+    return 'declined';
+  }
+  return listingTaskStatus(listing);
 };
 
 const formatOfferPrice = offer => {
@@ -36,7 +60,7 @@ const formatOfferPrice = offer => {
  * many other specialists still have a pending offer. Shown to both parties.
  */
 const TaskSummaryMaybe = props => {
-  const { processName, transactionId, listing, offer } = props;
+  const { processName, processState, transactionId, listing, offer } = props;
   const [otherOfferCount, setOtherOfferCount] = useState(null);
 
   const txId = transactionId?.uuid || transactionId;
@@ -70,7 +94,7 @@ const TaskSummaryMaybe = props => {
   }
 
   const priceLabel = formatOfferPrice(offer);
-  const status = listingTaskStatus(listing);
+  const status = chatTaskStatus(processState, listing);
 
   return (
     <div className={css.taskSummary}>
@@ -86,11 +110,15 @@ const TaskSummaryMaybe = props => {
         <span className={css.taskSummaryLabel}>
           <FormattedMessage id="TransactionPanel.taskSummary.status" />
         </span>
-        <span className={css.taskSummaryValue}>
+        <span
+          className={classNames(css.taskSummaryValue, {
+            [css.taskSummaryValueHighlight]: status === 'hired',
+          })}
+        >
           <FormattedMessage id={`TransactionPanel.taskSummary.status.${status}`} />
         </span>
       </div>
-      {otherOfferCount === null ? null : (
+      {otherOfferCount === null || status !== 'open' ? null : (
         <div className={css.taskSummaryNote}>
           <FormattedMessage
             id="TransactionPanel.taskSummary.otherOffers"

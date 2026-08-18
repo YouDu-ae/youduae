@@ -203,6 +203,10 @@ export class TransactionPanelComponent extends Component {
       onDeclineOffer,
       declineOfferBusy = false,
       declineOfferErr,
+      canComplete = false,
+      onComplete,
+      completeBusy = false,
+      completeErr,
     } = this.props;
 
     const offerDecisionBusy = acceptOfferBusy || declineOfferBusy;
@@ -308,10 +312,31 @@ export class TransactionPanelComponent extends Component {
 
             <TaskSummaryMaybe
               processName={stateData.processName}
+              processState={stateData.processState}
               transactionId={transactionId}
               listing={listing}
               offer={protectedData?.offer}
             />
+
+            {canComplete ? (
+              <div className={css.offerDecision}>
+                <p className={css.offerDecisionHint}>
+                  <FormattedMessage id="TransactionPanel.completeTask.hint" />
+                </p>
+                {completeErr ? <p className={css.offerDecisionError}>{completeErr}</p> : null}
+                <div className={css.offerDecisionButtons}>
+                  <PrimaryButton
+                    type="button"
+                    className={css.offerDecisionButton}
+                    inProgress={completeBusy}
+                    disabled={completeBusy}
+                    onClick={onComplete}
+                  >
+                    <FormattedMessage id="TransactionPanel.completeTask.button" />
+                  </PrimaryButton>
+                </div>
+              </div>
+            ) : null}
 
             {canAcceptOffer || canDeclineOffer ? (
               <div className={css.offerDecision}>
@@ -406,50 +431,19 @@ export class TransactionPanelComponent extends Component {
               isConversation={isInquiryProcess}
             />
             {showSendMessageForm ? (
-              <>
-                <SendMessageForm
-                  formId={this.sendMessageFormName}
-                  rootClassName={css.sendMessageForm}
-                  messagePlaceholder={intl.formatMessage(
-                    { id: 'TransactionPanel.sendMessagePlaceholder' },
-                    { name: otherUserDisplayNameString }
-                  )}
-                  inProgress={sendMessageInProgress}
-                  sendMessageError={sendMessageError}
-                  onFocus={this.onSendMessageFormFocus}
-                  onBlur={this.onSendMessageFormBlur}
-                  onSubmit={this.onMessageSubmit}
-                />
-                {this.props.canComplete && (
-                  <div style={{ marginTop: 16, marginBottom: 16 }}>
-                    {this.props.completeErr && (
-                      <div style={{ color: '#c7254e', marginBottom: 8, padding: 8, backgroundColor: '#f9f2f4', borderRadius: 3 }}>
-                        {this.props.completeErr}
-                      </div>
-                    )}
-                    <button 
-                      type="button"
-                      onClick={this.props.onComplete} 
-                      disabled={this.props.completeBusy}
-                      style={{
-                        padding: '10px 20px',
-                        backgroundColor: this.props.completeBusy ? '#ccc' : '#4a90e2',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: 4,
-                        cursor: this.props.completeBusy ? 'not-allowed' : 'pointer',
-                        fontSize: 16,
-                        fontWeight: 500,
-                      }}
-                    >
-                      {this.props.completeBusy 
-                        ? intl.formatMessage({ id: 'TransactionPage.closeTaskInProgress' })
-                        : intl.formatMessage({ id: 'TransactionPage.closeTaskButton' })
-                      }
-                    </button>
-                  </div>
+              <SendMessageForm
+                formId={this.sendMessageFormName}
+                rootClassName={css.sendMessageForm}
+                messagePlaceholder={intl.formatMessage(
+                  { id: 'TransactionPanel.sendMessagePlaceholder' },
+                  { name: otherUserDisplayNameString }
                 )}
-              </>
+                inProgress={sendMessageInProgress}
+                sendMessageError={sendMessageError}
+                onFocus={this.onSendMessageFormFocus}
+                onBlur={this.onSendMessageFormBlur}
+                onSubmit={this.onMessageSubmit}
+              />
             ) : (
               <div className={css.sendingMessageNotAllowed}>
                 <FormattedMessage id="TransactionPanel.sendingMessageNotAllowed" />
