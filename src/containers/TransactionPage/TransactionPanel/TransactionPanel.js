@@ -12,6 +12,7 @@ import {
   AvatarLarge,
   NamedLink,
   PrimaryButton,
+  SecondaryButton,
   UserDisplayName,
   VerificationBadge,
 } from '../../../components';
@@ -194,7 +195,18 @@ export class TransactionPanelComponent extends Component {
       orderPanel,
       config,
       hasViewingRights,
+      canAcceptOffer = false,
+      onAcceptOffer,
+      acceptOfferBusy = false,
+      acceptOfferErr,
+      canDeclineOffer = false,
+      onDeclineOffer,
+      declineOfferBusy = false,
+      declineOfferErr,
     } = this.props;
+
+    const offerDecisionBusy = acceptOfferBusy || declineOfferBusy;
+    const offerDecisionError = acceptOfferErr || declineOfferErr;
 
     const isCustomer = transactionRole === 'customer';
     const isProvider = transactionRole === 'provider';
@@ -301,23 +313,44 @@ export class TransactionPanelComponent extends Component {
               offer={protectedData?.offer}
             />
 
-            {this.props.canAcceptOffer ? (
-              <div className={css.acceptOffer}>
-                <p className={css.acceptOfferHint}>
-                  <FormattedMessage id="TransactionPanel.acceptOffer.hint" />
+            {canAcceptOffer || canDeclineOffer ? (
+              <div className={css.offerDecision}>
+                <p className={css.offerDecisionHint}>
+                  <FormattedMessage
+                    id={
+                      canAcceptOffer
+                        ? 'TransactionPanel.offerDecision.hint'
+                        : 'TransactionPanel.offerDecision.hintAlreadyHired'
+                    }
+                  />
                 </p>
-                {this.props.acceptOfferErr ? (
-                  <p className={css.acceptOfferError}>{this.props.acceptOfferErr}</p>
+                {offerDecisionError ? (
+                  <p className={css.offerDecisionError}>{offerDecisionError}</p>
                 ) : null}
-                <PrimaryButton
-                  type="button"
-                  className={css.acceptOfferButton}
-                  inProgress={this.props.acceptOfferBusy}
-                  disabled={this.props.acceptOfferBusy}
-                  onClick={this.props.onAcceptOffer}
-                >
-                  <FormattedMessage id="TransactionPanel.acceptOffer.button" />
-                </PrimaryButton>
+                <div className={css.offerDecisionButtons}>
+                  {canAcceptOffer ? (
+                    <PrimaryButton
+                      type="button"
+                      className={css.offerDecisionButton}
+                      inProgress={acceptOfferBusy}
+                      disabled={offerDecisionBusy}
+                      onClick={onAcceptOffer}
+                    >
+                      <FormattedMessage id="TransactionPanel.acceptOffer.button" />
+                    </PrimaryButton>
+                  ) : null}
+                  {canDeclineOffer ? (
+                    <SecondaryButton
+                      type="button"
+                      className={css.offerDecisionButton}
+                      inProgress={declineOfferBusy}
+                      disabled={offerDecisionBusy}
+                      onClick={onDeclineOffer}
+                    >
+                      <FormattedMessage id="TransactionPanel.declineOffer.button" />
+                    </SecondaryButton>
+                  ) : null}
+                </div>
               </div>
             ) : null}
 

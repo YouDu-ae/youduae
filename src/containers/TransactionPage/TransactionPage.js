@@ -87,14 +87,20 @@ const onDisputeOrder = (
 };
 
 /**
- * The task author can hire a specialist straight from the conversation while
- * the offer is still pending and nobody else has been hired yet.
+ * The task author decides on a pending offer straight from the conversation.
  */
-export const canAcceptOfferInChat = ({ isProviderRole, processName, lastTransition, listing }) =>
+export const canDeclineOfferInChat = ({ isProviderRole, processName, lastTransition }) =>
   !!isProviderRole &&
   processName === ASSIGNMENT_PROCESS_NAME &&
-  lastTransition === 'transition/inquire' &&
-  listingTaskStatus(listing) === 'open';
+  lastTransition === 'transition/inquire';
+
+/**
+ * Hiring is only offered while nobody else has been hired for the task, but a
+ * pending offer can still be declined after that, so the specialist is not
+ * left waiting.
+ */
+export const canAcceptOfferInChat = params =>
+  canDeclineOfferInChat(params) && listingTaskStatus(params.listing) === 'open';
 
 /**
  * TransactionPage handles data loading for Sale and Order views to transaction pages in Inbox.
@@ -567,16 +573,21 @@ const confirmCompleteTask = async () => {
 
 // --- Выбор исполнителя прямо из переписки (только автор задания = Provider)
 const offerInThisChat = transaction?.attributes?.protectedData?.offer;
-const canAcceptOffer = canAcceptOfferInChat({
+const offerDecisionParams = {
   isProviderRole,
   processName: stateData.processName,
   lastTransition,
   listing,
-});
+};
+const canAcceptOffer = canAcceptOfferInChat(offerDecisionParams);
+const canDeclineOffer = canDeclineOfferInChat(offerDecisionParams);
 
 const [isAcceptOfferModalOpen, setAcceptOfferModalOpen] = useState(false);
 const [acceptOfferBusy, setAcceptOfferBusy] = useState(false);
 const [acceptOfferErr, setAcceptOfferErr] = useState(null);
+const [isDeclineOfferModalOpen, setDeclineOfferModalOpen] = useState(false);
+const [declineOfferBusy, setDeclineOfferBusy] = useState(false);
+const [declineOfferErr, setDeclineOfferErr] = useState(null);
 
 const openAcceptOfferModal = () => {
   setAcceptOfferErr(null);
@@ -632,6 +643,43 @@ const confirmAcceptOffer = async () => {
   }
 };
 
+const openDeclineOfferModal = () => {
+  setDeclineOfferErr(null);
+  setDeclineOfferModalOpen(true);
+};
+
+const onDismissDeclineOfferModal = () => {
+  if (declineOfferBusy) {
+    return;
+  }
+  setDeclineOfferModalOpen(false);
+  setDeclineOfferErr(null);
+};
+
+const confirmDeclineOffer = async () => {
+  setDeclineOfferBusy(true);
+  setDeclineOfferErr(null);
+  try {
+    await transitionPrivileged({
+      isSpeculative: false,
+      orderData: {},
+      bodyParams: {
+        id: transaction.id,
+        transition: 'transition/decline-offer',
+        params: {},
+      },
+      queryParams: {},
+    });
+
+    setDeclineOfferModalOpen(false);
+    window.location.reload();
+  } catch (e) {
+    setDeclineOfferErr(intl.formatMessage({ id: 'TransactionPage.declineOfferError' }));
+  } finally {
+    setDeclineOfferBusy(false);
+  }
+};
+
   // TransactionPanel is presentational component
   // that currently handles showing everything inside layout's main view area.
   const panel = isDataAvailable ? (
@@ -660,6 +708,10 @@ const confirmAcceptOffer = async () => {
       onAcceptOffer={openAcceptOfferModal}
       acceptOfferBusy={acceptOfferBusy}
       acceptOfferErr={acceptOfferErr}
+      canDeclineOffer={canDeclineOffer}
+      onDeclineOffer={openDeclineOfferModal}
+      declineOfferBusy={declineOfferBusy}
+      declineOfferErr={declineOfferErr}
       stateData={stateData}
       transactionRole={transactionRole}
       showBookingLocation={showBookingLocation}
@@ -795,6 +847,43 @@ const confirmAcceptOffer = async () => {
               onClick={confirmAcceptOffer}
             >
               <FormattedMessage id="TransactionPage.acceptOfferConfirmButton" />
+            </PrimaryButton>
+          </div>
+        </Modal>
+        <Modal
+          id="DeclineOfferModal"
+          isOpen={isDeclineOfferModalOpen}
+          onClose={onDismissDeclineOfferModal}
+          onManageDisableScrolling={onManageDisableScrolling}
+          containerClassName={css.closeTaskModal}
+          contentClassName={css.closeTaskModalContent}
+          usePortal
+        >
+          <h2 className={css.closeTaskModalTitle}>
+            <FormattedMessage id="TransactionPage.confirmDeclineOfferTitle" />
+          </h2>
+          <p className={css.closeTaskModalText}>
+            <FormattedMessage
+              id="TransactionPage.confirmDeclineOffer"
+              values={{ name: otherUserDisplayName }}
+            />
+          </p>
+          {declineOfferErr ? <p className={css.closeTaskModalError}>{declineOfferErr}</p> : null}
+          <div className={css.closeTaskModalActions}>
+            <SecondaryButton
+              type="button"
+              disabled={declineOfferBusy}
+              onClick={onDismissDeclineOfferModal}
+            >
+              <FormattedMessage id="TransactionPage.declineOfferCancelButton" />
+            </SecondaryButton>
+            <PrimaryButton
+              type="button"
+              inProgress={declineOfferBusy}
+              disabled={declineOfferBusy}
+              onClick={confirmDeclineOffer}
+            >
+              <FormattedMessage id="TransactionPage.declineOfferConfirmButton" />
             </PrimaryButton>
           </div>
         </Modal>

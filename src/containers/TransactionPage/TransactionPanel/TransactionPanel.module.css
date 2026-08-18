@@ -537,7 +537,7 @@
   text-align: left;
 }
 
-.acceptOffer {
+.offerDecision {
   margin: 12px 24px 0 24px;
 
   @media (--viewportLarge) {
@@ -545,22 +545,36 @@
   }
 }
 
-.acceptOfferHint {
+.offerDecisionHint {
   margin: 0 0 10px 0;
   color: #666;
   font-size: 14px;
   line-height: 1.45;
 }
 
-.acceptOfferError {
+.offerDecisionError {
   margin: 0 0 10px 0;
   color: var(--colorFail);
   font-size: 14px;
   line-height: 1.45;
 }
 
-.acceptOfferButton {
+.offerDecisionButtons {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+
+  @media (--viewportMedium) {
+    flex-direction: row;
+  }
+}
+
+.offerDecisionButton {
   min-height: 48px;
+
+  @media (--viewportMedium) {
+    flex: 1;
+  }
 }
 
 /* Passed-in props for FeedSection subcomponent */
