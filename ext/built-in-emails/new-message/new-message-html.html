@@ -12,7 +12,7 @@
         .youdu-cta a { background-color: #16a34a !important; color: #ffffff !important; }
       }
     </style>
-    <title>Отклик ждёт ответа</title>
+    <title>Новое сообщение</title>
   </head>
   <body style="margin:0;padding:0;background-color:#f4f4f5;">
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f4f4f5;">
@@ -27,16 +27,13 @@
             <tr>
               <td style="padding:20px 32px 0 32px;">
                 <h1 style="margin:0 0 12px 0;font-size:24px;line-height:32px;font-weight:700;color:#111827;">
-                  Отклик всё ещё ждёт ответа
+                  Новое сообщение
                 </h1>
                 <p style="margin:0 0 16px 0;font-size:16px;line-height:24px;color:#374151;">
-                  Здравствуйте, {{recipient.display-name}}! Вчера на ваше задание
-                  «{{transaction.listing.title}}» пришёл отклик от {{transaction.customer.display-name}},
-                  но ответа пока нет.
+                  Здравствуйте, {{recipient.first-name}}! Новое сообщение по заданию «{{message.transaction.listing.title}}» от {{message.sender.display-name}}.
                 </p>
-                <p style="margin:0 0 20px 0;font-size:16px;line-height:24px;color:#374151;">
-                  Специалисты берут другие заказы, если не получают ответа в первые дни.
-                  Ответьте сейчас, чтобы не потерять исполнителя.
+                <p style="margin:0 0 16px 0;font-size:16px;line-height:24px;color:#374151;padding:16px 20px;background-color:#f9fafb;border-radius:12px;">
+                  {{message.content}}
                 </p>
               </td>
             </tr>
@@ -45,9 +42,15 @@
                 <table role="presentation" cellpadding="0" cellspacing="0" border="0">
                   <tr>
                     <td align="center" class="youdu-cta" bgcolor="#16a34a" style="background-color:#16a34a;border-radius:12px;">
-                      <a href="{{marketplace.url}}/l/{{url-encode transaction.listing.id}}" style="display:inline-block;padding:14px 32px;font-size:16px;font-weight:700;background-color:#16a34a;color:#ffffff;text-decoration:none;border-radius:12px;">
-                        Ответить на отклик
+                      {{#eq recipient-role 'provider'}}
+                      <a href="{{marketplace.url}}/sale/{{url-encode message.transaction.id}}" style="display:inline-block;padding:14px 32px;font-size:16px;font-weight:700;background-color:#16a34a;color:#ffffff;text-decoration:none;border-radius:12px;">
+                        Открыть чат
                       </a>
+                      {{else}}
+                      <a href="{{marketplace.url}}/order/{{url-encode message.transaction.id}}" style="display:inline-block;padding:14px 32px;font-size:16px;font-weight:700;background-color:#16a34a;color:#ffffff;text-decoration:none;border-radius:12px;">
+                        Открыть чат
+                      </a>
+                      {{/eq}}
                     </td>
                   </tr>
                 </table>
@@ -57,7 +60,7 @@
               <td style="padding:12px 32px 0 32px;">
                 <p style="margin:0;font-size:13px;line-height:20px;color:#9ca3af;text-align:center;">
                   Кнопка не открывается? Скопируйте ссылку:<br />
-                  {{marketplace.url}}/l/{{url-encode transaction.listing.id}}
+                  {{#eq recipient-role 'provider'}}{{marketplace.url}}/sale/{{url-encode message.transaction.id}}{{else}}{{marketplace.url}}/order/{{url-encode message.transaction.id}}{{/eq}}
                 </p>
               </td>
             </tr>
@@ -65,7 +68,7 @@
               <td style="padding:24px 32px 32px 32px;">
                 <div style="border-top:1px solid #eeeeee;padding-top:20px;">
                   <p style="margin:0;font-size:12px;line-height:18px;color:#9ca3af;">
-                    Вы получили это письмо, потому что пользуетесь {{marketplace.name}}.<br />
+                    Вы получили это письмо, потому что участвуете в сделке на {{marketplace.name}}.<br />
                     <a href="{{marketplace.url}}" style="color:#9ca3af;">{{marketplace.url}}</a>
                   </p>
                 </div>

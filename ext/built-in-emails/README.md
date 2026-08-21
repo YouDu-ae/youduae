@@ -7,42 +7,38 @@
 
 Тексты этих же писем (если шаблон использует хелпер `t`) редактируются отдельно в
 **Console → Build → Content → Email texts**. Шаблоны ниже написаны с литеральным текстом,
-чтобы всё правки были в одном месте.
+чтобы все правки были в одном месте.
 
-Файлы здесь — источник правды для верстки, чтобы изменения были в git и их можно было
-восстановить или отредактировать.
+Файлы здесь — источник правды для верстки.
 
 | Папка | Письмо в Console | Ключ в Email texts | Когда отправляется |
 | --- | --- | --- | --- |
 | `verify-email/` | Verify email address | `VerifyEmail` | сразу после регистрации |
+| `verify-changed-email/` | Verify changed email address | `VerifyChangedEmail` | смена email |
 | `user-joined/` | User joined | `UserJoined` | после подтверждения email |
+| `reset-password/` | Reset password | `ResetPassword` | запрос «забыл пароль» |
+| `password-changed/` | Password changed | `PasswordChanged` | пароль успешно изменён |
+| `email-address-changed/` | Email address changed | `EmailChanged` | email успешно изменён |
+| `new-message/` | New message | `NewMessage` | новое сообщение в чате сделки |
+| `listing-approved/` | Listing approved | `ListingApproved` | задание прошло модерацию |
+| `user-approved/` | User approved | `UserApproved` | аккаунт одобрен оператором |
+| `user-permissions-changed/` | User permissions changed | `UserPermissionsChanged` | админ сменил права |
+
+Письма по сделкам (новый отклик, принят, отклонён и т.д.) живут отдельно:
+`ext/transaction-processes/assignment-flow-v3/templates/` и публикуются через `flex-cli`.
 
 ## Как обновить в Console
 
 1. Открыть Console → Build → Advanced → Email notifications.
-2. Выбрать нужное письмо (Verify email address / User joined).
+2. Выбрать письмо из таблицы.
 3. Вставить содержимое `*-html.html` в редактор шаблона, тему — из `*-subject.txt`.
-4. Отправить preview на свою почту кнопкой отправки тестового письма.
+4. Отправить preview на свою почту кнопкой тестового письма.
 5. Сохранить.
 
-## Контекстные переменные
-
-`verify-email`: `recipient` (в т.ч. `recipient.public-data`), `marketplace.name`,
-`marketplace.url`, `email-verification.token`.
-
-`user-joined`: `recipient`, `marketplace.name`, `marketplace.url`.
-
-## Роли
-
-Письмо User joined ветвится по `recipient.public-data.userType`:
-
-- `provider` — Заказчик, размещает задания (CTA: `/l/new`);
-- `customer` — Исполнитель, откликается на задания (CTA: `/s`).
-
-Нейминг инвертирован относительно стандартного Sharetribe — см. `src/config/configUser.js`.
+Приоритет для живой почты: **Reset password** и **Password changed** (сейчас ещё дефолтный фиолетовый шаблон Sharetribe).
 
 ## Фирменный стиль
 
 Тот же, что в шаблонах `ext/transaction-processes/assignment-flow-v3/templates/`:
-фон `#f4f4f5`, карточка 600px с радиусом 16px, текстовый логотип YouDu, жёлтая кнопка
-`#ffc934` с тёмным текстом, серый футер.
+фон `#f4f4f5`, карточка 600px с радиусом 16px, текстовый логотип YouDu, зелёная кнопка
+`#16a34a` с белым текстом, серый футер.

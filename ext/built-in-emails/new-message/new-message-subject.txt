@@ -1,0 +1,1 @@
+Новое сообщение по заданию «{{message.transaction.listing.title}}»
