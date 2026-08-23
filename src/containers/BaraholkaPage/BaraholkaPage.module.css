@@ -1,0 +1,294 @@
+.root {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 40px 24px 80px;
+}
+
+/* === HERO === */
+.hero {
+  margin-bottom: 40px;
+}
+
+.title {
+  font-size: 38px;
+  line-height: 1.2;
+  font-weight: 700;
+  margin: 0 0 16px;
+  color: #000;
+}
+
+.lead {
+  font-size: 18px;
+  line-height: 1.6;
+  color: #444;
+  margin: 0;
+}
+
+/* === TELEGRAM GROUP === */
+.groupCard {
+  background: linear-gradient(135deg, #eef5fd 0%, #f7fbff 100%);
+  border: 1px solid #d6e6f7;
+  border-radius: 16px;
+  padding: 28px;
+  margin-bottom: 56px;
+}
+
+.groupTitle {
+  font-size: 22px;
+  font-weight: 700;
+  margin: 0 0 12px;
+  color: #000;
+}
+
+.groupText {
+  font-size: 16px;
+  line-height: 1.6;
+  color: #333;
+  margin: 0 0 20px;
+}
+
+.groupButton {
+  display: inline-block;
+  padding: 12px 24px;
+  background: #4a90e2;
+  color: #fff;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background 0.2s ease;
+}
+
+.groupButton:hover {
+  background: #357abd;
+  text-decoration: none;
+}
+
+/* === SECTIONS === */
+.section {
+  margin-bottom: 56px;
+}
+
+.sectionTitle {
+  font-size: 28px;
+  font-weight: 700;
+  margin: 0 0 16px;
+  color: #000;
+}
+
+.sectionLead {
+  font-size: 17px;
+  line-height: 1.6;
+  color: #444;
+  margin: 0 0 28px;
+}
+
+/* === PLATFORMS === */
+.platforms {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 20px;
+}
+
+.platform {
+  border: 1px solid #e6e6e6;
+  border-radius: 12px;
+  padding: 24px;
+}
+
+.platformName {
+  font-size: 19px;
+  font-weight: 700;
+  margin: 0 0 6px;
+  color: #000;
+}
+
+.platformWho {
+  font-size: 14px;
+  color: #777;
+  margin: 0 0 16px;
+}
+
+.pros,
+.cons {
+  margin: 0 0 12px;
+  padding: 0;
+  list-style: none;
+}
+
+.cons {
+  margin-bottom: 0;
+}
+
+.pros li,
+.cons li {
+  position: relative;
+  padding-left: 24px;
+  font-size: 15px;
+  line-height: 1.5;
+  color: #333;
+  margin-bottom: 8px;
+}
+
+.pros li::before {
+  content: '+';
+  position: absolute;
+  left: 0;
+  color: #2e9e5b;
+  font-weight: 700;
+}
+
+.cons li::before {
+  content: '−';
+  position: absolute;
+  left: 0;
+  color: #c0392b;
+  font-weight: 700;
+}
+
+/* === SAFETY RULES === */
+.rules {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: rule;
+}
+
+.rule {
+  position: relative;
+  counter-increment: rule;
+  padding-left: 56px;
+  margin-bottom: 28px;
+}
+
+.rule::before {
+  content: counter(rule);
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #4a90e2;
+  color: #fff;
+  font-size: 17px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ruleTitle {
+  font-size: 18px;
+  font-weight: 700;
+  margin: 4px 0 6px;
+  color: #000;
+}
+
+.ruleText {
+  font-size: 16px;
+  line-height: 1.6;
+  color: #444;
+  margin: 0;
+}
+
+/* === FAQ === */
+.faq {
+  border-top: 1px solid #e6e6e6;
+}
+
+.faqItem {
+  border-bottom: 1px solid #e6e6e6;
+}
+
+.faqQuestion {
+  padding: 18px 0;
+  font-size: 17px;
+  font-weight: 600;
+  color: #000;
+  cursor: pointer;
+  list-style: none;
+}
+
+.faqQuestion::-webkit-details-marker {
+  display: none;
+}
+
+.faqQuestion::after {
+  content: '+';
+  float: right;
+  color: #4a90e2;
+  font-size: 22px;
+  line-height: 1;
+}
+
+.faqItem[open] .faqQuestion::after {
+  content: '−';
+}
+
+.faqAnswer {
+  font-size: 16px;
+  line-height: 1.65;
+  color: #444;
+  margin: 0 0 20px;
+  padding-right: 32px;
+}
+
+/* === SERVICES === */
+.services {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+}
+
+.service {
+  display: block;
+  border: 1px solid #e6e6e6;
+  border-radius: 12px;
+  padding: 20px;
+  text-decoration: none;
+  transition: border-color 0.2s ease, transform 0.2s ease;
+}
+
+.service:hover {
+  border-color: #4a90e2;
+  transform: translateY(-2px);
+  text-decoration: none;
+}
+
+.serviceTitle {
+  display: block;
+  font-size: 17px;
+  font-weight: 600;
+  color: #000;
+  margin-bottom: 6px;
+}
+
+.serviceText {
+  display: block;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #666;
+}
+
+@media (max-width: 767px) {
+  .root {
+    padding: 24px 16px 56px;
+  }
+
+  .title {
+    font-size: 28px;
+  }
+
+  .lead {
+    font-size: 16px;
+  }
+
+  .sectionTitle {
+    font-size: 23px;
+  }
+
+  .groupCard {
+    padding: 20px;
+  }
+}

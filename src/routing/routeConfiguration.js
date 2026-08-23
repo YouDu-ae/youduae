@@ -45,6 +45,7 @@ const CooperationSignupPage = loadable(() => import(/* webpackChunkName: "Cooper
 const VerificationPage = loadable(() => import(/* webpackChunkName: "VerificationPage" */ '../containers/VerificationPage/VerificationPage'));
 const NoAccessPage = loadable(() => import(/* webpackChunkName: "NoAccessPage" */ '../containers/NoAccessPage/NoAccessPage'));
 const CategoryExecutorsPage = loadable(() => import(/* webpackChunkName: "CategoryExecutorsPage" */ '../containers/CategoryExecutorsPage/CategoryExecutorsPage'));
+const BaraholkaPage = loadable(() => import(/* webpackChunkName: "BaraholkaPage" */ '../containers/BaraholkaPage/BaraholkaPage'));
 const WelcomePage = loadable(() => import(/* webpackChunkName: "WelcomePage" */ '../containers/WelcomePage/WelcomePage'));
 const BlogPage = loadable(() => import(/* webpackChunkName: "BlogPage" */ '../containers/BlogPage/BlogPage'));
 const BlogArticlePage = loadable(() => import(/* webpackChunkName: "BlogArticlePage" */ '../containers/BlogArticlePage/BlogArticlePage'));
@@ -98,6 +99,11 @@ const routeConfiguration = (layoutConfig, accessControlConfig) => {
       path: '/category/:categoryId',
       name: 'CategoryExecutorsPage',
       component: CategoryExecutorsPage,
+    },
+    {
+      path: '/baraholka-dubai',
+      name: 'BaraholkaPage',
+      component: BaraholkaPage,
     },
     {
       path: '/p/about',
