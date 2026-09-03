@@ -24,27 +24,71 @@
   margin: 0;
 }
 
-/* === TELEGRAM GROUP === */
-.groupCard {
-  background: linear-gradient(135deg, #eef5fd 0%, #f7fbff 100%);
-  border: 1px solid #d6e6f7;
-  border-radius: 16px;
-  padding: 28px;
+/* === TELEGRAM GROUPS === */
+.groupsSection {
   margin-bottom: 56px;
 }
 
-.groupTitle {
-  font-size: 22px;
+.groupsSectionTitle {
+  font-size: 28px;
   font-weight: 700;
   margin: 0 0 12px;
   color: #000;
 }
 
-.groupText {
-  font-size: 16px;
+.groupsSectionLead {
+  font-size: 17px;
   line-height: 1.6;
+  color: #444;
+  margin: 0 0 24px;
+}
+
+.groupsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+.groupCard {
+  background: linear-gradient(135deg, #eef5fd 0%, #f7fbff 100%);
+  border: 1px solid #d6e6f7;
+  border-radius: 16px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+}
+
+.groupHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 4px;
+}
+
+.groupName {
+  font-size: 20px;
+  font-weight: 700;
+  color: #000;
+}
+
+.groupMembers {
+  font-size: 14px;
+  font-weight: 600;
+  color: #4a90e2;
+}
+
+.groupHandle {
+  font-size: 14px;
+  color: #666;
+  margin: 0 0 12px;
+}
+
+.groupText {
+  font-size: 15px;
+  line-height: 1.55;
   color: #333;
   margin: 0 0 20px;
+  flex-grow: 1;
 }
 
 .groupButton {
@@ -53,9 +97,10 @@
   background: #4a90e2;
   color: #fff;
   border-radius: 8px;
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 600;
   text-decoration: none;
+  text-align: center;
   transition: background 0.2s ease;
 }
 
@@ -284,11 +329,22 @@
     font-size: 16px;
   }
 
-  .sectionTitle {
+  .sectionTitle,
+  .groupsSectionTitle {
     font-size: 23px;
+  }
+
+  .groupsGrid {
+    grid-template-columns: 1fr;
   }
 
   .groupCard {
     padding: 20px;
+  }
+
+  .groupHeader {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
   }
 }

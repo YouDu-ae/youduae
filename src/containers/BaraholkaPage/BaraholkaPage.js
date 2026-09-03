@@ -14,7 +14,24 @@ const SEO_KEYWORDS =
   'барахолка дубай, объявления дубай, доска объявлений дубай, аналог авито в дубае, купить бу дубай, продать вещи дубай, отдам даром дубай, барахолка телеграм дубай, бу мебель дубай';
 const CANONICAL_URL = 'https://youdu.ae/baraholka-dubai';
 
-const TELEGRAM_GROUP_URL = 'https://t.me/dubaibaraholka';
+const TELEGRAM_GROUPS = [
+  {
+    name: 'Барахолка Дубай',
+    handle: '@baraholkadubae',
+    url: 'https://t.me/baraholkadubae',
+    members: '25 000+',
+    description:
+      'Крупнейшая русскоязычная барахолка в Дубае. Мебель, техника, электроника, одежда, детские товары. Без комиссии и посредников.',
+  },
+  {
+    name: 'Барахолка Дубай',
+    handle: '@dubaibaraholka',
+    url: 'https://t.me/dubaibaraholka',
+    members: '6 000+',
+    description:
+      'Группа частных объявлений. Мебель, техника, детские вещи, рубрика «отдам даром». Участники из Дубая, Абу-Даби и Шарджи.',
+  },
+];
 
 const PLATFORMS = [
   {
@@ -214,22 +231,31 @@ const BaraholkaPage = () => {
             </p>
           </header>
 
-          <section className={css.groupCard}>
-            <div className={css.groupBody}>
-              <h2 className={css.groupTitle}>Наша барахолка в Telegram</h2>
-              <p className={css.groupText}>
-                «Барахолка Дубай» — русскоязычная группа частных объявлений. Больше шести тысяч
-                участников из Дубая, Абу-Даби и Шарджи. Мебель, техника, электроника, детские вещи,
-                одежда и рубрика «отдам даром». Без комиссии и посредников.
-              </p>
-              <a
-                className={css.groupButton}
-                href={TELEGRAM_GROUP_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                Открыть группу в Telegram
-              </a>
+          <section className={css.groupsSection}>
+            <h2 className={css.groupsSectionTitle}>Наши барахолки в Telegram</h2>
+            <p className={css.groupsSectionLead}>
+              Две крупнейшие русскоязычные группы частных объявлений в Дубае. Вместе — больше 30 000
+              участников. Без комиссии и посредников.
+            </p>
+            <div className={css.groupsGrid}>
+              {TELEGRAM_GROUPS.map(group => (
+                <div className={css.groupCard} key={group.handle}>
+                  <div className={css.groupHeader}>
+                    <span className={css.groupName}>{group.name}</span>
+                    <span className={css.groupMembers}>{group.members} участников</span>
+                  </div>
+                  <p className={css.groupHandle}>{group.handle}</p>
+                  <p className={css.groupText}>{group.description}</p>
+                  <a
+                    className={css.groupButton}
+                    href={group.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Открыть группу
+                  </a>
+                </div>
+              ))}
             </div>
           </section>
 
