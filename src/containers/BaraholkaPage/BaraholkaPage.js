@@ -24,6 +24,14 @@ const TELEGRAM_GROUPS = [
       'Крупнейшая русскоязычная барахолка в Дубае. Мебель, техника, электроника, одежда, детские товары. Без комиссии и посредников.',
   },
   {
+    name: 'Продай Дубай',
+    handle: '@prodai_dubai',
+    url: 'https://t.me/prodai_dubai',
+    members: '22 000+',
+    description:
+      'Активная группа частных объявлений. Техника, мебель, авто, одежда. Быстрый отклик, много предложений ежедневно.',
+  },
+  {
     name: 'Барахолка Дубай',
     handle: '@dubaibaraholka',
     url: 'https://t.me/dubaibaraholka',
@@ -234,7 +242,7 @@ const BaraholkaPage = () => {
           <section className={css.groupsSection}>
             <h2 className={css.groupsSectionTitle}>Наши барахолки в Telegram</h2>
             <p className={css.groupsSectionLead}>
-              Две крупнейшие русскоязычные группы частных объявлений в Дубае. Вместе — больше 30 000
+              Три крупнейшие русскоязычные группы частных объявлений в Дубае. Вместе — больше 50 000
               участников. Без комиссии и посредников.
             </p>
             <div className={css.groupsGrid}>
