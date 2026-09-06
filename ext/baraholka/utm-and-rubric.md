@@ -8,13 +8,20 @@
 
 ## Где смотреть результат
 
-В проекте подключены Plausible и Google Analytics, оба через переменные окружения
-(`REACT_APP_PLAUSIBLE_DOMAINS` и `REACT_APP_GOOGLE_ANALYTICS_ID`, см.
-`src/config/configAnalytics.js`). Прежде чем размечать ссылки, проверь, какой из них
-реально включён на проде — иначе метки будут проставлены впустую.
+**Проверено на проде 6 сентября 2026: работает только Plausible.**
 
-Plausible показывает метки в разделе Sources → Campaigns, Google Analytics —
-в «Привлечение трафика» с разбивкой по source и medium.
+| | Статус | Откуда берётся |
+|---|---|---|
+| Plausible | включён, домены `youdu.ae,www.youdu.ae` | hosted-ассет Sharetribe Console |
+| Google Analytics | не включён | нет ни env-переменной, ни тега в HTML |
+
+Важная деталь: Plausible настроен **не через переменную окружения** на Heroku
+(`REACT_APP_PLAUSIBLE_DOMAINS` там не задана), а в Sharetribe Console. Конфиг
+подмешивается в `mergeAnalyticsConfig` в `src/util/configHelpers.js`. Если понадобится
+что-то менять — искать в Консоли, а не в переменных Heroku.
+
+Метки смотреть в Plausible → **Sources → Campaigns**. Раздела Google Analytics
+в отчётах не будет, ориентироваться на него не нужно.
 
 ## Схема меток
 
