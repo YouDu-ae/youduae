@@ -3,8 +3,8 @@
 Этот этап отвечает на вопрос, ради которого делались все предыдущие: сколько людей
 из обеих барахолок доходит до площадки и что они там делают.
 
-**Две группы:** @baraholkadubae (25 000+) и @dubaibaraholka (6 000+).
-Ссылки и шаблоны ниже применимы к обеим.
+**Три группы:** @baraholkadubae (25 000+), @prodai_dubai (22 000+) и @dubaibaraholka (6 000+).
+Ссылки и шаблоны ниже применимы ко всем трём.
 
 ## Где смотреть результат
 
@@ -54,27 +54,34 @@ https://youdu.ae/baraholka-dubai?utm_source=telegram&utm_medium=pinned&utm_campa
 https://youdu.ae/baraholka-dubai?utm_source=telegram&utm_medium=post&utm_campaign=rubrika
 ```
 
-Категории для тематических постов:
+Категории для тематических постов (фокус на **Ремонт и строительство**):
 
 ```
-Перевозка и переезд
-https://youdu.ae/category/Cargo_transportation?sub=Moving&utm_source=telegram&utm_medium=post&utm_campaign=rubrika
-
-Вывоз мусора
-https://youdu.ae/category/Cargo_transportation?sub=Garbage_removal&utm_source=telegram&utm_medium=post&utm_campaign=rubrika
-
 Сборка мебели
 https://youdu.ae/category/repairs_main?sub=Carpenter&utm_source=telegram&utm_medium=post&utm_campaign=rubrika
 
-Подключение техники
-https://youdu.ae/category/Installation_mashines?utm_source=telegram&utm_medium=post&utm_campaign=rubrika
+Мастер на час (повесить, прикрутить, собрать)
+https://youdu.ae/category/repairs_main?sub=handyman&utm_source=telegram&utm_medium=post&utm_campaign=rubrika
 
-Забрать и привезти
-https://youdu.ae/category/Delivery?sub=buy_delivery&utm_source=telegram&utm_medium=post&utm_campaign=rubrika
+Электрика (розетки, выключатели, люстры)
+https://youdu.ae/category/repairs_main?sub=electric_work&utm_source=telegram&utm_medium=post&utm_campaign=rubrika
+
+Сантехника (подключить стиралку, посудомойку)
+https://youdu.ae/category/repairs_main?sub=plumbing&utm_source=telegram&utm_medium=post&utm_campaign=rubrika
+
+Чистка кондиционера
+https://youdu.ae/category/repairs_main?sub=hvac&utm_source=telegram&utm_medium=post&utm_campaign=rubrika
+
+Перевозка крупногабарита (единственная НЕ repairs_main)
+https://youdu.ae/category/Cargo_transportation?sub=Moving&utm_source=telegram&utm_medium=post&utm_campaign=rubrika
 ```
 
 Обрати внимание на разделитель: в ссылках с `?sub=` дальше идёт `&`, а не второй `?`.
 Один лишний вопросительный знак — и параметры не разберутся.
+
+**Почему фокус на repairs_main:** там 16 из 32 активных специалистов.
+В Cargo_transportation, Delivery и Installation_mashines — по 2–3.
+Трафик в категории без исполнителей разочарует и не конвертируется.
 
 ## Рубрика в группе
 
@@ -89,9 +96,89 @@ https://youdu.ae/category/Delivery?sub=buy_delivery&utm_source=telegram&utm_medi
 не пойдёт. Если убрать ссылку и текст перестаёт иметь смысл — это реклама, и группа
 это почувствует.
 
-### Заготовки постов
+### Заготовки постов (6 штук, 5 из них → repairs_main)
 
-**1. Перевозка крупногабарита**
+**1. Сборка мебели** → repairs_main/Carpenter
+
+```
+С рук мебель почти всегда приезжает разобранной
+
+И без инструкции. Пара вещей, которые экономят вечер:
+
+• попросите продавца сфотографировать вещь ДО разборки
+• крепёж складывайте в пакет и скотчем к самой детали
+• для ИКЕА инструкция есть на сайте по названию модели
+
+Если разбираться некогда: https://youdu.ae/category/repairs_main?sub=Carpenter&utm_source=telegram&utm_medium=post&utm_campaign=rubrika
+```
+
+**2. Мастер на час** → repairs_main/handyman
+
+```
+Купили с рук, а теперь надо повесить
+
+Зеркало, карниз, телевизор на кронштейн, полки. В новых башнях стены
+из гипсокартона — обычный дюбель не держит, нужен анкер или закладная.
+
+Что уточнить мастеру заранее:
+• материал стены (бетон, гипс, пустотелый блок)
+• вес того, что вешаете
+• есть ли у вас крепёж или нужен его
+
+Мастер на час: https://youdu.ae/category/repairs_main?sub=handyman&utm_source=telegram&utm_medium=post&utm_campaign=rubrika
+```
+
+**3. Подключить стиралку или посудомойку** → repairs_main/plumbing
+
+```
+Купили технику с рук — как подключить
+
+Стиралка и посудомойка требуют подвода воды и слива. Если машинка
+стояла в другом месте, шланги могут не дотянуться до ваших выводов.
+
+Что проверить до покупки:
+• длина заливного и сливного шлангов
+• есть ли у вас отдельный кран под машинку
+• совпадает ли диаметр слива
+
+Сантехник: https://youdu.ae/category/repairs_main?sub=plumbing&utm_source=telegram&utm_medium=post&utm_campaign=rubrika
+```
+
+**4. Розетка под технику** → repairs_main/electric_work
+
+```
+Купили что-то мощное — а розетки нет
+
+Духовка, варочная панель, кондиционер — всё это требует отдельной линии.
+Втыкать в обычную розетку через удлинитель нельзя: перегреется и сгорит.
+
+Что нужно знать:
+• мощность прибора (написана на шильдике сзади)
+• есть ли свободный автомат в щитке
+• какой кабель идёт к розетке
+
+Электрик: https://youdu.ae/category/repairs_main?sub=electric_work&utm_source=telegram&utm_medium=post&utm_campaign=rubrika
+```
+
+**5. Почистить купленный кондиционер** → repairs_main/hvac
+
+```
+Купили сплит с рук — первым делом чистка
+
+Внутри б/у кондиционера год пыли, а иногда и плесень. Включать без чистки —
+дышать этим. Стандартная профилактика занимает час и стоит дешевле,
+чем потом лечить аллергию.
+
+Что входит в чистку:
+• разборка внутреннего блока
+• промывка фильтров и теплообменника
+• проверка дренажа
+• дезинфекция
+
+Чистка кондиционера: https://youdu.ae/category/repairs_main?sub=hvac&utm_source=telegram&utm_medium=post&utm_campaign=rubrika
+```
+
+**6. Перевозка крупногабарита** → Cargo_transportation/Moving (единственный НЕ repairs)
 
 ```
 Купили диван на другом конце города — как везти
@@ -103,53 +190,11 @@ https://youdu.ae/category/Delivery?sub=buy_delivery&utm_source=telegram&utm_medi
 • пройдёт ли вещь в дверь — меряйте по диагонали, а не по ширине
 • кто разбирает и собирает: часто это отдельная услуга
 
-Мастера с машиной: <ссылка на Cargo_transportation?sub=Moving>
+Перевозка: https://youdu.ae/category/Cargo_transportation?sub=Moving&utm_source=telegram&utm_medium=post&utm_campaign=rubrika
 ```
 
-**2. Сборка мебели**
-
-```
-С рук мебель почти всегда приезжает разобранной
-
-И без инструкции. Пара вещей, которые экономят вечер:
-
-• попросите продавца сфотографировать вещь ДО разборки
-• крепёж складывайте в пакет и скотчем к самой детали
-• для ИКЕА инструкция есть на сайте по названию модели
-
-Если разбираться некогда: <ссылка на repairs_main?sub=Carpenter>
-```
-
-**3. Отдам даром и вывоз**
-
-```
-Уезжаете и не всё разобрали
-
-Выставлять мебель к бакам нельзя — за это штрафуют, и найдут по камерам.
-Что работает:
-
-• одежду и текстиль — в благотворительные контейнеры
-• рабочую технику — в чат дома, там разберут за час
-• остальное — машина на вывоз, дешевле штрафа
-
-Вывоз: <ссылка на Cargo_transportation?sub=Garbage_removal>
-```
-
-**4. Проверка техники перед покупкой**
-
-```
-Что проверить, покупая б/у технику с рук
-
-• iPhone — отвязан ли iCloud, иначе телефон превратится в кирпич
-• стиральная машина — прогнать короткий цикл при продавце
-• холодильник — включить и дать постоять час, слушать компрессор
-• всё вместе — сверить серийник с коробкой
-
-Подключить купленное: <ссылка на Installation_mashines>
-```
-
-Четырёх заготовок хватает на месяц. Дальше их можно повторять — состав участников
-за месяц меняется заметно.
+Шести заготовок хватает на полтора месяца (один пост в неделю). Дальше можно
+повторять — состав участников за месяц меняется заметно.
 
 ## Чего в рубрике быть не должно
 
