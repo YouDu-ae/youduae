@@ -1,24 +1,21 @@
-const sharetribeSdk = require('sharetribe-flex-sdk');
-const sharetribeIntegrationSdk = require('sharetribe-flex-integration-sdk');
-const { handleError, serialize, typeHandlers } = require('../api-util/sdk');
-
-const CLIENT_ID = process.env.REACT_APP_SHARETRIBE_SDK_CLIENT_ID;
-const INTEGRATION_CLIENT_ID = process.env.INTEGRATION_API_CLIENT_ID;
-const INTEGRATION_CLIENT_SECRET = process.env.INTEGRATION_API_CLIENT_SECRET;
-const BASE_URL = process.env.REACT_APP_SHARETRIBE_SDK_BASE_URL;
-
-/** JSON:API id может быть строкой или { uuid } — приводим к строке UUID */
-function flexEntityId(idLike) {
-  if (!idLike) return null;
-  if (typeof idLike === 'string') return idLike;
-  if (typeof idLike === 'object' && idLike.uuid) return idLike.uuid;
-  return null;
-}
+const { trustedSdkFromBearer, BearerAuthError } = require('../api-util/mobileSdk');
+const { isCompletedOrBeyond, isInvalidTransitionError } = require('../api-util/assignmentState');
 
 /**
- * Complete a transaction using Integration API (privileged)
- * SECURITY: Verifies that the requesting user is a party to the transaction
+ * Mark the work done — mobile API endpoint.
+ *
+ * transition/complete names the provider (the task author) as its actor, so the
+ * caller's own trusted SDK is the right tool. An earlier version reached for
+ * transition/operator-complete through the Integration API, which cannot work:
+ * assignment-flow-v3 declares no operator transitions at all. It then reported
+ * the resulting error as success, so the app believed work had been completed
+ * when nothing had moved.
+ *
+ * Reading the transaction first also settles authorisation: Sharetribe only
+ * shows a transaction to its own parties.
  */
+const lastTransitionOf = response => response?.data?.data?.attributes?.lastTransition;
+
 module.exports = async (req, res) => {
   const { transactionId } = req.body;
 
@@ -28,139 +25,90 @@ module.exports = async (req, res) => {
     return res.status(400).json({ error: 'transactionId is required' }).end();
   }
 
-  // Verify authentication (Bearer token)
-  const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    console.log('❌ complete-transaction: No Bearer token');
-    return res.status(401).json({ error: 'Authorization required' }).end();
-  }
-
-  const accessToken = authHeader.substring(7);
-  if (!accessToken || accessToken === 'null' || accessToken === 'undefined') {
-    return res.status(401).json({ error: 'Invalid access token' }).end();
-  }
-
-  if (!INTEGRATION_CLIENT_ID || !INTEGRATION_CLIENT_SECRET) {
-    console.error('❌ Integration API credentials not configured');
-    return res.status(500).json({ error: 'Server configuration error' }).end();
-  }
-
   try {
-    // SECURITY: First verify the user is a party to this transaction
-    const tokenStore = sharetribeSdk.tokenStore.memoryStore();
-    tokenStore.setToken({ 
-      access_token: accessToken,
-      token_type: 'bearer'
-    });
+    const trustedSdk = await trustedSdkFromBearer(req);
 
-    const userSdk = sharetribeSdk.createInstance({
-      clientId: CLIENT_ID,
-      tokenStore,
-      typeHandlers,
-      ...(BASE_URL ? { baseUrl: BASE_URL } : {}),
-    });
+    const current = await trustedSdk.transactions.show({ id: transactionId });
+    const currentTransition = lastTransitionOf(current);
 
-    // Get current user
-    const currentUserResponse = await userSdk.currentUser.show();
-    const currentUserId = flexEntityId(currentUserResponse.data.data.id);
-    console.log('👤 Current user:', currentUserId);
-    if (!currentUserId) {
-      return res.status(401).json({ error: 'Could not resolve current user id' }).end();
+    console.log('📊 complete-transaction: current state:', currentTransition);
+
+    if (isCompletedOrBeyond(currentTransition)) {
+      console.log('✅ complete-transaction: already completed, nothing to do');
+      return res
+        .status(200)
+        .json({
+          success: true,
+          alreadyCompleted: true,
+          message: 'Transaction already completed',
+          currentState: currentTransition,
+        })
+        .end();
     }
 
-    // Create Integration SDK (has operator privileges)
-    const integrationSdk = sharetribeIntegrationSdk.createInstance({
-      clientId: INTEGRATION_CLIENT_ID,
-      clientSecret: INTEGRATION_CLIENT_SECRET,
-    });
+    let transitionResponse;
+    try {
+      transitionResponse = await trustedSdk.transactions.transition({
+        id: transactionId,
+        transition: 'transition/complete',
+        params: {},
+      });
+    } catch (error) {
+      if (!isInvalidTransitionError(error)) throw error;
 
-    // Get the transaction to verify user is a party
-    const txResponse = await integrationSdk.transactions.show({
-      id: transactionId,
-    });
+      // Someone may have completed it between the read above and this call.
+      // Anything else genuinely failed and must be reported as such.
+      const recheck = await trustedSdk.transactions.show({ id: transactionId });
+      const recheckedTransition = lastTransitionOf(recheck);
 
-    const transaction = txResponse.data.data;
-    const providerId = flexEntityId(transaction.relationships?.provider?.data?.id);
-    const customerId = flexEntityId(transaction.relationships?.customer?.data?.id);
+      if (isCompletedOrBeyond(recheckedTransition)) {
+        console.log('✅ complete-transaction: completed by a parallel request');
+        return res
+          .status(200)
+          .json({
+            success: true,
+            alreadyCompleted: true,
+            message: 'Transaction already completed',
+            currentState: recheckedTransition,
+          })
+          .end();
+      }
 
-    // SECURITY CHECK: User must be either provider or customer
-    if (currentUserId !== providerId && currentUserId !== customerId) {
-      console.log('❌ User is not a party to this transaction');
-      console.log('   Provider:', providerId, 'Customer:', customerId, 'User:', currentUserId);
-      return res.status(403).json({ 
-        error: 'Forbidden',
-        message: 'You are not a party to this transaction'
-      }).end();
+      console.error(
+        '❌ complete-transaction: cannot complete from state',
+        recheckedTransition
+      );
+      throw error;
     }
 
-    console.log('✅ User verified as party to transaction');
-    
-    const currentTransition = transaction.attributes.lastTransition;
-    console.log('📊 Current transaction state:', currentTransition);
+    console.log('✅ complete-transaction: completed');
 
-    // Determine which transition to use based on current state
-    let transition = null;
-    
-    if (currentTransition === 'transition/accept-offer') {
-      // Try operator-complete first, then complete
-      transition = 'transition/operator-complete';
-    } else if (currentTransition === 'transition/complete') {
-      // Already completed, nothing to do
-      console.log('✅ Transaction already completed');
-      return res.status(200).json({ 
-        success: true, 
-        message: 'Transaction already completed',
-        currentState: currentTransition
-      }).end();
-    } else if (currentTransition.includes('review')) {
-      // Already in review state
-      console.log('✅ Transaction already in review state');
-      return res.status(200).json({ 
-        success: true, 
-        message: 'Transaction ready for reviews',
-        currentState: currentTransition
-      }).end();
-    }
-
-    if (!transition) {
-      // Try to complete anyway
-      transition = 'transition/complete';
-    }
-
-    console.log('🔄 Attempting transition:', transition);
-
-    // Perform the transition
-    const transitionResponse = await integrationSdk.transactions.transition({
-      id: transactionId,
-      transition: transition,
-      params: {},
-    });
-
-    console.log('✅ Transaction completed successfully');
-
-    res.status(200).json({
-      success: true,
-      message: 'Transaction completed',
-      data: transitionResponse.data,
-    }).end();
-
-  } catch (error) {
-    console.error('❌ complete-transaction error:', error?.data?.errors || error.message);
-    
-    // If the transition failed, try alternative transitions
-    if (error?.status === 409 || error?.data?.errors?.[0]?.code === 'transaction-invalid-transition') {
-      // The transition isn't valid - transaction might be in a different state
-      // Just return success as the transaction might already be ready for reviews
-      return res.status(200).json({
+    res
+      .status(200)
+      .json({
         success: true,
-        message: 'Transaction state unchanged (may already be ready for reviews)',
-        error: error?.data?.errors?.[0]?.title || 'Invalid transition'
-      }).end();
+        message: 'Transaction completed',
+        data: transitionResponse.data,
+      })
+      .end();
+  } catch (error) {
+    if (error instanceof BearerAuthError) {
+      console.log('❌ complete-transaction:', error.message);
+      return res
+        .status(401)
+        .json({ error: 'Authorization required', message: error.message })
+        .end();
     }
-    
+
+    console.error(
+      '❌ complete-transaction error:',
+      error?.status,
+      error?.data?.errors || error.message
+    );
+
     res.status(error?.status || 500).json({
       error: error?.data?.errors?.[0]?.title || 'Failed to complete transaction',
-      details: error?.data?.errors || error.message
+      details: error?.data?.errors || error.message,
     }).end();
   }
 };
