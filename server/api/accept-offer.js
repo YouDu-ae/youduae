@@ -1,12 +1,8 @@
-const sharetribeSdk = require('sharetribe-flex-sdk');
 const sharetribeIntegrationSdk = require('sharetribe-flex-integration-sdk');
-const { handleError, serialize, typeHandlers } = require('../api-util/sdk');
+const { trustedSdkFromBearer, BearerAuthError } = require('../api-util/mobileSdk');
 const { sendExecutorSelectedNotification } = require('./send-notification');
 const { notifyOfferAccepted } = require('./telegram-bot');
-
-const CLIENT_ID = process.env.REACT_APP_SHARETRIBE_SDK_CLIENT_ID;
-const CLIENT_SECRET = process.env.SHARETRIBE_SDK_CLIENT_SECRET;
-const BASE_URL = process.env.REACT_APP_SHARETRIBE_SDK_BASE_URL;
+const { declineCompetingOffers } = require('../api-util/declineCompetingOffers');
 
 /**
  * Accept an offer (select executor) - Mobile API endpoint
@@ -21,56 +17,8 @@ module.exports = async (req, res) => {
     return res.status(400).json({ error: 'transactionId is required' }).end();
   }
 
-  // Extract Bearer token from Authorization header
-  const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    console.log('❌ accept-offer: No Bearer token in Authorization header');
-    return res.status(401).json({ 
-      error: 'Authorization required',
-      message: 'Bearer token is missing'
-    }).end();
-  }
-
-  const accessToken = authHeader.substring(7); // Remove 'Bearer ' prefix
-  
-  if (!accessToken || accessToken === 'null' || accessToken === 'undefined') {
-    console.log('❌ accept-offer: Invalid access token');
-    return res.status(401).json({ error: 'Invalid access token' }).end();
-  }
-  
-  console.log('🔑 accept-offer: Got access token');
-
   try {
-    // Create SDK with the user's access token
-    const tokenStore = sharetribeSdk.tokenStore.memoryStore();
-    tokenStore.setToken({ 
-      access_token: accessToken,
-      token_type: 'bearer'
-    });
-
-    const sdk = sharetribeSdk.createInstance({
-      clientId: CLIENT_ID,
-      clientSecret: CLIENT_SECRET,
-      tokenStore,
-      typeHandlers,
-      ...(BASE_URL ? { baseUrl: BASE_URL } : {}),
-    });
-
-    // Exchange token to get trusted token
-    console.log('🔄 accept-offer: Exchanging token...');
-    const exchangeResponse = await sdk.exchangeToken();
-    const trustedToken = exchangeResponse.data;
-
-    // Create trusted SDK with the exchanged token
-    const trustedTokenStore = sharetribeSdk.tokenStore.memoryStore();
-    trustedTokenStore.setToken(trustedToken);
-
-    const trustedSdk = sharetribeSdk.createInstance({
-      clientId: CLIENT_ID,
-      tokenStore: trustedTokenStore,
-      typeHandlers,
-      ...(BASE_URL ? { baseUrl: BASE_URL } : {}),
-    });
+    const trustedSdk = await trustedSdkFromBearer(req);
 
     // Perform the accept-offer transition
     console.log('✅ accept-offer: Performing transition...');
@@ -134,12 +82,25 @@ module.exports = async (req, res) => {
       // Don't fail the request if notification fails
     }
 
+    // The executor is hired, so every other offer on this task has lost.
+    try {
+      await declineCompetingOffers({ trustedSdk, acceptedTransactionId: transactionId });
+    } catch (declineError) {
+      // The hire itself went through; a failed sweep must not report otherwise.
+      console.error('⚠️ accept-offer: decline sweep failed:', declineError.message);
+    }
+
     res.status(200).json({
       success: true,
       data: transitionResponse.data,
     }).end();
 
   } catch (error) {
+    if (error instanceof BearerAuthError) {
+      console.log('❌ accept-offer:', error.message);
+      return res.status(401).json({ error: 'Authorization required', message: error.message }).end();
+    }
+
     console.error('❌ accept-offer error:', error.status, error.statusText, error.data || error.message);
     
     if (error.status && error.data) {

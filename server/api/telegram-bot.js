@@ -803,11 +803,17 @@ async function notifyOfferDeclined(userId, data) {
   const chatId = await getUserTelegramChatId(userId);
   if (!chatId) return false;
   
-  const { listingTitle } = data;
-  
+  const { listingTitle, executorChosen } = data;
+
+  // Being turned down and losing to someone else are different news, and the
+  // second one is what most specialists actually get.
+  const reason = executorChosen
+    ? `Заказчик выбрал другого исполнителя для задания "${escapeHtml(listingTitle)}".`
+    : `К сожалению, ваш отклик на задание "${escapeHtml(listingTitle)}" был отклонён.`;
+
   const message = `❌ <b>Отклик отклонён</b>
 
-К сожалению, ваш отклик на задание "${escapeHtml(listingTitle)}" был отклонён.
+${reason}
 
 Не расстраивайтесь — на YouDu много других заданий!`;
 

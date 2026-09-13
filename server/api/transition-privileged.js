@@ -6,6 +6,7 @@ const {
 } = require('../api-util/sdk');
 const { notifyOfferDeclined, notifyOfferAccepted } = require('./telegram-bot');
 const { sendExecutorSelectedNotification } = require('./send-notification');
+const { declineCompetingOffers } = require('../api-util/declineCompetingOffers');
 
 module.exports = (req, res) => {
   const { isSpeculative, orderData, bodyParams, queryParams } = req.body;
@@ -17,8 +18,13 @@ module.exports = (req, res) => {
   // Просто используем пустой массив
   const lineItems = [];
 
+  // Kept for the decline sweep, which runs after the transition has landed.
+  let acceptorSdk = null;
+
   getTrustedSdk(req)
     .then(trustedSdk => {
+      acceptorSdk = trustedSdk;
+
       // Omit listingId from params (transitions don't need it, transaction already has it)
       const { listingId, ...restParams } = bodyParams?.params || {};
 
@@ -107,7 +113,21 @@ module.exports = (req, res) => {
           console.error('⚠️ Telegram notification error:', notifyError.message);
         }
       }
-      
+
+      // The executor is hired, so every other offer on this task has lost.
+      // A speculative transition changes nothing and must not close real offers.
+      if (isAccept && !isSpeculative && acceptorSdk && data?.data?.id?.uuid) {
+        try {
+          await declineCompetingOffers({
+            trustedSdk: acceptorSdk,
+            acceptedTransactionId: data.data.id.uuid,
+          });
+        } catch (declineError) {
+          // The hire itself went through; a failed sweep must not report otherwise.
+          console.error('⚠️ transition-privileged: decline sweep failed:', declineError.message);
+        }
+      }
+
       res
         .status(status)
         .set('Content-Type', 'application/transit+json')
