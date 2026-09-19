@@ -7,8 +7,14 @@
  * what these helpers are for.
  */
 
-// Every transition at or past state/completed, including the ones the review
-// period reaches on its own after seven days.
+/**
+ * Every transition at or past state/completed, mirroring `isCompleted` in
+ * src/transactions/transactionProcessAssignment.js.
+ *
+ * The three expiry transitions matter: a task where nobody got round to leaving
+ * a review within the seven-day window is still a task that was carried out,
+ * and leaving them out quietly understates how much people have done.
+ */
 const COMPLETED_OR_BEYOND = [
   'transition/complete',
   'transition/review-1-by-provider',

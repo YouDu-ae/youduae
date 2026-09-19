@@ -9,6 +9,7 @@
  */
 
 const { queryAllPages, queryTotalItems } = require('./paginate');
+const { COMPLETED_OR_BEYOND } = require('./assignmentState');
 
 // Which side of a transaction the user is being rated on.
 const ROLE = {
@@ -29,24 +30,10 @@ const TRANSACTION_FILTER_BY_ROLE = {
   [ROLE.CLIENT]: 'providerId',
 };
 
-/**
- * Transitions that mean the work was finished, mirroring `isCompleted` in
- * src/transactions/transactionProcessAssignment.js.
- *
- * The three expiry transitions matter: a task where nobody got round to leaving
- * a review within the window is still a task that was carried out, and leaving
- * them out quietly understates how much people have done.
- */
-const COMPLETED_TRANSITIONS = [
-  'transition/complete',
-  'transition/review-1-by-customer',
-  'transition/review-1-by-provider',
-  'transition/review-2-by-customer',
-  'transition/review-2-by-provider',
-  'transition/expire-review-period',
-  'transition/expire-customer-review-period',
-  'transition/expire-provider-review-period',
-];
+// Transitions that mean the work was finished. Defined once in assignmentState
+// so that reputation, platform statistics and the completion endpoint cannot
+// drift apart on what "done" means.
+const COMPLETED_TRANSITIONS = COMPLETED_OR_BEYOND;
 
 /** Maps an incoming `role` query parameter onto a ROLE, defaulting to specialist. */
 const parseRole = value => (value === ROLE.CLIENT ? ROLE.CLIENT : ROLE.SPECIALIST);

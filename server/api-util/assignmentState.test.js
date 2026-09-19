@@ -1,4 +1,24 @@
-const { isCompletedOrBeyond, isInvalidTransitionError } = require('./assignmentState');
+const {
+  isCompletedOrBeyond,
+  isInvalidTransitionError,
+  COMPLETED_OR_BEYOND,
+} = require('./assignmentState');
+const { COMPLETED_TRANSITIONS } = require('./reputation');
+
+describe('COMPLETED_OR_BEYOND', () => {
+  it('is the same list reputation counts, so the two cannot drift apart', () => {
+    expect([...COMPLETED_TRANSITIONS].sort()).toEqual([...COMPLETED_OR_BEYOND].sort());
+  });
+
+  // platform-stats used to count every transaction that was not on a list of
+  // dead-end transitions the process never declares, so an offer nobody had
+  // answered yet was reported as a completed task.
+  it('excludes offers that are still waiting for an answer', () => {
+    expect(COMPLETED_OR_BEYOND).not.toContain('transition/inquire');
+    expect(COMPLETED_OR_BEYOND).not.toContain('transition/accept-offer');
+    expect(COMPLETED_OR_BEYOND).not.toContain('transition/decline-offer');
+  });
+});
 
 describe('isCompletedOrBeyond', () => {
   it('reads completing the work as done', () => {

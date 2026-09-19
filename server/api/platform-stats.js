@@ -7,6 +7,8 @@
 const integrationSdk = require('sharetribe-flex-integration-sdk');
 const { handleError } = require('../api-util/sdk');
 const { createCache } = require('../api-util/cache');
+const { COMPLETED_TRANSITIONS } = require('../api-util/reputation');
+const { queryAllPages } = require('../api-util/paginate');
 
 // Use Integration API credentials for accessing transaction data
 const INTEGRATION_CLIENT_ID = process.env.INTEGRATION_API_CLIENT_ID;
@@ -19,13 +21,25 @@ const CACHE_TTL_MS = 15 * 60 * 1000;
 
 const statsCache = createCache({ ttlMs: CACHE_TTL_MS, maxEntries: 1 });
 
-const EXCLUDED_TRANSITIONS = [
-  'transition/decline',
-  'transition/cancel',
-  'transition/expire',
-  'transition/operator-cancel',
-  'transition/payment-expired',
-];
+/**
+ * Value of one finished task in AED.
+ *
+ * In assignment-flow-v3 the agreed price lives in protectedData.offer.price and
+ * is already in AED; the purchase and booking processes report payinTotal in
+ * cents instead.
+ */
+const transactionValueAED = tx => {
+  const payinTotal = tx.attributes.payinTotal;
+  const offer = (tx.attributes.protectedData || {}).offer;
+
+  if (payinTotal && payinTotal.currency === 'AED') {
+    return payinTotal.amount / 100;
+  }
+  if (offer && offer.price && offer.currency === 'AED') {
+    return offer.price;
+  }
+  return 0;
+};
 
 const fetchPlatformStats = async () => {
   const integrationSdkInstance = integrationSdk.createInstance({
@@ -34,50 +48,29 @@ const fetchPlatformStats = async () => {
     transitVerbose: TRANSIT_VERBOSE,
   });
 
-  const response = await integrationSdkInstance.transactions.query({
-    include: ['listing'],
-    perPage: 100,
-  });
-
-  const allTransactions = response.data.data;
-
-  // Count everything that is in progress or done, excluding dead-end states.
-  const activeTransactions = allTransactions.filter(
-    tx => !EXCLUDED_TRANSITIONS.includes(tx.attributes.lastTransition)
+  // The API applies the transition filter, so only finished tasks come back and
+  // the count cannot drift from what the reputation figures report. An earlier
+  // version fetched everything and subtracted a list of dead-end transitions
+  // that assignment-flow-v3 does not declare, so nothing was ever subtracted
+  // and every unanswered offer counted as a completed task.
+  const { items: completed } = await queryAllPages(({ page, perPage }) =>
+    integrationSdkInstance.transactions.query({
+      lastTransitions: COMPLETED_TRANSITIONS,
+      page,
+      perPage,
+    })
   );
 
-  // In assignment-flow-v3 (inquiry process) the price lives in
-  // protectedData.offer.price and is already in AED; purchase and booking
-  // processes report payinTotal in cents.
-  let totalSumAED = 0;
-
-  activeTransactions.forEach(tx => {
-    const payinTotal = tx.attributes.payinTotal;
-    const protectedData = tx.attributes.protectedData || {};
-
-    if (payinTotal && payinTotal.currency === 'AED') {
-      totalSumAED += payinTotal.amount / 100;
-    } else if (
-      protectedData.offer &&
-      protectedData.offer.price &&
-      protectedData.offer.currency === 'AED'
-    ) {
-      totalSumAED += protectedData.offer.price;
-    }
-  });
+  const totalSumAED = completed.reduce((sum, tx) => sum + transactionValueAED(tx), 0);
 
   console.log(
-    `📊 [Platform Stats] ${activeTransactions.length} active tasks, ${totalSumAED.toFixed(2)} AED (cache miss)`
+    `📊 [Platform Stats] ${completed.length} completed tasks, ${totalSumAED.toFixed(2)} AED (cache miss)`
   );
 
   return {
     data: {
-      totalCompletedTasks: activeTransactions.length,
+      totalCompletedTasks: completed.length,
       totalSumAED,
-      _debug: {
-        totalTransactionsFetched: allTransactions.length,
-        activeCount: activeTransactions.length,
-      },
     },
   };
 };
