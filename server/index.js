@@ -46,6 +46,7 @@ const dataLoader = require('./dataLoader');
 const { generateCSPNonce, csp } = require('./csp');
 const sdkUtils = require('./api-util/sdk');
 const { startReminderTimer, stopReminderTimer } = require('./reminders/timer');
+const { startApprovalPoller, stopApprovalPoller } = require('./reminders/listingApprovals');
 
 const buildPath = path.resolve(__dirname, '..', 'build');
 const dev = process.env.REACT_APP_ENV === 'development';
@@ -353,8 +354,10 @@ const server = app.listen(PORT, async () => {
       await db.initDatabase();
       console.log('Database initialized successfully');
 
-      // Only after the schema exists, since the sweep writes to reminder_log.
+      // Only after the schema exists: the sweep writes to reminder_log and the
+      // approval poller keeps its place in event_cursors.
       startReminderTimer();
+      startApprovalPoller();
     } catch (error) {
       console.error('Failed to initialize database:', error);
     }
@@ -367,6 +370,7 @@ const server = app.listen(PORT, async () => {
   process.on(signal, () => {
     console.log('Shutting down...');
     stopReminderTimer();
+    stopApprovalPoller();
     server.close(() => {
       console.log('Server shut down.');
     });

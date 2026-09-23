@@ -179,6 +179,17 @@ const initDatabase = async () => {
 
       CREATE INDEX IF NOT EXISTS idx_voice_sessions_user_started
         ON voice_sessions (user_id, started_at);
+
+      -- Where each consumer of Sharetribe events stopped reading. Events are
+      -- strictly ordered by sequence_id, so resuming after the stored value
+      -- neither skips nor repeats one across restarts. A NULL sequence_id means
+      -- the consumer has started but seen nothing yet; it then reads from
+      -- updated_at, so switching a consumer on never replays old history.
+      CREATE TABLE IF NOT EXISTS event_cursors (
+        name VARCHAR(50) PRIMARY KEY,
+        sequence_id BIGINT,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
     `);
     
     console.log('Database tables initialized');
@@ -851,6 +862,38 @@ const markVoiceDraftReady = async sessionId => {
   );
 };
 
+// pg returns BIGINT as a string; sequence ids stay far below 2^53.
+const toCursor = row =>
+  row
+    ? {
+        sequenceId: row.sequence_id === null ? null : Number(row.sequence_id),
+        updatedAt: row.updated_at,
+      }
+    : null;
+
+/**
+ * The consumer's cursor, created on first use with no sequence id so that it
+ * starts from the present rather than from the marketplace's whole history.
+ */
+const getOrStartEventCursor = async name => {
+  await pool.query(
+    `INSERT INTO event_cursors (name) VALUES ($1) ON CONFLICT (name) DO NOTHING`,
+    [name]
+  );
+  const result = await pool.query(
+    `SELECT sequence_id, updated_at FROM event_cursors WHERE name = $1`,
+    [name]
+  );
+  return toCursor(result.rows[0]);
+};
+
+const saveEventCursor = async (name, sequenceId) => {
+  await pool.query(
+    `UPDATE event_cursors SET sequence_id = $2, updated_at = NOW() WHERE name = $1`,
+    [name, sequenceId]
+  );
+};
+
 /**
  * Stop sending to a chat that Telegram rejects, e.g. after the user blocks the
  * bot. Keeping the row preserves history and lets a re-link revive it.
@@ -944,4 +987,7 @@ module.exports = {
   countRecentVoiceSessions,
   getVoiceSession,
   markVoiceDraftReady,
+  // Sharetribe event consumers
+  getOrStartEventCursor,
+  saveEventCursor,
 };
