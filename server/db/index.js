@@ -165,6 +165,20 @@ const initDatabase = async () => {
 
       CREATE INDEX IF NOT EXISTS idx_reminder_log_sent
         ON reminder_log (reminder_type, sent_at);
+
+      -- One row per conversation in the voice task-intake pilot. It is the
+      -- per-user daily budget (the IP rate limiter cannot tell users apart),
+      -- the proof that a tool call belongs to a session its caller opened, and
+      -- the pilot's own funnel: how many conversations ended in a draft.
+      CREATE TABLE IF NOT EXISTS voice_sessions (
+        session_id VARCHAR(100) PRIMARY KEY,
+        user_id VARCHAR(100) NOT NULL,
+        started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        draft_ready_at TIMESTAMP
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_voice_sessions_user_started
+        ON voice_sessions (user_id, started_at);
     `);
     
     console.log('Database tables initialized');
@@ -799,6 +813,44 @@ const getReminderStats = async () => {
   return result.rows;
 };
 
+const recordVoiceSession = async ({ sessionId, userId }) => {
+  await pool.query(
+    `INSERT INTO voice_sessions (session_id, user_id) VALUES ($1, $2)
+     ON CONFLICT (session_id) DO NOTHING`,
+    [sessionId, userId]
+  );
+};
+
+/**
+ * Conversations the user started in the last 24 hours. A rolling window rather
+ * than a calendar day, so the budget cannot be doubled around midnight.
+ */
+const countRecentVoiceSessions = async userId => {
+  const result = await pool.query(
+    `SELECT COUNT(*)::int AS count FROM voice_sessions
+     WHERE user_id = $1 AND started_at > NOW() - INTERVAL '24 hours'`,
+    [userId]
+  );
+  return result.rows[0].count;
+};
+
+const getVoiceSession = async sessionId => {
+  const result = await pool.query(
+    `SELECT session_id, user_id, started_at, draft_ready_at
+     FROM voice_sessions WHERE session_id = $1`,
+    [sessionId]
+  );
+  return result.rows[0] || null;
+};
+
+const markVoiceDraftReady = async sessionId => {
+  await pool.query(
+    `UPDATE voice_sessions SET draft_ready_at = COALESCE(draft_ready_at, NOW())
+     WHERE session_id = $1`,
+    [sessionId]
+  );
+};
+
 /**
  * Stop sending to a chat that Telegram rejects, e.g. after the user blocks the
  * bot. Keeping the row preserves history and lets a re-link revive it.
@@ -887,4 +939,9 @@ module.exports = {
   deactivateTelegramSubscriberByChatId,
   removeTelegramSubscriber,
   getTelegramSubscriberStats,
+  // Voice intake pilot functions
+  recordVoiceSession,
+  countRecentVoiceSessions,
+  getVoiceSession,
+  markVoiceDraftReady,
 };

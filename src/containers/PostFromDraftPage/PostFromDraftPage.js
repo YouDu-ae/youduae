@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useHistory } from 'react-router-dom';
 import { types as sdkTypes } from '../../util/sdkLoader';
 import { getGuestListingData, clearGuestListingData } from '../../util/guestListingStorage';
+import { trackVoiceTaskPublished } from '../../analytics/plausibleEvents';
 import { Page, LayoutSingleColumn, IconSpinner } from '../../components';
 import { useConfiguration } from '../../context/configurationContext';
 import TopbarContainer from '../TopbarContainer/TopbarContainer';
@@ -243,6 +244,10 @@ const PostFromDraftPage = ({ onCreateListing, onPublishListing, onUpdateListing,
         const listingState = listing.attributes.state;
         
         console.log('✅ Listing published with state:', listingState);
+
+        if (draft.voiceSessionId) {
+          trackVoiceTaskPublished({ state: listingState });
+        }
 
         // 5. Очищаем черновик
         await clearGuestListingData();

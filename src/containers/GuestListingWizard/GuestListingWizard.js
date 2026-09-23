@@ -8,6 +8,7 @@ import {
   PrimaryButton,
   SecondaryButton,
   CategorySpecialistsCard,
+  VoiceIntake,
 } from '../../components';
 import TopbarContainer from '../TopbarContainer/TopbarContainer';
 import { useConfiguration } from '../../context/configurationContext';
@@ -37,7 +38,6 @@ const MAX_PHOTOS = 8;
 
 // Столько символов названия влезает в строку статуса, не переводя её на вторую строку
 const MAX_TITLE_IN_STATUS = 30;
-
 const GuestListingWizard = () => {
   const history = useHistory();
   const location = useLocation();
@@ -90,6 +90,7 @@ const GuestListingWizard = () => {
           location: savedData.location || null,
           price: savedData.price || '',
           images: savedData.images || [],
+          voiceSessionId: savedData.voiceSessionId || '',
         });
 
         // Если есть сохраненная категория, загружаем подкатегории
@@ -223,6 +224,15 @@ const GuestListingWizard = () => {
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
+  };
+
+  // Помощник заполняет поля, но фотографии не трогает: их голосом не добавить,
+  // а уже выбранные снимки терять нельзя. Автосохранение запишет черновик само.
+  const applyVoiceDraft = (draft, { sessionId }) => {
+    setFormData(prev => ({ ...prev, ...draft, images: prev.images, voiceSessionId: sessionId }));
+    const selectedCategory = categories.find(cat => cat.id === draft.category);
+    setAvailableSubcategories(selectedCategory?.subcategories || []);
+    setErrors({});
   };
 
   const handleFieldChange = (field, value) => {
@@ -374,7 +384,12 @@ const GuestListingWizard = () => {
             <div className={css.stepHeader}>
               <h2 className={css.stepTitle}>Название задания</h2>
             </div>
-            
+
+            {/* Голос только для вошедших: у гостя не к чему привязать дневной
+                лимит, а каждая сессия оплачивается. Открыт ли пилот этому
+                пользователю, VoiceIntake спрашивает у сервера сам. */}
+            {isAuthenticated ? <VoiceIntake onDraft={applyVoiceDraft} /> : null}
+
             <div className={css.field}>
               <label className={css.label}>
                 Название задания *

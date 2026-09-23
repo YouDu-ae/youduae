@@ -140,3 +140,16 @@ export const trackPaymentSucceeded = params => {
   trackPlausible('payment_succeeded', sanitizeProps(params));
 };
 
+// Воронка пилота голосового ввода: без неё нельзя сравнить голос с обычным мастером.
+export const trackVoiceSessionStarted = () => {
+  trackPlausible('voice_session_started');
+};
+
+export const trackVoiceDraftReady = params => {
+  trackPlausible('voice_draft_ready', sanitizeProps({ category: params?.category }));
+};
+
+export const trackVoiceTaskPublished = params => {
+  trackPlausible('voice_task_published', sanitizeProps({ state: params?.state }));
+};
+

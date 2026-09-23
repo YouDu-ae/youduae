@@ -14,6 +14,8 @@ const {
   expensiveLimiter,
   writeLimiter,
   placesLimiter,
+  voiceSessionLimiter,
+  voiceToolLimiter,
 } = require('./api-util/rateLimit');
 
 const initiateLoginAs = require('./api/initiate-login-as');
@@ -48,6 +50,9 @@ const notifyNewReview = require('./api/notify-new-review');
 const notifyPortfolioModeration = require('./api/notify-portfolio-moderation');
 const notifyVerification = require('./api/notify-verification');
 const placesProxy = require('./api/places-proxy');
+const voiceAccess = require('./api/voice-access');
+const voiceSession = require('./api/voice-session');
+const voiceTool = require('./api/voice-tool');
 const telegramBot = require('./api/telegram-bot');
 const syncTelegramCategories = require('./api/sync-telegram-categories');
 const telegramBlogWebhook = require('./api/telegram-blog-webhook');
@@ -156,6 +161,9 @@ router.post('/notify-verification', requireUser, notifyVerification);
 // Google Places (для мобильного приложения — ключ на сервере, без referrer с телефона)
 router.get('/places/autocomplete', placesLimiter, placesProxy.autocomplete);
 router.get('/places/details', placesLimiter, placesProxy.details);
+router.get('/voice/access', requireUser, voiceAccess);
+router.post('/voice/session', voiceSessionLimiter, requireUser, voiceSession);
+router.post('/voice/tool', voiceToolLimiter, requireUser, voiceTool);
 
 // Telegram Bot
 router.post('/telegram/webhook', telegramBot.handleWebhook);

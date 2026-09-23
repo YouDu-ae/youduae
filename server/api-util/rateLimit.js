@@ -82,10 +82,29 @@ const placesLimiter = createLimiter({
   message: 'Слишком много запросов к поиску адреса.',
 });
 
+/**
+ * Opening a voice conversation bills OpenAI straight away. The real budget is
+ * per user in the database; this only stops one address from churning sessions.
+ */
+const voiceSessionLimiter = createLimiter({
+  windowMs: 10 * MINUTE,
+  limit: 10,
+  message: 'Слишком много голосовых сессий. Попробуйте позже.',
+});
+
+/** A conversation makes a handful of tool calls; this caps a looping client. */
+const voiceToolLimiter = createLimiter({
+  windowMs: 5 * MINUTE,
+  limit: 120,
+  message: 'Слишком много запросов голосового помощника.',
+});
+
 module.exports = {
   apiLimiter,
   expensiveLimiter,
   writeLimiter,
   placesLimiter,
+  voiceSessionLimiter,
+  voiceToolLimiter,
   clientIp,
 };

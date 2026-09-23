@@ -1,0 +1,105 @@
+.root {
+  margin-bottom: 24px;
+  padding: 16px;
+  border: 1px solid #e6eaf0;
+  border-radius: 12px;
+  background-color: #f7f9fc;
+}
+
+/* Звук помощника играет через этот элемент, но показывать плеер незачем */
+.audio {
+  display: none;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.texts {
+  flex: 1;
+  min-width: 0;
+}
+
+.title {
+  font-weight: 600;
+  font-size: 16px;
+  line-height: 1.4;
+  color: var(--colorGrey800);
+}
+
+.hint {
+  margin-top: 4px;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--colorGrey600);
+}
+
+.startButton,
+.stopButton {
+  flex-shrink: 0;
+  min-height: 44px;
+  padding: 0 18px;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.startButton {
+  border: none;
+  background-color: #ffc934;
+  color: #111827;
+}
+
+.startButton:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.stopButton {
+  border: 1px solid #dddddd;
+  background-color: #ffffff;
+  color: #111827;
+}
+
+.error {
+  margin-top: 12px;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--colorFail);
+}
+
+.summary {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #e6eaf0;
+}
+
+.summaryTitle {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--colorGrey800);
+}
+
+.summaryList {
+  margin: 6px 0 0;
+  padding-left: 18px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--colorGrey700);
+}
+
+.privacy {
+  margin-top: 12px;
+  font-size: 12px;
+  color: var(--colorGrey500);
+}
+
+@media (max-width: 480px) {
+  .header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
