@@ -16,16 +16,17 @@ module.exports = async (req, res) => {
   try {
     const sdk = getSdk(req, res);
 
-    const [currentUserResponse, listingResponse] = await Promise.all([
-      sdk.currentUser.show(),
-      sdk.listings.show({ id: listingId, include: ['author'] }),
-    ]);
-
-    const currentUserId = currentUserResponse.data.data.id.uuid;
-    const authorId = listingResponse.data.data.relationships?.author?.data?.id?.uuid;
-
-    if (!authorId || authorId !== currentUserId) {
-      return res.status(403).json({ error: 'Only the listing author can notify executors' }).end();
+    // ownListings shows the author every state, pendingApproval included, and
+    // answers 404 for anyone else's listing, so it is the authorship check too.
+    // The public listings endpoint used here before also answered 404 for a task
+    // still in moderation, which stopped the admin alert from ever going out.
+    try {
+      await sdk.ownListings.show({ id: listingId });
+    } catch (error) {
+      if (error.status === 404) {
+        return res.status(403).json({ error: 'Only the listing author can notify executors' }).end();
+      }
+      throw error;
     }
 
     // Fan-out over Telegram can take several seconds, so it runs detached.
