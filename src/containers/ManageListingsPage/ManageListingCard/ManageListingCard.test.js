@@ -76,7 +76,9 @@ describe('ManageListingCard', () => {
       { config }
     );
 
-    expect(tree.getByText('ResponsiveImage.noImage')).toBeInTheDocument();
+    expect(tree.container.querySelector('.noImageContainer')).toHaveStyle(
+      'background-image: url(/static/listing-covers/default.jpg)'
+    );
     expect(tree.getByText('ManageListingCard.closeListing')).toBeInTheDocument();
     expect(tree.queryByText('ManageListingCard.priceNotSet')).not.toBeInTheDocument();
     expect(tree.queryByText('ManageListingCard.price')).not.toBeInTheDocument(); //fakeIntl
@@ -135,7 +137,9 @@ describe('ManageListingCard', () => {
       { config }
     );
 
-    expect(tree.getByText('ResponsiveImage.noImage')).toBeInTheDocument();
+    expect(tree.container.querySelector('.noImageContainer')).toHaveStyle(
+      'background-image: url(/static/listing-covers/default.jpg)'
+    );
     expect(tree.getByText('ManageListingCard.closeListing')).toBeInTheDocument();
     expect(tree.queryByText('ManageListingCard.priceNotSet')).not.toBeInTheDocument();
     expect(tree.queryByText('ManageListingCard.price')).toBeInTheDocument(); //fakeIntl
@@ -190,7 +194,9 @@ describe('ManageListingCard', () => {
         availabilityEnabled={true}
       />
     );
-    expect(tree.getByText('ResponsiveImage.noImage')).toBeInTheDocument();
+    expect(tree.container.querySelector('.noImageContainer')).toHaveStyle(
+      'background-image: url(/static/listing-covers/default.jpg)'
+    );
     expect(tree.getByText('ManageListingCard.closeListing')).toBeInTheDocument();
     expect(tree.getByText('ManageListingCard.price')).toBeInTheDocument();
     expect(tree.getByText(/the Listing/i)).toBeInTheDocument();
@@ -244,7 +250,9 @@ describe('ManageListingCard', () => {
         availabilityEnabled={true}
       />
     );
-    expect(tree.getByText('ResponsiveImage.noImage')).toBeInTheDocument();
+    expect(tree.container.querySelector('.noImageContainer')).toHaveStyle(
+      'background-image: url(/static/listing-covers/default.jpg)'
+    );
     expect(tree.getByText('ManageListingCard.closeListing')).toBeInTheDocument();
     expect(tree.getByText('ManageListingCard.price')).toBeInTheDocument();
     expect(tree.getByText(/the Listing/i)).toBeInTheDocument();
@@ -301,7 +309,9 @@ describe('ManageListingCard', () => {
         availabilityEnabled={true}
       />
     );
-    expect(tree.getByText('ResponsiveImage.noImage')).toBeInTheDocument();
+    expect(tree.container.querySelector('.noImageContainer')).toHaveStyle(
+      'background-image: url(/static/listing-covers/default.jpg)'
+    );
     expect(tree.getByText('ManageListingCard.closeListing')).toBeInTheDocument();
     expect(tree.getByText('ManageListingCard.price')).toBeInTheDocument();
     expect(tree.getByText(/the Listing/i)).toBeInTheDocument();
@@ -358,7 +368,9 @@ describe('ManageListingCard', () => {
       />
     );
 
-    expect(tree.getByText('ResponsiveImage.noImage')).toBeInTheDocument();
+    expect(tree.container.querySelector('.noImageContainer')).toHaveStyle(
+      'background-image: url(/static/listing-covers/default.jpg)'
+    );
     expect(tree.getByText('ManageListingCard.closeListing')).toBeInTheDocument();
     expect(tree.getByText('ManageListingCard.price')).toBeInTheDocument();
     expect(tree.getByText(/the Listing/i)).toBeInTheDocument();
@@ -414,7 +426,9 @@ describe('ManageListingCard', () => {
         availabilityEnabled={true}
       />
     );
-    expect(tree.getByText('ResponsiveImage.noImage')).toBeInTheDocument();
+    expect(tree.container.querySelector('.noImageContainer')).toHaveStyle(
+      'background-image: url(/static/listing-covers/default.jpg)'
+    );
     expect(tree.getByText('ManageListingCard.closeListing')).toBeInTheDocument();
     expect(tree.getByText('ManageListingCard.priceNotSet')).toBeInTheDocument();
     expect(tree.getByText(/the Listing/i)).toBeInTheDocument();
@@ -475,7 +489,9 @@ describe('ManageListingCard', () => {
       { config }
     );
 
-    expect(tree.getByText('ResponsiveImage.noImage')).toBeInTheDocument();
+    expect(tree.container.querySelector('.noImageContainer')).toHaveStyle(
+      'background-image: url(/static/listing-covers/default.jpg)'
+    );
     expect(tree.getByText('ManageListingCard.closeListing')).toBeInTheDocument();
     expect(tree.getByText('ManageListingCard.price')).toBeInTheDocument();
     expect(tree.getByText(/the Listing/i)).toBeInTheDocument();
@@ -537,7 +553,9 @@ describe('ManageListingCard', () => {
       { config }
     );
 
-    expect(tree.getByText('ResponsiveImage.noImage')).toBeInTheDocument();
+    expect(tree.container.querySelector('.noImageContainer')).toHaveStyle(
+      'background-image: url(/static/listing-covers/default.jpg)'
+    );
     expect(tree.getByText('ManageListingCard.closeListing')).toBeInTheDocument();
     expect(tree.getByText('ManageListingCard.price')).toBeInTheDocument(); //fakeIntl
     expect(tree.getByText(/the Listing/i)).toBeInTheDocument();
@@ -604,7 +622,9 @@ describe('ManageListingCard', () => {
       { config }
     );
 
-    expect(tree.getByText('ResponsiveImage.noImage')).toBeInTheDocument();
+    expect(tree.container.querySelector('.noImageContainer')).toHaveStyle(
+      'background-image: url(/static/listing-covers/default.jpg)'
+    );
     expect(tree.getByText('ManageListingCard.closeListing')).toBeInTheDocument();
     expect(tree.getByText('ManageListingCard.price')).toBeInTheDocument(); //fakeIntl
     expect(tree.getByText(/the Listing/i)).toBeInTheDocument();
@@ -668,7 +688,9 @@ describe('ManageListingCard', () => {
       { config }
     );
 
-    expect(tree.getByText('ResponsiveImage.noImage')).toBeInTheDocument();
+    expect(tree.container.querySelector('.noImageContainer')).toHaveStyle(
+      'background-image: url(/static/listing-covers/default.jpg)'
+    );
     expect(tree.getByText('ManageListingCard.closeListing')).toBeInTheDocument();
     expect(tree.getByText('ManageListingCard.priceNotSet')).toBeInTheDocument();
     expect(tree.getByText(/the Listing/i)).toBeInTheDocument();
@@ -723,7 +745,9 @@ describe('ManageListingCard', () => {
       { config }
     );
 
-    expect(tree.getByText('ResponsiveImage.noImage')).toBeInTheDocument();
+    expect(tree.container.querySelector('.noImageContainer')).toHaveStyle(
+      'background-image: url(/static/listing-covers/default.jpg)'
+    );
     expect(tree.getByText('ManageListingCard.closeListing')).toBeInTheDocument();
     expect(tree.getByText('ManageListingCard.price')).toBeInTheDocument(); //fakeIntl
     expect(tree.getByText(/the Listing/i)).toBeInTheDocument();
@@ -778,7 +802,9 @@ describe('ManageListingCard', () => {
       { config }
     );
 
-    expect(tree.getByText('ResponsiveImage.noImage')).toBeInTheDocument();
+    expect(tree.container.querySelector('.noImageContainer')).toHaveStyle(
+      'background-image: url(/static/listing-covers/default.jpg)'
+    );
     expect(tree.getByText('ManageListingCard.closeListing')).toBeInTheDocument();
     expect(tree.getByText('ManageListingCard.price')).toBeInTheDocument(); //fakeIntl
     expect(tree.getByText(/the Listing/i)).toBeInTheDocument();

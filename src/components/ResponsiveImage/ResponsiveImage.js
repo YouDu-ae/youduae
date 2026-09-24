@@ -35,9 +35,9 @@
 
 import React from 'react';
 import classNames from 'classnames';
-import { FormattedMessage } from '../../util/reactIntl';
+import { useIntl } from '../../util/reactIntl';
+import { DEFAULT_LISTING_COVER } from '../../util/listingCover';
 
-import NoImageIcon from './NoImageIcon';
 import css from './ResponsiveImage.module.css';
 
 /**
@@ -57,10 +57,11 @@ import css from './ResponsiveImage.module.css';
  * @param {Object?} props.image API entity (image or imageAsset)
  * @param {Array<string>} props.variants
  * @param {string?} props.sizes sizes attribute for the img element (to be used with srcset)
- * @param {string?} props.noImageMessage message to be shown, when no image was given
+ * @param {string?} props.noImageMessage accessible label for the YouDu logo shown when no image was given
  * @returns {JSX.Element} responsive image
  */
 const ResponsiveImage = props => {
+  const intl = useIntl();
   const {
     className,
     rootClassName,
@@ -76,14 +77,13 @@ const ResponsiveImage = props => {
   if (image == null || variants.length === 0) {
     const noImageClasses = classNames(rootClassName || css.root, css.noImageContainer, className);
 
-    const noImageMessageText = noImageMessage || <FormattedMessage id="ResponsiveImage.noImage" />;
     return (
-      <div className={noImageClasses}>
-        <div className={css.noImageWrapper}>
-          <NoImageIcon className={css.noImageIcon} />
-          <div className={css.noImageText}>{noImageMessageText}</div>
-        </div>
-      </div>
+      <div
+        className={noImageClasses}
+        style={{ backgroundImage: `url(${DEFAULT_LISTING_COVER})` }}
+        role="img"
+        aria-label={noImageMessage || alt || intl.formatMessage({ id: 'ResponsiveImage.noImage' })}
+      />
     );
   }
 

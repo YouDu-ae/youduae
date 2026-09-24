@@ -19,55 +19,11 @@ exports[`ManageListingCard matches snapshot (purchase) 1`] = `
           class="aspectBox"
         >
           <div
+            aria-label="listing1 title"
             class="rootForImage noImageContainer"
-          >
-            <div
-              class="noImageWrapper"
-            >
-              <svg
-                class="noImageIcon"
-                height="49"
-                viewBox="0 -1 48 49"
-                width="48"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <g
-                  fill="none"
-                  fill-rule="evenodd"
-                >
-                  <path
-                    d="M13.6 9.6L24 .8l10.4 8.8z"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                  />
-                  <path
-                    d="M.8 46.4h46.4V9.6H.8z"
-                    stroke-width="2"
-                  />
-                  <path
-                    d="M5.6 41.6h36.8V14.4H5.6z"
-                    stroke-width="2"
-                  />
-                  <path
-                    d="M19.998 31.636l.835-.835a4.035 4.035 0 0 1 2.853-1.183h.693c1.07 0 2.097.426 2.853 1.183l.835.835"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                  />
-                  <path
-                    d="M21.599 23.983a1.009 1.009 0 1 0 0 2.018 1.009 1.009 0 0 0 0-2.018M26.402 23.983a1.009 1.009 0 1 0 0 2.018 1.009 1.009 0 0 0 0-2.018"
-                  />
-                </g>
-              </svg>
-              <div
-                class="noImageText"
-              >
-                <span>
-                  ResponsiveImage.noImage
-                </span>
-              </div>
-            </div>
-          </div>
+            role="img"
+            style="background-image: url(/static/listing-covers/default.jpg);"
+          />
         </div>
       </div>
     </div>
@@ -147,7 +103,7 @@ exports[`ManageListingCard matches snapshot (purchase) 1`] = `
           </button>
           <div
             class="menuContent isClosed"
-            style="left: -10000px;"
+            style="right: -12px; min-width: 0;"
           >
             <ul
               class="content"

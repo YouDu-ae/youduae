@@ -89,6 +89,8 @@
 }
 
 .noImage {
+  width: 100%;
+  aspect-ratio: 4 / 3;
   border: 1px solid var(--colorGrey100);
   border-radius: var(--borderRadiusMedium);
 }
