@@ -40,5 +40,7 @@
 ## Фирменный стиль
 
 Тот же, что в шаблонах `ext/transaction-processes/assignment-flow-v3/templates/`:
-фон `#f4f4f5`, карточка 600px с радиусом 16px, текстовый логотип YouDu, зелёная кнопка
+фон `#f4f4f5`, карточка 600px с радиусом 16px, логотип-картинка
+`https://youdu.ae/static/email/youdu-logo.png` (76×56, файл `public/static/email/youdu-logo.png`;
+текстом не набирать — Gmail переводит «YouDu» в «ЮДу»), зелёная кнопка
 `#16a34a` с белым текстом, серый футер.
