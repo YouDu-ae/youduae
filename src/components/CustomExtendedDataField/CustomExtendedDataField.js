@@ -207,9 +207,10 @@ const CustomFieldLong = props => {
   const { name, fieldConfig, defaultRequiredMessage, formId, intl } = props;
   const { minimum, maximum, saveConfig } = fieldConfig;
   const { placeholderMessage, isRequired, requiredMessage } = saveConfig || {};
-  const label = getLabel(fieldConfig);
+  const label = translateMaybe(getLabel(fieldConfig), intl);
   const placeholder =
-    placeholderMessage || intl.formatMessage({ id: 'CustomExtendedDataField.placeholderLong' });
+    translateMaybe(placeholderMessage, intl) ||
+    intl.formatMessage({ id: 'CustomExtendedDataField.placeholderLong' });
   const numberTooSmallMessage = intl.formatMessage(
     { id: 'CustomExtendedDataField.numberTooSmall' },
     { min: minimum }

@@ -134,6 +134,138 @@ export const userFields = [
       userTypeIds: ['customer'],
     },
   },
+  // ========== КОНТЕКСТ СПЕЦИАЛИСТА: где, на каком языке, почём и когда ==========
+  // Собираются для подбора под задание и для будущих запросов AI-агентов.
+  // Не просим при регистрации, чтобы не удлинять её; заполняются в профиле.
+  {
+    key: 'serviceAreas',
+    scope: 'public',
+    schemaType: 'multi-enum',
+    // id районов совпадают с server/api-util/communities.js — по ним задания
+    // раскладываются по районам, и витрины сопоставляют районы по этим id.
+    enumOptions: [
+      { option: 'all_dubai', label: 'SpecialistContext.areaAllDubai' },
+      { option: 'dubai_marina', label: 'Dubai Marina' },
+      { option: 'jbr', label: 'JBR' },
+      { option: 'jlt', label: 'JLT' },
+      { option: 'palm_jumeirah', label: 'Palm Jumeirah' },
+      { option: 'downtown', label: 'Downtown Dubai' },
+      { option: 'business_bay', label: 'Business Bay' },
+      { option: 'difc', label: 'DIFC' },
+      { option: 'creek_harbour', label: 'Dubai Creek Harbour' },
+      { option: 'jvc', label: 'JVC' },
+      { option: 'jvt', label: 'JVT' },
+      { option: 'al_barsha', label: 'Al Barsha' },
+      { option: 'dubai_hills', label: 'Dubai Hills Estate' },
+      { option: 'emirates_living', label: 'Emirates Living' },
+      { option: 'sports_city', label: 'Dubai Sports City' },
+      { option: 'motor_city', label: 'Motor City' },
+      { option: 'arabian_ranches', label: 'Arabian Ranches' },
+      { option: 'discovery_gardens', label: 'Discovery Gardens' },
+      { option: 'dubai_investment_park', label: 'Dubai Investment Park' },
+      { option: 'jumeirah', label: 'Jumeirah' },
+      { option: 'bur_dubai', label: 'Bur Dubai' },
+      { option: 'deira', label: 'Deira' },
+      { option: 'al_nahda', label: 'Al Nahda' },
+      { option: 'mirdif', label: 'Mirdif' },
+      { option: 'silicon_oasis', label: 'Dubai Silicon Oasis' },
+      { option: 'international_city', label: 'International City' },
+      { option: 'sharjah', label: 'SpecialistContext.areaSharjah' },
+      { option: 'abu_dhabi', label: 'SpecialistContext.areaAbuDhabi' },
+    ],
+    showConfig: {
+      label: 'SpecialistContext.serviceAreas',
+      displayInProfile: true,
+    },
+    saveConfig: {
+      label: 'SpecialistContext.serviceAreas',
+      displayInSignUp: false,
+      isRequired: false,
+    },
+    userTypeConfig: {
+      limitToUserTypeIds: true,
+      userTypeIds: ['customer'],
+    },
+  },
+  {
+    key: 'languages',
+    scope: 'public',
+    schemaType: 'multi-enum',
+    enumOptions: [
+      { option: 'ru', label: 'SpecialistContext.languageRu' },
+      { option: 'en', label: 'SpecialistContext.languageEn' },
+      { option: 'ar', label: 'SpecialistContext.languageAr' },
+      { option: 'uk', label: 'SpecialistContext.languageUk' },
+      { option: 'uz', label: 'SpecialistContext.languageUz' },
+      { option: 'kk', label: 'SpecialistContext.languageKk' },
+      { option: 'ky', label: 'SpecialistContext.languageKy' },
+      { option: 'tg', label: 'SpecialistContext.languageTg' },
+      { option: 'hi', label: 'SpecialistContext.languageHi' },
+      { option: 'ur', label: 'SpecialistContext.languageUr' },
+      { option: 'tl', label: 'SpecialistContext.languageTl' },
+      { option: 'tr', label: 'SpecialistContext.languageTr' },
+      { option: 'fa', label: 'SpecialistContext.languageFa' },
+    ],
+    showConfig: {
+      label: 'SpecialistContext.languages',
+      displayInProfile: true,
+    },
+    saveConfig: {
+      label: 'SpecialistContext.languages',
+      displayInSignUp: false,
+      isRequired: false,
+    },
+    userTypeConfig: {
+      limitToUserTypeIds: true,
+      userTypeIds: ['customer'],
+    },
+  },
+  {
+    key: 'priceFrom',
+    scope: 'public',
+    schemaType: 'long',
+    minimum: 0,
+    maximum: 100000,
+    showConfig: {
+      label: 'SpecialistContext.priceFrom',
+      valueMessage: 'SpecialistContext.priceFromValue',
+      displayInProfile: true,
+    },
+    saveConfig: {
+      label: 'SpecialistContext.priceFrom',
+      placeholderMessage: 'SpecialistContext.priceFromPlaceholder',
+      displayInSignUp: false,
+      isRequired: false,
+    },
+    userTypeConfig: {
+      limitToUserTypeIds: true,
+      userTypeIds: ['customer'],
+    },
+  },
+  {
+    key: 'availability',
+    scope: 'public',
+    schemaType: 'multi-enum',
+    enumOptions: [
+      { option: 'weekdays', label: 'SpecialistContext.availabilityWeekdays' },
+      { option: 'weekends', label: 'SpecialistContext.availabilityWeekends' },
+      { option: 'evenings', label: 'SpecialistContext.availabilityEvenings' },
+      { option: 'same_day', label: 'SpecialistContext.availabilitySameDay' },
+    ],
+    showConfig: {
+      label: 'SpecialistContext.availability',
+      displayInProfile: true,
+    },
+    saveConfig: {
+      label: 'SpecialistContext.availability',
+      displayInSignUp: false,
+      isRequired: false,
+    },
+    userTypeConfig: {
+      limitToUserTypeIds: true,
+      userTypeIds: ['customer'],
+    },
+  },
 ];
 
 /////////////////////////////////////

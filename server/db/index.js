@@ -1,4 +1,5 @@
 const { Pool } = require('pg');
+const { createContextViews } = require('./contextViews');
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
@@ -243,6 +244,13 @@ const initDatabase = async () => {
     `);
     
     console.log('Database tables initialized');
+
+    try {
+      await createContextViews(client);
+    } catch (error) {
+      // Analytics views must never keep the site from starting.
+      console.error('Context views not created:', error.message);
+    }
     
     const categoriesResult = await client.query('SELECT COUNT(*) FROM blog_categories');
     if (parseInt(categoriesResult.rows[0].count) === 0) {
