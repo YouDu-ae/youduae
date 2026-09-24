@@ -190,6 +190,18 @@ const initDatabase = async () => {
         sequence_id BIGINT,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
+
+      -- Account deletions. Sharetribe cannot delete a user without their
+      -- password, and people who sign in with Apple or Google have none, so
+      -- their deletion is a request an operator completes in Console. The
+      -- e-mail is kept only until the confirmation letter goes out.
+      CREATE TABLE IF NOT EXISTS account_deletion_requests (
+        user_id VARCHAR(100) PRIMARY KEY,
+        email VARCHAR(255),
+        method VARCHAR(20) NOT NULL,
+        requested_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        completed_at TIMESTAMP
+      );
     `);
     
     console.log('Database tables initialized');
@@ -895,6 +907,65 @@ const saveEventCursor = async (name, sequenceId) => {
 };
 
 /**
+ * Records a deletion request. Returns true only the first time, so a repeated
+ * tap does not alert the operator twice.
+ */
+const recordDeletionRequest = async ({ userId, email, method }) => {
+  const result = await pool.query(
+    `INSERT INTO account_deletion_requests (user_id, email, method)
+     VALUES ($1, $2, $3)
+     ON CONFLICT (user_id) DO NOTHING
+     RETURNING user_id`,
+    [userId, email, method]
+  );
+  return result.rowCount > 0;
+};
+
+/**
+ * Marks the user's deletion done and forgets their e-mail, returning it for
+ * the confirmation letter if a request was still open.
+ */
+const completeDeletionRequest = async userId => {
+  const pending = await pool.query(
+    `SELECT email FROM account_deletion_requests
+     WHERE user_id = $1 AND completed_at IS NULL`,
+    [userId]
+  );
+  await pool.query(
+    `UPDATE account_deletion_requests SET completed_at = NOW(), email = NULL
+     WHERE user_id = $1 AND completed_at IS NULL`,
+    [userId]
+  );
+  return pending.rows[0] ? { email: pending.rows[0].email } : null;
+};
+
+/**
+ * Removes everything YouDu's own database holds about a user. Sharetribe erases
+ * its side on deletion but knows nothing of these tables.
+ */
+const deleteUserLocalData = async userId => {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    await client.query(
+      `DELETE FROM ticket_messages WHERE ticket_id IN
+         (SELECT ticket_id FROM support_tickets WHERE user_id = $1)`,
+      [userId]
+    );
+    await client.query('DELETE FROM support_tickets WHERE user_id = $1', [userId]);
+    await client.query('DELETE FROM telegram_subscribers WHERE user_id = $1', [userId]);
+    await client.query('DELETE FROM voice_sessions WHERE user_id = $1', [userId]);
+    await client.query('DELETE FROM reminder_log WHERE recipient_user_id = $1', [userId]);
+    await client.query('COMMIT');
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
+};
+
+/**
  * Stop sending to a chat that Telegram rejects, e.g. after the user blocks the
  * bot. Keeping the row preserves history and lets a re-link revive it.
  */
@@ -990,4 +1061,8 @@ module.exports = {
   // Sharetribe event consumers
   getOrStartEventCursor,
   saveEventCursor,
+  // Account deletion
+  recordDeletionRequest,
+  completeDeletionRequest,
+  deleteUserLocalData,
 };

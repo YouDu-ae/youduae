@@ -28,6 +28,7 @@ const ListingPageCoverPhoto = loadable(() => import(/* webpackChunkName: "Listin
 const ListingPageCarousel = loadable(() => import(/* webpackChunkName: "ListingPageCarousel" */ /* webpackPrefetch: true */ '../containers/ListingPage/ListingPageCarousel'));
 const ManageListingsPage = loadable(() => import(/* webpackChunkName: "ManageListingsPage" */ '../containers/ManageListingsPage/ManageListingsPage'));
 const PasswordChangePage = loadable(() => import(/* webpackChunkName: "PasswordChangePage" */ '../containers/PasswordChangePage/PasswordChangePage'));
+const DeleteAccountPage = loadable(() => import(/* webpackChunkName: "DeleteAccountPage" */ '../containers/DeleteAccountPage/DeleteAccountPage'));
 const PasswordRecoveryPage = loadable(() => import(/* webpackChunkName: "PasswordRecoveryPage" */ '../containers/PasswordRecoveryPage/PasswordRecoveryPage'));
 const PasswordResetPage = loadable(() => import(/* webpackChunkName: "PasswordResetPage" */ '../containers/PasswordResetPage/PasswordResetPage'));
 const PaymentMethodsPage = loadable(() => import(/* webpackChunkName: "PaymentMethodsPage" */ '../containers/PaymentMethodsPage/PaymentMethodsPage'));
@@ -62,6 +63,7 @@ export const ACCOUNT_SETTINGS_PAGES = [
   'VerificationPage',
   'StripePayoutPage',
   'PaymentMethodsPage',
+  'DeleteAccountPage',
 ];
 
 // https://en.wikipedia.org/wiki/Universally_unique_identifier#Nil_UUID
@@ -349,6 +351,13 @@ const routeConfiguration = (layoutConfig, accessControlConfig) => {
       auth: true,
       authPage: 'LoginPage',
       component: PasswordChangePage,
+    },
+    {
+      path: '/account/delete',
+      name: 'DeleteAccountPage',
+      auth: true,
+      authPage: 'LoginPage',
+      component: DeleteAccountPage,
     },
     {
       path: '/account/verification',

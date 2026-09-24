@@ -10,23 +10,11 @@
  * whose listing is now published and was pendingApproval before. A stored
  * sequence id makes the reading resumable, and notifyExecutorsAboutListing is
  * idempotent, so a re-read event cannot send the alert twice.
+ *
+ * The polling itself lives in eventPoller.
  */
 
-const db = require('../db');
-const { notifyExecutorsAboutListing } = require('../api-util/notifyListingPublished');
-const { createIntegrationSdk } = require('./context');
-
 const CURSOR_NAME = 'listing-approvals';
-
-// The admin approves and then expects the task to reach people; an hour-long
-// sweep would feel broken. One query a minute is far below the API limit.
-const POLL_INTERVAL_MS = 60 * 1000;
-
-// Long enough for the dyno to finish booting and serve traffic first.
-const STARTUP_DELAY_MS = 2 * 60 * 1000;
-
-// A backlog after downtime is drained in one tick, but never unboundedly.
-const MAX_PAGES_PER_TICK = 10;
 
 const isApproval = event => {
   const { eventType, resource, previousValues } = event.attributes || {};
@@ -89,67 +77,8 @@ const processApprovalEvents = async ({ integrationSdk, db, notify, log = console
   return result;
 };
 
-let timers = [];
-let running = false;
-
-const startApprovalPoller = () => {
-  if (process.env.LISTING_APPROVAL_POLLER === 'false') {
-    console.log('[approvals] опрос одобрений выключен');
-    return;
-  }
-
-  const integrationSdk = createIntegrationSdk();
-  if (!integrationSdk) {
-    console.log('[approvals] нет ключей Integration API, опрос не запущен');
-    return;
-  }
-
-  const tick = async () => {
-    // A slow tick must not stack up behind itself.
-    if (running) return;
-    running = true;
-
-    try {
-      for (let page = 0; page < MAX_PAGES_PER_TICK; page++) {
-        const result = await processApprovalEvents({
-          integrationSdk,
-          db,
-          notify: notifyExecutorsAboutListing,
-        });
-        if (result.approvals > 0) {
-          console.log('[approvals] итог:', JSON.stringify(result));
-        }
-        if (!result.fullPage) break;
-      }
-    } catch (error) {
-      // A broken poll must never take the web server down with it.
-      console.error('[approvals] сбой опроса:', error.message);
-    } finally {
-      running = false;
-    }
-  };
-
-  const startup = setTimeout(() => {
-    tick();
-    timers.push(setInterval(tick, POLL_INTERVAL_MS));
-  }, STARTUP_DELAY_MS);
-
-  timers.push(startup);
-  console.log('[approvals] опрос одобрений запущен, раз в минуту');
-};
-
-const stopApprovalPoller = () => {
-  timers.forEach(timer => {
-    clearTimeout(timer);
-    clearInterval(timer);
-  });
-  timers = [];
-};
-
 module.exports = {
   processApprovalEvents,
   isApproval,
-  startApprovalPoller,
-  stopApprovalPoller,
   CURSOR_NAME,
 };

@@ -53,6 +53,7 @@ const placesProxy = require('./api/places-proxy');
 const voiceAccess = require('./api/voice-access');
 const voiceSession = require('./api/voice-session');
 const voiceTool = require('./api/voice-tool');
+const deleteAccount = require('./api/delete-account');
 const telegramBot = require('./api/telegram-bot');
 const syncTelegramCategories = require('./api/sync-telegram-categories');
 const telegramBlogWebhook = require('./api/telegram-blog-webhook');
@@ -164,6 +165,8 @@ router.get('/places/details', placesLimiter, placesProxy.details);
 router.get('/voice/access', requireUser, voiceAccess);
 router.post('/voice/session', voiceSessionLimiter, requireUser, voiceSession);
 router.post('/voice/tool', voiceToolLimiter, requireUser, voiceTool);
+// Authenticates itself: the site sends a session cookie, the iOS app a Bearer token.
+router.post('/account/delete', writeLimiter, deleteAccount);
 
 // Telegram Bot
 router.post('/telegram/webhook', telegramBot.handleWebhook);

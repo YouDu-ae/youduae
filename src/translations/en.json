@@ -545,6 +545,7 @@
   "LayoutWrapperAccountSettingsSideNav.contactDetailsTabTitle": "Contact details",
   "LayoutWrapperAccountSettingsSideNav.passwordTabTitle": "Password",
   "LayoutWrapperAccountSettingsSideNav.verificationTabTitle": "Verification",
+  "LayoutWrapperAccountSettingsSideNav.deleteAccountTabTitle": "Delete account",
   "LayoutWrapperAccountSettingsSideNav.paymentMethodsTabTitle": "Payment methods",
   "LayoutWrapperAccountSettingsSideNav.paymentsTabTitle": "Payout details",
   "LimitedAccessBanner.logout": "Log out",

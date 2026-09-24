@@ -538,6 +538,7 @@
   "LayoutWrapperAccountSettingsSideNav.contactDetailsTabTitle": "Контактная информация",
   "LayoutWrapperAccountSettingsSideNav.passwordTabTitle": "Пароль",
   "LayoutWrapperAccountSettingsSideNav.verificationTabTitle": "Верификация",
+  "LayoutWrapperAccountSettingsSideNav.deleteAccountTabTitle": "Удаление аккаунта",
   "LayoutWrapperAccountSettingsSideNav.paymentMethodsTabTitle": "Payment methods",
   "LayoutWrapperAccountSettingsSideNav.paymentsTabTitle": "Payout details",
   "LimitedAccessBanner.logout": "Log out",

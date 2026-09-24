@@ -1117,6 +1117,28 @@ async function notifyAdminListingPendingApproval(data) {
 }
 
 /**
+ * A user without a password asked to delete their account; only Console can
+ * do it, and Apple expects it done in a reasonable time.
+ */
+async function notifyAdminAccountDeletionRequest({ userId, email, source }) {
+  if (!TELEGRAM_ADMIN_CHAT_ID) {
+    console.log('⚠️ TELEGRAM_ADMIN_CHAT_ID not set, skipping deletion request alert');
+    return false;
+  }
+
+  const message = `🗑 <b>Запрос на удаление аккаунта</b>
+
+👤 ${escapeHtml(email || 'e-mail не указан')}
+📱 Откуда: ${escapeHtml(source)}
+
+<a href="https://console.sharetribe.com/a/users/${userId}">Удалить в Console →</a>
+
+Пользователь входит через Apple или Google, пароля у него нет, поэтому удалить аккаунт может только оператор. Обещанный срок — 30 дней. Письмо-подтверждение уйдёт автоматически после удаления.`;
+
+  return await sendTelegramMessage(TELEGRAM_ADMIN_CHAT_ID, message);
+}
+
+/**
  * Setup Telegram webhook
  */
 async function setupWebhook(webhookUrl) {
@@ -1154,6 +1176,7 @@ module.exports = {
   notifyNewListingToCategory,
   notifyAdminPortfolioModeration,
   notifyAdminListingPendingApproval,
+  notifyAdminAccountDeletionRequest,
   notifyUnansweredOffers,
   notifySpecialistDigest,
   buildUnansweredOffersMessage,
