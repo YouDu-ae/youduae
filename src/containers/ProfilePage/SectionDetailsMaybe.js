@@ -18,7 +18,7 @@ const SectionDetailsMaybe = props => {
     const userType = publicData.userType;
     const isTargetUserType = !limitToUserTypeIds || userTypeIds.includes(userType);
 
-    const { displayInProfile, valueMessage } = showConfig;
+    const { displayInProfile } = showConfig;
     const label =
       typeof showConfig.label === 'string' && showConfig.label.includes('.')
         ? intl.formatMessage({ id: showConfig.label })
@@ -40,11 +40,7 @@ const SectionDetailsMaybe = props => {
         : schemaType === 'boolean'
         ? filteredConfigs.concat({ key, value: getBooleanMessage(value), label })
         : schemaType === 'long'
-        ? filteredConfigs.concat({
-            key,
-            value: valueMessage ? intl.formatMessage({ id: valueMessage }, { value }) : value,
-            label,
-          })
+        ? filteredConfigs.concat({ key, value, label })
         : filteredConfigs;
     }
     return filteredConfigs;

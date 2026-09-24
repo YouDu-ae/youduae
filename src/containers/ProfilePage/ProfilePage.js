@@ -60,6 +60,7 @@ import SectionPortfolio from './SectionPortfolio';
 import SectionMultiEnumMaybe from './SectionMultiEnumMaybe';
 import SectionYoutubeVideoMaybe from './SectionYoutubeVideoMaybe';
 import SectionServiceCategories from './SectionServiceCategories';
+import SectionSpecialistContext from './SectionSpecialistContext';
 
 const MAX_MOBILE_SCREEN_WIDTH = 768;
 const MIN_LENGTH_FOR_LONG_WORDS = 20;
@@ -464,6 +465,9 @@ export const CustomUserFields = props => {
       {/* Кастомное отображение категорий с подкатегориями для Customer */}
       {publicData?.userType === 'customer' && publicData?.serviceCategories?.length > 0 && (
         <SectionServiceCategories publicData={publicData} />
+      )}
+      {publicData?.userType === 'customer' && (
+        <SectionSpecialistContext publicData={publicData} userFieldConfig={userFieldConfig} />
       )}
       {propsForCustomFields.map(customFieldProps => {
         const { schemaType, key, ...fieldProps } = customFieldProps;

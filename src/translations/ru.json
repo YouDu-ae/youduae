@@ -2142,5 +2142,14 @@
   "SpecialistContext.availabilityWeekdays": "По будням",
   "SpecialistContext.availabilityWeekends": "По выходным",
   "SpecialistContext.availabilityEvenings": "Вечером",
-  "SpecialistContext.availabilitySameDay": "Срочный выезд в тот же день"
+  "SpecialistContext.availabilitySameDay": "Срочный выезд в тот же день",
+  "SpecialistContext.formTitle": "О вашей работе",
+  "SpecialistContext.formDescription": "Эти данные видны в вашем профиле и помогают заказчикам найти вас под свою задачу.",
+  "SpecialistContext.priceFromLabel": "Минимальная стоимость работ",
+  "SpecialistContext.priceFromHint": "Сумма, от которой вы берётесь за работу. Можно оставить пустым.",
+  "SpecialistContext.profileHeading": "О работе",
+  "SpecialistContext.profileAreas": "Районы",
+  "SpecialistContext.profileLanguages": "Языки",
+  "SpecialistContext.profilePrice": "Стоимость",
+  "SpecialistContext.profileAvailability": "График"
 }

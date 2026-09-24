@@ -2142,5 +2142,14 @@
   "SpecialistContext.availabilityWeekdays": "Weekdays",
   "SpecialistContext.availabilityWeekends": "Weekends",
   "SpecialistContext.availabilityEvenings": "Evenings",
-  "SpecialistContext.availabilitySameDay": "Same-day visits"
+  "SpecialistContext.availabilitySameDay": "Same-day visits",
+  "SpecialistContext.formTitle": "About your work",
+  "SpecialistContext.formDescription": "This is shown on your profile and helps clients find you for their task.",
+  "SpecialistContext.priceFromLabel": "Minimum job price",
+  "SpecialistContext.priceFromHint": "The amount you start from. You can leave it empty.",
+  "SpecialistContext.profileHeading": "Work details",
+  "SpecialistContext.profileAreas": "Areas",
+  "SpecialistContext.profileLanguages": "Languages",
+  "SpecialistContext.profilePrice": "Price",
+  "SpecialistContext.profileAvailability": "Availability"
 }

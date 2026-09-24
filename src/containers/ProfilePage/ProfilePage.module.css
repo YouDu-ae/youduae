@@ -788,6 +788,62 @@
   transform: translateY(-1px);
 }
 
+.sectionSpecialistContext {
+  margin-bottom: 32px;
+}
+
+.contextList {
+  margin: 0;
+  padding: 16px 20px;
+  background: #fafafa;
+  border-left: 4px solid #ffc934;
+  border-radius: 8px;
+}
+
+.contextRow {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 0;
+  border-bottom: 1px solid #eeeeee;
+
+  &:first-child {
+    padding-top: 0;
+  }
+
+  &:last-child {
+    padding-bottom: 0;
+    border-bottom: none;
+  }
+
+  @media (--viewportMedium) {
+    flex-direction: row;
+    align-items: baseline;
+    gap: 16px;
+  }
+}
+
+.contextLabel {
+  flex: 0 0 160px;
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--colorGrey700);
+}
+
+.contextValue {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+}
+
+.contextText {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--colorBlack);
+}
+
 /* ================================================
    Portfolio Section
    ================================================ */

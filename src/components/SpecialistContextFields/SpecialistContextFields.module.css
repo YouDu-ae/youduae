@@ -1,0 +1,120 @@
+.root {
+  margin: 8px 0 32px 0;
+  padding: 20px;
+  border: 1px solid #eeeeee;
+  border-radius: 16px;
+  background: #fcfcfc;
+}
+
+.title {
+  margin: 0 0 4px 0;
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 18px;
+  line-height: 24px;
+  letter-spacing: -0.02em;
+  color: #000;
+}
+
+.description {
+  margin: 0 0 20px 0;
+  font-size: 14px;
+  line-height: 18px;
+  color: #909090;
+}
+
+.block {
+  margin-bottom: 22px;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.blockLabel {
+  display: block;
+  margin-bottom: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 20px;
+  color: #111;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chip {
+  padding: 7px 14px;
+  border: 1px solid #e0e0e0;
+  border-radius: 18px;
+  background: #fff;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 18px;
+  color: #333;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+
+  &:hover {
+    border-color: #ffc934;
+    background: #fff8e6;
+  }
+
+  &:focus-visible {
+    outline: 2px solid #ffc934;
+    outline-offset: 2px;
+  }
+}
+
+.chipSelected {
+  border-color: #ffc934;
+  background: #ffc934;
+  color: #000;
+
+  &:hover {
+    background: #ffc934;
+  }
+}
+
+.chipWide {
+  font-weight: 600;
+}
+
+.priceRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 260px;
+}
+
+.priceInput {
+  flex: 1;
+  height: 44px;
+  padding: 0 14px;
+  border: 1px solid #e0e0e0;
+  border-radius: 10px;
+  font-size: 15px;
+  background: #fff;
+
+  &:focus {
+    border-color: #ffc934;
+    outline: none;
+  }
+}
+
+.priceCurrency {
+  font-size: 15px;
+  font-weight: 600;
+  color: #555;
+}
+
+.hint {
+  margin: 6px 0 0 0;
+  font-size: 13px;
+  line-height: 18px;
+  color: #909090;
+}

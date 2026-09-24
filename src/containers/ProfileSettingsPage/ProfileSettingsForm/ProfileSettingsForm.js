@@ -22,11 +22,16 @@ import {
   H4,
   CustomExtendedDataField,
   ServiceCategorySelector,
+  SpecialistContextFields,
 } from '../../../components';
 
 import { PortfolioUploader } from '../PortfolioUploader';
+import { CONTEXT_FIELD_NAMES } from '../../../components/SpecialistContextFields/SpecialistContextFields';
 
 import css from './ProfileSettingsForm.module.css';
+
+// Rendered together by SpecialistContextFields rather than one by one.
+const specialistContextNames = Object.values(CONTEXT_FIELD_NAMES);
 
 const ACCEPT_IMAGES = 'image/*';
 const UPLOAD_CHANGE_DELAY = 2000; // Show spinner so that browser has time to load img srcset
@@ -461,8 +466,24 @@ class ProfileSettingsFormComponent extends Component {
                   if ((isServiceCategoriesField || isSubcategoriesField) && userTypeConfig?.userType === 'customer') {
                     return null;
                   }
+                  if (specialistContextNames.includes(key)) {
+                    return null;
+                  }
                   return <CustomExtendedDataField key={key} {...fieldProps} formId={formId} />;
                 })}
+
+                {userTypeConfig?.userType === 'customer' && (
+                  <SpecialistContextFields
+                    formId={formId}
+                    fieldConfigs={userFieldProps.reduce(
+                      (configs, { key, fieldConfig }) =>
+                        specialistContextNames.includes(key)
+                          ? { ...configs, [key]: fieldConfig }
+                          : configs,
+                      {}
+                    )}
+                  />
+                )}
               </div>
               {submitError}
               {showSuccess && (

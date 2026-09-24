@@ -175,7 +175,8 @@ export const userFields = [
     ],
     showConfig: {
       label: 'SpecialistContext.serviceAreas',
-      displayInProfile: true,
+      // Показывается отдельной карточкой SectionSpecialistContext.
+      displayInProfile: false,
     },
     saveConfig: {
       label: 'SpecialistContext.serviceAreas',
@@ -208,7 +209,8 @@ export const userFields = [
     ],
     showConfig: {
       label: 'SpecialistContext.languages',
-      displayInProfile: true,
+      // Показывается отдельной карточкой SectionSpecialistContext.
+      displayInProfile: false,
     },
     saveConfig: {
       label: 'SpecialistContext.languages',
@@ -228,8 +230,8 @@ export const userFields = [
     maximum: 100000,
     showConfig: {
       label: 'SpecialistContext.priceFrom',
-      valueMessage: 'SpecialistContext.priceFromValue',
-      displayInProfile: true,
+      // Показывается отдельной карточкой SectionSpecialistContext.
+      displayInProfile: false,
     },
     saveConfig: {
       label: 'SpecialistContext.priceFrom',
@@ -254,7 +256,8 @@ export const userFields = [
     ],
     showConfig: {
       label: 'SpecialistContext.availability',
-      displayInProfile: true,
+      // Показывается отдельной карточкой SectionSpecialistContext.
+      displayInProfile: false,
     },
     saveConfig: {
       label: 'SpecialistContext.availability',

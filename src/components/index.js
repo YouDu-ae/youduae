@@ -130,6 +130,7 @@ export { default as CategorySpecialistsCard } from './CategorySpecialistsCard/Ca
 export { default as VoiceIntake } from './VoiceIntake/VoiceIntake';
 export { default as CustomExtendedDataField } from './CustomExtendedDataField/CustomExtendedDataField';
 export { default as ServiceCategorySelector } from './ServiceCategorySelector/ServiceCategorySelector';
+export { default as SpecialistContextFields } from './SpecialistContextFields/SpecialistContextFields';
 export { default as SubcategoryFilter } from './SubcategoryFilter/SubcategoryFilter';
 export { default as OrderBreakdown } from './OrderBreakdown/OrderBreakdown';
 export { default as OrderPanel } from './OrderPanel/OrderPanel';
