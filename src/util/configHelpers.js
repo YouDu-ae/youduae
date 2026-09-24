@@ -1,4 +1,6 @@
 import { subUnitDivisors } from '../config/settingsCurrency';
+import { getCategoryLabel, getSubcategoryLabel } from '../config/serviceCategories';
+import { getPreferredLanguage } from './locale';
 import { getSupportedProcessesInfo, isBookingProcessAlias } from '../transactions/transaction';
 
 // --- ПРОСТЫЕ ХЕЛПЕРЫ, КОТОРЫЕ ИСПОЛЬЗУЕТ configListing.js ---
@@ -1081,6 +1083,17 @@ const restructureUserFields = hostedUserFields => {
 //   ],
 // }
 const validateCategoryConfig = hostedConfig => {
+  // Console keeps category names in Russian only; the English UI takes them
+  // from serviceCategories.js by id and falls back to the Console name.
+  const isEnglish = getPreferredLanguage() === 'en';
+  const englishName = (name, id, parentId) => {
+    if (!isEnglish) {
+      return name;
+    }
+    const label = parentId ? getSubcategoryLabel(parentId, id, 'en') : getCategoryLabel(id, 'en');
+    return label && label !== id ? label : name;
+  };
+
   const validateData = data => {
     if (!data || !data.categories || !Array.isArray(data.categories)) {
       return {};
@@ -1088,22 +1101,22 @@ const validateCategoryConfig = hostedConfig => {
 
     return {
       categories: data.categories.map(({ name, id, subcategories }) => ({
-        name,
+        name: englishName(name, id),
         id,
-        subcategories: validateSubcategories(subcategories),
+        subcategories: validateSubcategories(subcategories, id),
       })),
     };
   };
 
-  const validateSubcategories = subcategories => {
+  const validateSubcategories = (subcategories, parentId) => {
     if (!subcategories || !Array.isArray(subcategories)) {
       return [];
     }
 
     return subcategories.map(({ name, id, subcategories }) => ({
-      name,
+      name: englishName(name, id, parentId),
       id,
-      subcategories: validateSubcategories(subcategories),
+      subcategories: validateSubcategories(subcategories, id),
     }));
   };
   return validateData(hostedConfig).categories;
