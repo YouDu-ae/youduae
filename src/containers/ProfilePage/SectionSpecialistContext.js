@@ -21,9 +21,9 @@ const SectionSpecialistContext = props => {
   const labelsFor = key => {
     const options = userFieldConfig?.find(field => field.key === key)?.enumOptions || [];
     const values = Array.isArray(publicData[key]) ? publicData[key] : [];
-    return values
-      .map(value => options.find(o => `${o.option}` === value))
-      .filter(Boolean)
+    // Settings order, not the order the specialist happened to tap them in.
+    return options
+      .filter(o => values.includes(`${o.option}`))
       .map(o => translate(intl, o.label));
   };
 
