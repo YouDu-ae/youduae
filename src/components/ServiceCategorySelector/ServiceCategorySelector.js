@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Field, useForm, useField } from 'react-final-form';
+import React, { useState } from 'react';
+import { useForm, useField } from 'react-final-form';
 import classNames from 'classnames';
 
 import { useIntl } from '../../util/reactIntl';
@@ -12,41 +12,32 @@ import css from './ServiceCategorySelector.module.css';
  * ServiceCategorySelector - красивый компонент для выбора категорий и подкатегорий
  * Используется в форме регистрации Customer (исполнитель)
  */
-const ServiceCategorySelector = props => {
-  const { name, formId, values } = props;
+const ServiceCategorySelector = () => {
   const intl = useIntl();
   const locale = intl.locale === 'ru' ? 'ru' : 'en';
   
   // Получаем доступ к Form API
   const form = useForm();
 
-  // Состояние: какие категории выбраны
-  const [selectedCategories, setSelectedCategories] = useState([]);
   const [expandedCategories, setExpandedCategories] = useState([]);
 
-  // Получаем текущие значения из формы
-  const currentCategories = values?.serviceCategories || [];
-  const currentSubcategories = values?.subcategories || {};
-
-  // Обновляем состояние при изменении формы
-  useEffect(() => {
-    if (Array.isArray(currentCategories)) {
-      setSelectedCategories(currentCategories);
-    }
-  }, [JSON.stringify(currentCategories)]);
+  // Read categories straight from the form: mirroring them in local state
+  // writes [] back into the form on mount and wipes saved categories.
+  const { input: categoriesInput } = useField('serviceCategories', { subscription: { value: true } });
+  const { input: subcategoriesInput } = useField('subcategories', { subscription: { value: true } });
+  const selectedCategories = Array.isArray(categoriesInput.value) ? categoriesInput.value : [];
+  const currentSubcategories =
+    subcategoriesInput.value && typeof subcategoriesInput.value === 'object'
+      ? subcategoriesInput.value
+      : {};
 
   // Переключение категории
   const toggleCategory = categoryId => {
-    console.log('🔍 toggleCategory called:', categoryId);
-    console.log('Current selected:', selectedCategories);
-    
     const isSelected = selectedCategories.includes(categoryId);
     
     if (isSelected) {
       // Убираем категорию
       const newCategories = selectedCategories.filter(id => id !== categoryId);
-      console.log('✅ Removing category, new list:', newCategories);
-      setSelectedCategories(newCategories);
       
       // Убираем из expanded
       setExpandedCategories(expandedCategories.filter(id => id !== categoryId));
@@ -61,9 +52,6 @@ const ServiceCategorySelector = props => {
     } else {
       // Добавляем категорию
       const newCategories = [...selectedCategories, categoryId];
-      console.log('✅ Adding category, new list:', newCategories);
-      console.log('🔓 Auto-expanding category');
-      setSelectedCategories(newCategories);
       
       // Автоматически раскрываем для выбора подкатегорий
       setExpandedCategories([...expandedCategories, categoryId]);
@@ -113,26 +101,6 @@ const ServiceCategorySelector = props => {
       <p className={css.description}>
         {intl.formatMessage({ id: 'ServiceCategory.selectDescription' })}
       </p>
-
-      {/* Hidden fields synced from local state into Final Form */}
-      <Field name="serviceCategories" subscription={{ value: true }}>
-        {({ input }) => {
-          const current = Array.isArray(input.value) ? input.value : [];
-          if (JSON.stringify(current) !== JSON.stringify(selectedCategories)) {
-            input.onChange(selectedCategories);
-          }
-          return null;
-        }}
-      </Field>
-      <Field name="subcategories" subscription={{ value: true }}>
-        {({ input }) => {
-          const current = input.value && typeof input.value === 'object' ? input.value : {};
-          if (JSON.stringify(current) !== JSON.stringify(currentSubcategories)) {
-            input.onChange(currentSubcategories);
-          }
-          return null;
-        }}
-      </Field>
 
       <div className={css.categoriesGrid}>
         {SERVICE_CATEGORIES.map(category => {
