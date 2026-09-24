@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useLocation, useHistory } from 'react-router-dom';
-import { FormattedMessage } from '../../util/reactIntl';
+import { FormattedMessage, useIntl } from '../../util/reactIntl';
 import { Page, LayoutSingleColumn, NamedLink, VerificationBadge, SubcategoryFilter } from '../../components';
 import TopbarContainer from '../TopbarContainer/TopbarContainer';
 import FooterContainer from '../FooterContainer/FooterContainer';
@@ -21,6 +21,8 @@ import css from './CategoryExecutorsPage.module.css';
  * Публичная страница: список исполнителей доступен всем посетителям.
  */
 const CategoryExecutorsPageComponent = () => {
+  const intl = useIntl();
+  const locale = intl.locale === 'ru' ? 'ru' : 'en';
   const { categoryId } = useParams();
   const location = useLocation();
   const history = useHistory();
@@ -29,7 +31,7 @@ const CategoryExecutorsPageComponent = () => {
   const [error, setError] = useState(null);
   const [selectedSubcategory, setSelectedSubcategory] = useState(null);
 
-  const categoryLabel = getCategoryLabel(categoryId, 'ru');
+  const categoryLabel = getCategoryLabel(categoryId, locale);
   const categoryExists = SERVICE_CATEGORIES.find(cat => cat.id === categoryId);
 
   useEffect(() => {
@@ -40,7 +42,7 @@ const CategoryExecutorsPageComponent = () => {
 
   useEffect(() => {
     if (!categoryExists) {
-      setError('Категория не найдена');
+      setError(intl.formatMessage({ id: 'CategoryExecutorsPage.categoryNotFound' }));
       setLoading(false);
       setExecutors([]);
       return;
@@ -66,7 +68,7 @@ const CategoryExecutorsPageComponent = () => {
     return () => {
       cancelled = true;
     };
-  }, [categoryId, categoryExists]);
+  }, [categoryId, categoryExists, intl]);
 
   const formatDate = dateString => {
     const date = new Date(dateString);
@@ -75,13 +77,13 @@ const CategoryExecutorsPageComponent = () => {
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
     if (diffDays < 30) {
-      return `${diffDays} дн. назад`;
+      return intl.formatMessage({ id: 'CategoryExecutorsPage.daysAgo' }, { count: diffDays });
     } else if (diffDays < 365) {
       const months = Math.floor(diffDays / 30);
-      return `${months} мес. назад`;
+      return intl.formatMessage({ id: 'CategoryExecutorsPage.monthsAgo' }, { count: months });
     } else {
       const years = Math.floor(diffDays / 365);
-      return `${years} г. назад`;
+      return intl.formatMessage({ id: 'CategoryExecutorsPage.yearsAgo' }, { count: years });
     }
   };
 
@@ -138,14 +140,21 @@ const CategoryExecutorsPageComponent = () => {
 
   if (!categoryExists) {
     return (
-      <Page title="Категория не найдена" scrollingDisabled={false}>
+      <Page
+        title={intl.formatMessage({ id: 'CategoryExecutorsPage.categoryNotFound' })}
+        scrollingDisabled={false}
+      >
         <TopbarContainer />
         <LayoutSingleColumn topbar={<TopbarContainer />} footer={<FooterContainer />}>
           <div className={css.error}>
-            <h1>Категория не найдена</h1>
-            <p>Пожалуйста, выберите категорию из списка на главной странице.</p>
+            <h1>
+              <FormattedMessage id="CategoryExecutorsPage.categoryNotFound" />
+            </h1>
+            <p>
+              <FormattedMessage id="CategoryExecutorsPage.categoryNotFoundMessage" />
+            </p>
             <NamedLink name="LandingPage" className={css.backButton}>
-              На главную
+              <FormattedMessage id="CategoryExecutorsPage.goHome" />
             </NamedLink>
           </div>
         </LayoutSingleColumn>
@@ -155,36 +164,51 @@ const CategoryExecutorsPageComponent = () => {
 
   return (
     <Page
-      title={`${categoryLabel} — исполнители в ОАЭ | YouDu`}
-      description={`Найдите проверенных специалистов по направлению «${categoryLabel}» в ОАЭ на YouDu. Создайте задание и получите отклики от мастеров.`}
+      title={intl.formatMessage(
+        { id: 'CategoryExecutorsPage.metaTitle' },
+        { category: categoryLabel }
+      )}
+      description={intl.formatMessage(
+        { id: 'CategoryExecutorsPage.metaDescription' },
+        { category: categoryLabel }
+      )}
       scrollingDisabled={false}
       schema={{
         '@context': 'http://schema.org',
         '@type': 'CollectionPage',
-        name: `${categoryLabel} — исполнители в ОАЭ`,
-        description: `Специалисты YouDu в категории «${categoryLabel}»`,
+        name: intl.formatMessage(
+          { id: 'CategoryExecutorsPage.schemaName' },
+          { category: categoryLabel }
+        ),
+        description: intl.formatMessage(
+          { id: 'CategoryExecutorsPage.schemaDescription' },
+          { category: categoryLabel }
+        ),
       }}
     >
       <LayoutSingleColumn topbar={<TopbarContainer />} footer={<FooterContainer />}>
         <div className={css.root}>
           <div className={css.header}>
             <button onClick={() => history.goBack()} className={css.backLink} type="button">
-              ← Назад к категориям
+              ← <FormattedMessage id="CategoryExecutorsPage.backToCategories" />
             </button>
             <h1 className={css.title}>
-              Исполнители: {categoryLabel}
+              <FormattedMessage
+                id="CategoryExecutorsPage.pageTitle"
+                values={{ category: categoryLabel }}
+              />
               {selectedSubcategory
-                ? ` / ${getSubcategoryLabel(categoryId, selectedSubcategory, 'ru')}`
+                ? ` / ${getSubcategoryLabel(categoryId, selectedSubcategory, locale)}`
                 : ''}
             </h1>
             <p className={css.subtitle}>
               {loading ? (
-                'Загрузка...'
+                <FormattedMessage id="CategoryExecutorsPage.loading" />
               ) : (
-                <>
-                  Найдено {filteredExecutors.length}{' '}
-                  {filteredExecutors.length === 1 ? 'исполнитель' : 'исполнителей'}
-                </>
+                <FormattedMessage
+                  id="CategoryExecutorsPage.foundCount"
+                  values={{ count: filteredExecutors.length }}
+                />
               )}
             </p>
           </div>
@@ -200,7 +224,9 @@ const CategoryExecutorsPageComponent = () => {
           {loading && (
             <div className={css.loading}>
               <div className={css.spinner}>⏳</div>
-              <p>Загрузка исполнителей...</p>
+              <p>
+                <FormattedMessage id="CategoryExecutorsPage.loadingExecutors" />
+              </p>
             </div>
           )}
 
@@ -236,12 +262,12 @@ const CategoryExecutorsPageComponent = () => {
                   onClick={() => setSelectedSubcategory(null)}
                   className={css.resetFilterButton}
                 >
-                  Показать всех исполнителей
+                  <FormattedMessage id="CategoryExecutorsPage.showAllExecutors" />
                 </button>
               )}
               <p className={css.hint}>
                 <NamedLink name="LandingPage" className={css.backToHomeLink}>
-                  ← Вернуться на главную
+                  ← <FormattedMessage id="CategoryExecutorsPage.backToHome" />
                 </NamedLink>
               </p>
             </div>
@@ -253,11 +279,21 @@ const CategoryExecutorsPageComponent = () => {
                 <thead>
                   <tr>
                     <th className={css.thAvatar}></th>
-                    <th className={css.thName}>Имя</th>
-                    <th className={css.thVerification}>Верификация</th>
-                    <th className={css.thRegistration}>Регистрация</th>
-                    <th className={css.thReviews}>Отзывы</th>
-                    <th className={css.thRating}>Рейтинг</th>
+                    <th className={css.thName}>
+                      <FormattedMessage id="CategoryExecutorsPage.columnName" />
+                    </th>
+                    <th className={css.thVerification}>
+                      <FormattedMessage id="CategoryExecutorsPage.columnVerification" />
+                    </th>
+                    <th className={css.thRegistration}>
+                      <FormattedMessage id="CategoryExecutorsPage.columnRegistration" />
+                    </th>
+                    <th className={css.thReviews}>
+                      <FormattedMessage id="CategoryExecutorsPage.columnReviews" />
+                    </th>
+                    <th className={css.thRating}>
+                      <FormattedMessage id="CategoryExecutorsPage.columnRating" />
+                    </th>
                     <th className={css.thActions}></th>
                   </tr>
                 </thead>
@@ -305,10 +341,14 @@ const CategoryExecutorsPageComponent = () => {
                           {isVerified ? (
                             <span className={css.verified}>
                               <VerificationBadge isVerified={true} />
-                              <span className={css.verifiedText}>Да</span>
+                              <span className={css.verifiedText}>
+                                <FormattedMessage id="CategoryExecutorsPage.verifiedYes" />
+                              </span>
                             </span>
                           ) : (
-                            <span className={css.notVerified}>Нет</span>
+                            <span className={css.notVerified}>
+                              <FormattedMessage id="CategoryExecutorsPage.verifiedNo" />
+                            </span>
                           )}
                         </td>
 
@@ -316,8 +356,10 @@ const CategoryExecutorsPageComponent = () => {
 
                         <td className={css.tdReviews}>
                           <span className={css.reviewsCount}>
-                            {executor.reviews.count}{' '}
-                            {executor.reviews.count === 1 ? 'отзыв' : 'отзывов'}
+                            <FormattedMessage
+                              id="CategoryExecutorsPage.reviewsCount"
+                              values={{ count: executor.reviews.count }}
+                            />
                           </span>
                         </td>
 
@@ -342,7 +384,7 @@ const CategoryExecutorsPageComponent = () => {
                             params={{ id: executor.id }}
                             className={css.viewProfileButton}
                           >
-                            Профиль
+                            <FormattedMessage id="CategoryExecutorsPage.viewProfile" />
                           </NamedLink>
                         </td>
                       </tr>

@@ -56,13 +56,6 @@ const SectionAuthorMaybe = props => {
   const rating = providerStats?.averageRating ? parseFloat(providerStats.averageRating) : 0;
   const reviewCount = providerStats?.reviewCount || 0;
 
-  // Функция для правильного склонения слова "отзыв"
-  const getReviewWord = count => {
-    if (count % 10 === 1 && count % 100 !== 11) return 'отзыв';
-    if ([2, 3, 4].includes(count % 10) && ![12, 13, 14].includes(count % 100)) return 'отзыва';
-    return 'отзывов';
-  };
-
   return (
     <section id="author" className={css.sectionAuthor}>
       <Heading as="h2" rootClassName={css.sectionHeadingWithExtraMargin}>
@@ -82,12 +75,15 @@ const SectionAuthorMaybe = props => {
             <>
               <StarRating rating={rating} />
               <span style={{ fontSize: 14, color: '#4a5568' }}>
-                {rating.toFixed(1)} ({reviewCount} {getReviewWord(reviewCount)})
+                <FormattedMessage
+                  id="SectionAuthorMaybe.ratingWithReviewCount"
+                  values={{ rating: rating.toFixed(1), count: reviewCount }}
+                />
               </span>
             </>
           ) : (
             <span style={{ fontSize: 14, color: '#9ca3af' }}>
-              Пока нет отзывов
+              <FormattedMessage id="SectionAuthorMaybe.noReviews" />
             </span>
           )}
         </div>

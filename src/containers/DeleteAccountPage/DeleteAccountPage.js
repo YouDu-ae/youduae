@@ -4,6 +4,7 @@ import { connect } from 'react-redux';
 import { useHistory } from 'react-router-dom';
 
 import { useConfiguration } from '../../context/configurationContext';
+import { useIntl } from '../../util/reactIntl';
 import { isScrollingDisabled } from '../../ducks/ui.duck';
 import { logout } from '../../ducks/auth.duck';
 import { showCreateListingLinkForUser, showPaymentDetailsForUser } from '../../util/userHelpers';
@@ -22,14 +23,14 @@ const STATUS = {
   REQUESTED: 'requested',
 };
 
-const errorMessageFor = (httpStatus, data) => {
+const errorMessageIdFor = (httpStatus, data) => {
   if (httpStatus === 403 && data?.error === 'wrong_password') {
-    return 'Неверный пароль.';
+    return 'DeleteAccountPage.errorWrongPassword';
   }
   if (httpStatus === 401) {
-    return 'Сессия истекла. Войдите заново и повторите.';
+    return 'DeleteAccountPage.errorSessionExpired';
   }
-  return 'Не удалось удалить аккаунт. Попробуйте ещё раз или напишите на info@youdu.ae.';
+  return 'DeleteAccountPage.errorGeneric';
 };
 
 /**
@@ -42,6 +43,7 @@ const errorMessageFor = (httpStatus, data) => {
 export const DeleteAccountPageComponent = props => {
   const config = useConfiguration();
   const history = useHistory();
+  const intl = useIntl();
   const { currentUser, scrollingDisabled, onLogout } = props;
 
   const [password, setPassword] = useState('');
@@ -78,11 +80,11 @@ export const DeleteAccountPageComponent = props => {
         setStatus(STATUS.REQUESTED);
       } else {
         setStatus(STATUS.IDLE);
-        setError(errorMessageFor(response.status, data));
+        setError(errorMessageIdFor(response.status, data));
       }
     } catch (e) {
       setStatus(STATUS.IDLE);
-      setError(errorMessageFor(0));
+      setError(errorMessageIdFor(0));
     }
   };
 
@@ -100,40 +102,36 @@ export const DeleteAccountPageComponent = props => {
   const renderResult = () =>
     status === STATUS.DELETED ? (
       <div className={css.result}>
-        <p className={css.lead}>Аккаунт удалён.</p>
-        <p className={css.text}>Письмо с подтверждением отправлено на ваш e-mail.</p>
+        <p className={css.lead}>{intl.formatMessage({ id: 'DeleteAccountPage.deletedTitle' })}</p>
+        <p className={css.text}>{intl.formatMessage({ id: 'DeleteAccountPage.deletedText' })}</p>
         <PrimaryButton type="button" className={css.button} onClick={leave}>
-          На главную
+          {intl.formatMessage({ id: 'DeleteAccountPage.goHome' })}
         </PrimaryButton>
       </div>
     ) : (
       <div className={css.result}>
-        <p className={css.lead}>Запрос принят.</p>
-        <p className={css.text}>
-          Мы удалим аккаунт в течение 30 дней и пришлём письмо, когда это будет сделано.
-        </p>
+        <p className={css.lead}>{intl.formatMessage({ id: 'DeleteAccountPage.requestedTitle' })}</p>
+        <p className={css.text}>{intl.formatMessage({ id: 'DeleteAccountPage.requestedText' })}</p>
       </div>
     );
 
   const renderForm = () => (
     <form className={css.form} onSubmit={handleSubmit}>
       <ul className={css.consequences}>
-        <li>Аккаунт, профиль и ваши задания будут удалены безвозвратно.</li>
-        <li>
-          Сообщения и отзывы, которые вы отправляли, останутся у получателей, но ваш профиль
-          будет показан как удалённый.
-        </li>
-        <li>Незавершённые сделки не смогут продолжиться.</li>
+        <li>{intl.formatMessage({ id: 'DeleteAccountPage.consequenceAccount' })}</li>
+        <li>{intl.formatMessage({ id: 'DeleteAccountPage.consequenceMessages' })}</li>
+        <li>{intl.formatMessage({ id: 'DeleteAccountPage.consequenceTransactions' })}</li>
       </ul>
 
       {signsInWithProvider ? (
         <p className={css.text}>
-          Вы входите через Google или Apple, поэтому пароль не нужен. Мы получим ваш запрос и
-          удалим аккаунт в течение 30 дней.
+          {intl.formatMessage({ id: 'DeleteAccountPage.providerSignInNote' })}
         </p>
       ) : (
         <label className={css.field}>
-          <span className={css.label}>Пароль для подтверждения</span>
+          <span className={css.label}>
+            {intl.formatMessage({ id: 'DeleteAccountPage.passwordLabel' })}
+          </span>
           <input
             type="password"
             className={css.input}
@@ -146,10 +144,10 @@ export const DeleteAccountPageComponent = props => {
 
       <label className={css.checkbox}>
         <input type="checkbox" checked={confirmed} onChange={e => setConfirmed(e.target.checked)} />
-        <span>Я понимаю, что удаление необратимо</span>
+        <span>{intl.formatMessage({ id: 'DeleteAccountPage.confirmCheckbox' })}</span>
       </label>
 
-      {error ? <p className={css.error}>{error}</p> : null}
+      {error ? <p className={css.error}>{intl.formatMessage({ id: error })}</p> : null}
 
       <PrimaryButton
         type="submit"
@@ -157,7 +155,11 @@ export const DeleteAccountPageComponent = props => {
         disabled={!canSubmit}
         inProgress={status === STATUS.SUBMITTING}
       >
-        {signsInWithProvider ? 'Отправить запрос на удаление' : 'Удалить аккаунт'}
+        {intl.formatMessage({
+          id: signsInWithProvider
+            ? 'DeleteAccountPage.submitRequest'
+            : 'DeleteAccountPage.submitDelete',
+        })}
       </PrimaryButton>
     </form>
   );
@@ -165,7 +167,10 @@ export const DeleteAccountPageComponent = props => {
   const isDone = status === STATUS.DELETED || status === STATUS.REQUESTED;
 
   return (
-    <Page title="Удаление аккаунта | YouDu" scrollingDisabled={scrollingDisabled}>
+    <Page
+      title={intl.formatMessage({ id: 'DeleteAccountPage.schemaTitle' })}
+      scrollingDisabled={scrollingDisabled}
+    >
       <LayoutSideNavigation
         topbar={
           <>
@@ -182,7 +187,7 @@ export const DeleteAccountPageComponent = props => {
         footer={<FooterContainer />}
       >
         <div className={css.content}>
-          <H3 as="h1">Удаление аккаунта</H3>
+          <H3 as="h1">{intl.formatMessage({ id: 'DeleteAccountPage.heading' })}</H3>
           {currentUser?.id ? (isDone ? renderResult() : renderForm()) : null}
         </div>
       </LayoutSideNavigation>

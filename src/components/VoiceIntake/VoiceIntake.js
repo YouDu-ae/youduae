@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 
 import { trackVoiceDraftReady, trackVoiceSessionStarted } from '../../analytics/plausibleEvents';
+import { useIntl } from '../../util/reactIntl';
 
 import css from './VoiceIntake.module.css';
 
@@ -53,7 +54,7 @@ const postJson = async (url, body) => {
   return { ok: response.ok, status: response.status, data };
 };
 
-const waitForIceGathering = peer =>
+const waitForIceGathering = (peer, intl) =>
   new Promise((resolve, reject) => {
     if (peer.iceGatheringState === 'complete') {
       resolve();
@@ -67,30 +68,30 @@ const waitForIceGathering = peer =>
     };
     const timeout = setTimeout(() => {
       peer.removeEventListener('icegatheringstatechange', onChange);
-      reject(new VoiceError('Не удалось установить соединение. Проверьте интернет и попробуйте ещё раз.'));
+      reject(new VoiceError(intl.formatMessage({ id: 'VoiceIntake.connectionFailed' })));
     }, ICE_TIMEOUT_MS);
     peer.addEventListener('icegatheringstatechange', onChange);
   });
 
-const sessionErrorMessage = (status, data) => {
+const sessionErrorMessage = (status, data, intl) => {
   if (status === 429) {
-    return data?.message || 'На сегодня голосовые разговоры закончились. Заполните задание вручную.';
+    return data?.message || intl.formatMessage({ id: 'VoiceIntake.dailyLimitReached' });
   }
   if (status === 401) {
-    return 'Войдите, чтобы рассказать о задании голосом.';
+    return intl.formatMessage({ id: 'VoiceIntake.loginRequired' });
   }
-  return 'Не удалось начать разговор. Попробуйте ещё раз или заполните задание вручную.';
+  return intl.formatMessage({ id: 'VoiceIntake.startFailed' });
 };
 
-const microphoneErrorMessage = error => {
+const microphoneErrorMessage = (error, intl) => {
   if (error instanceof VoiceError) return error.message;
   if (error?.name === 'NotAllowedError') {
-    return 'Нет доступа к микрофону. Разрешите его в настройках браузера и попробуйте ещё раз.';
+    return intl.formatMessage({ id: 'VoiceIntake.microphoneDenied' });
   }
   if (error?.name === 'NotFoundError') {
-    return 'Микрофон не найден. Подключите его или заполните задание вручную.';
+    return intl.formatMessage({ id: 'VoiceIntake.microphoneNotFound' });
   }
-  return 'Не удалось начать разговор. Попробуйте ещё раз или заполните задание вручную.';
+  return intl.formatMessage({ id: 'VoiceIntake.startFailed' });
 };
 
 const emptyConnection = () => ({
@@ -111,6 +112,7 @@ const emptyConnection = () => ({
  *   Черновик в формате guestListingStorage, без фотографий.
  */
 const VoiceIntake = ({ onDraft }) => {
+  const intl = useIntl();
   // Открыт ли пилот этому пользователю, решает сервер; до ответа блок не виден,
   // чтобы кнопка не мелькала у тех, кому пилот закрыт.
   const [allowed, setAllowed] = useState(false);
@@ -257,7 +259,7 @@ const VoiceIntake = ({ onDraft }) => {
   const start = async () => {
     if (!isSupported()) {
       setStatus(STATUS.ERROR);
-      setMessage('Этот браузер не поддерживает голосовой ввод. Заполните задание вручную.');
+      setMessage(intl.formatMessage({ id: 'VoiceIntake.browserNotSupported' }));
       return;
     }
 
@@ -299,13 +301,13 @@ const VoiceIntake = ({ onDraft }) => {
 
       const offer = await peer.createOffer();
       await peer.setLocalDescription(offer);
-      await waitForIceGathering(peer);
+      await waitForIceGathering(peer, intl);
 
       const { ok, status: httpStatus, data } = await postJson('/api/voice/session', {
         sdp: peer.localDescription.sdp,
       });
       if (!ok) {
-        throw new VoiceError(sessionErrorMessage(httpStatus, data));
+        throw new VoiceError(sessionErrorMessage(httpStatus, data, intl));
       }
 
       connection.current.sessionId = data.sessionId;
@@ -316,7 +318,7 @@ const VoiceIntake = ({ onDraft }) => {
     } catch (error) {
       cleanup();
       setStatus(STATUS.ERROR);
-      setMessage(microphoneErrorMessage(error));
+      setMessage(microphoneErrorMessage(error, intl));
     }
   };
 
@@ -333,25 +335,25 @@ const VoiceIntake = ({ onDraft }) => {
 
       <div className={css.header}>
         <div className={css.texts}>
-          <div className={css.title}>Расскажите о задаче голосом</div>
+          <div className={css.title}>{intl.formatMessage({ id: 'VoiceIntake.title' })}</div>
           <div className={css.hint}>
             {isTalking
-              ? 'Говорите — помощник слушает и задаст уточняющие вопросы.'
-              : 'Опишите, что нужно, где, когда и за какой бюджет. Помощник заполнит поля, а вы проверите и опубликуете.'}
+              ? intl.formatMessage({ id: 'VoiceIntake.hintTalking' })
+              : intl.formatMessage({ id: 'VoiceIntake.hintIdle' })}
           </div>
         </div>
 
         {isTalking ? (
           <button type="button" className={css.stopButton} onClick={stop}>
-            Завершить
+            {intl.formatMessage({ id: 'VoiceIntake.stop' })}
           </button>
         ) : (
           <button type="button" className={css.startButton} onClick={start} disabled={isBusy}>
             {status === STATUS.CONNECTING
-              ? 'Подключаюсь…'
+              ? intl.formatMessage({ id: 'VoiceIntake.connecting' })
               : status === STATUS.FINISHING
-              ? 'Завершаю…'
-              : 'Рассказать голосом'}
+              ? intl.formatMessage({ id: 'VoiceIntake.finishing' })
+              : intl.formatMessage({ id: 'VoiceIntake.start' })}
           </button>
         )}
       </div>
@@ -360,21 +362,23 @@ const VoiceIntake = ({ onDraft }) => {
 
       {summary ? (
         <div className={css.summary}>
-          <div className={css.summaryTitle}>Поля заполнены — проверьте их ниже</div>
+          <div className={css.summaryTitle}>
+            {intl.formatMessage({ id: 'VoiceIntake.summaryTitle' })}
+          </div>
           <ul className={css.summaryList}>
             <li>
               {summary.category}
               {summary.subcategory ? ` → ${summary.subcategory}` : ''}
             </li>
             <li>{summary.address}</li>
-            <li>Срок: {summary.deadline}</li>
-            <li>Бюджет: {summary.price_aed} AED</li>
+            <li>{intl.formatMessage({ id: 'VoiceIntake.summaryDeadline' }, { deadline: summary.deadline })}</li>
+            <li>{intl.formatMessage({ id: 'VoiceIntake.summaryBudget' }, { price: summary.price_aed })}</li>
           </ul>
         </div>
       ) : null}
 
       <div className={css.privacy}>
-        Речь распознаёт OpenAI. Запись разговора YouDu не хранит.
+        {intl.formatMessage({ id: 'VoiceIntake.privacy' })}
       </div>
     </div>
   );

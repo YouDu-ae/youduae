@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useHistory, useLocation } from 'react-router-dom';
 import { useSelector } from 'react-redux';
-import { FormattedMessage } from '../../util/reactIntl';
+import { FormattedMessage, useIntl } from '../../util/reactIntl';
 import {
   Page,
   LayoutSingleColumn,
@@ -42,6 +42,8 @@ const GuestListingWizard = () => {
   const history = useHistory();
   const location = useLocation();
   const config = useConfiguration();
+  const intl = useIntl();
+  const t = (id, values) => intl.formatMessage({ id: `GuestListingWizard.${id}` }, values);
   
   // Мастер один для всех: гость в конце регистрируется, авторизованный публикует сразу.
   // Раньше зарегистрированных уводило в шаблонный мастер Sharetribe, где не было
@@ -140,9 +142,7 @@ const GuestListingWizard = () => {
       .then(() => setDraftSaveError(null))
       .catch(error => {
         console.error('Не удалось сохранить черновик задания:', error);
-        setDraftSaveError(
-          'Не удалось сохранить черновик в браузере. Фотографии могут не попасть в задание — попробуйте удалить лишние или освободить место.'
-        );
+        setDraftSaveError(t('draftSaveError'));
       });
   }, [draftLoaded, formData]);
 
@@ -173,40 +173,40 @@ const GuestListingWizard = () => {
     switch (currentStep) {
       case STEPS.TITLE:
         if (!formData.title || formData.title.trim().length < 5) {
-          newErrors.title = 'Название должно быть не менее 5 символов';
+          newErrors.title = t('titleTooShort');
         } else if (formData.title.trim().length > 100) {
-          newErrors.title = 'Название должно быть не более 100 символов';
+          newErrors.title = t('titleTooLong');
         }
         if (!formData.description || formData.description.trim().length < 20) {
-          newErrors.description = 'Описание должно быть не менее 20 символов';
+          newErrors.description = t('descriptionTooShort');
         } else if (formData.description.trim().length > 5000) {
-          newErrors.description = 'Описание должно быть не более 5000 символов';
+          newErrors.description = t('descriptionTooLong');
         }
         break;
 
       case STEPS.DETAILS:
         if (!formData.category) {
-          newErrors.category = 'Выберите категорию';
+          newErrors.category = t('categoryRequired');
         }
         // subcategory is optional
         if (!formData.deadline) {
-          newErrors.deadline = 'Выберите дату выполнения';
+          newErrors.deadline = t('deadlineRequired');
         }
         // paymentMethod is now optional
         break;
 
       case STEPS.LOCATION:
         if (!formData.location || !formData.location.selectedPlace || !formData.location.selectedPlace.address) {
-          newErrors.location = 'Пожалуйста, выберите адрес из предложенных вариантов';
+          newErrors.location = t('locationRequired');
         }
         break;
 
       case STEPS.PRICING:
         const priceNum = parseFloat(formData.price);
         if (!formData.price || isNaN(priceNum) || priceNum <= 0) {
-          newErrors.price = 'Укажите корректную цену (больше 0)';
+          newErrors.price = t('priceInvalid');
         } else if (priceNum > 1000000) {
-          newErrors.price = 'Цена не может превышать 1,000,000 AED';
+          newErrors.price = t('priceTooHigh');
         }
         break;
 
@@ -270,7 +270,7 @@ const GuestListingWizard = () => {
     const freeSlots = MAX_PHOTOS - currentImages.length;
 
     if (freeSlots <= 0) {
-      setErrors(prev => ({ ...prev, images: `Можно добавить не более ${MAX_PHOTOS} фото` }));
+      setErrors(prev => ({ ...prev, images: t('photosLimit', { max: MAX_PHOTOS }) }));
       return;
     }
 
@@ -286,12 +286,16 @@ const GuestListingWizard = () => {
       if (files.length > accepted.length) {
         setErrors(prev => ({
           ...prev,
-          images: `Добавлено ${accepted.length} из ${files.length}: максимум ${MAX_PHOTOS} фото`,
+          images: t('photosPartiallyAdded', {
+            added: accepted.length,
+            total: files.length,
+            max: MAX_PHOTOS,
+          }),
         }));
       }
     } catch (error) {
       console.error('❌ Error uploading images:', error);
-      setErrors(prev => ({ ...prev, images: 'Ошибка загрузки изображений' }));
+      setErrors(prev => ({ ...prev, images: t('imageUploadError') }));
     } finally {
       setIsUploadingImages(false);
     }
@@ -311,9 +315,7 @@ const GuestListingWizard = () => {
         setDraftSaveError(null);
       } catch (error) {
         console.error('Не удалось сохранить черновик перед публикацией:', error);
-        setDraftSaveError(
-          'Не удалось сохранить задание в браузере. Попробуйте убрать часть фотографий и повторить.'
-        );
+        setDraftSaveError(t('finishSaveError'));
         return;
       }
 
@@ -362,15 +364,15 @@ const GuestListingWizard = () => {
   const getStepLabel = (step) => {
     switch (step) {
       case STEPS.TITLE:
-        return 'Название задания';
+        return t('titleStepTitle');
       case STEPS.DETAILS:
-        return 'Детали задания';
+        return t('detailsStepTitle');
       case STEPS.LOCATION:
-        return 'Локация';
+        return t('stepLocation');
       case STEPS.PRICING:
-        return 'Цена';
+        return t('pricingStepTitle');
       case STEPS.PHOTOS:
-        return 'Фотографии';
+        return t('photosStepTitle');
       default:
         return '';
     }
@@ -382,7 +384,7 @@ const GuestListingWizard = () => {
         return (
           <div className={css.stepContent}>
             <div className={css.stepHeader}>
-              <h2 className={css.stepTitle}>Название задания</h2>
+              <h2 className={css.stepTitle}>{t('titleStepTitle')}</h2>
             </div>
 
             {/* Голос только для вошедших: у гостя не к чему привязать дневной
@@ -392,27 +394,27 @@ const GuestListingWizard = () => {
 
             <div className={css.field}>
               <label className={css.label}>
-                Название задания *
+                {t('titleLabel')}
               </label>
               <input
                 type="text"
                 className={css.input}
                 value={formData.title || ''}
                 onChange={(e) => handleFieldChange('title', e.target.value)}
-                placeholder="Например: Генеральная уборка квартиры"
+                placeholder={t('titlePlaceholder')}
               />
               {errors.title && <div className={css.error}>{errors.title}</div>}
             </div>
 
             <div className={css.field}>
               <label className={css.label}>
-                Описание *
+                {t('descriptionLabel')}
               </label>
               <textarea
                 className={css.textarea}
                 value={formData.description || ''}
                 onChange={(e) => handleFieldChange('description', e.target.value)}
-                placeholder="Опишите подробно что нужно сделать..."
+                placeholder={t('descriptionPlaceholder')}
                 rows={2}
               />
               {errors.description && <div className={css.error}>{errors.description}</div>}
@@ -421,11 +423,11 @@ const GuestListingWizard = () => {
             <div className={css.actions}>
               {!isFirstStep() && (
                 <SecondaryButton onClick={handlePrevious}>
-                  Назад
+                  {t('back')}
                 </SecondaryButton>
               )}
               <PrimaryButton onClick={handleNext}>
-                Далее
+                {t('next')}
               </PrimaryButton>
             </div>
           </div>
@@ -435,19 +437,19 @@ const GuestListingWizard = () => {
         return (
           <div className={css.stepContent}>
             <div className={css.stepHeader}>
-              <h2 className={css.stepTitle}>Детали задания</h2>
+              <h2 className={css.stepTitle}>{t('detailsStepTitle')}</h2>
             </div>
 
             <div className={css.field}>
               <label className={css.label}>
-                Категория *
+                {t('categoryLabel')}
               </label>
               <select
                 className={css.select}
                 value={formData.category || ''}
                 onChange={(e) => handleFieldChange('category', e.target.value)}
               >
-                <option value="">Выберите категорию...</option>
+                <option value="">{t('categoryPlaceholder')}</option>
                 {categories.map(cat => (
                   <option key={cat.id} value={cat.id}>
                     {cat.name}
@@ -460,14 +462,14 @@ const GuestListingWizard = () => {
             {availableSubcategories.length > 0 && (
               <div className={css.field}>
                 <label className={css.label}>
-                  Подкатегория
+                  {t('subcategoryLabel')}
                 </label>
                 <select
                   className={css.select}
                   value={formData.subcategory || ''}
                   onChange={(e) => handleFieldChange('subcategory', e.target.value)}
                 >
-                  <option value="">Выберите подкатегорию...</option>
+                  <option value="">{t('subcategoryPlaceholder')}</option>
                   {availableSubcategories.map(subcat => (
                     <option key={subcat.id} value={subcat.id}>
                       {subcat.name}
@@ -480,50 +482,54 @@ const GuestListingWizard = () => {
 
             <div className={css.field}>
               <label className={css.label}>
-                Дата выполнения *
+                {t('deadlineLabel')}
               </label>
               <select
                 className={css.select}
                 value={formData.deadline || ''}
                 onChange={(e) => handleFieldChange('deadline', e.target.value)}
               >
-                <option value="">Выберите срок выполнения...</option>
-                <option value="today">Сегодня</option>
-                <option value="tomorrow">Завтра</option>
-                <option value="week">В течении недели</option>
-                <option value="long-term">Долгосрочно</option>
+                <option value="">{t('deadlinePlaceholder')}</option>
+                {['today', 'tomorrow', 'week', 'long-term'].map(option => (
+                  <option key={option} value={option}>
+                    {intl.formatMessage({ id: `CustomExtendedDataField.deadline.${option}` })}
+                  </option>
+                ))}
               </select>
               {errors.deadline && <div className={css.error}>{errors.deadline}</div>}
             </div>
 
             <div className={css.field}>
               <label className={css.label}>
-                Способ оплаты
+                {t('paymentMethodLabel')}
               </label>
               <select
                 className={css.select}
                 value={formData.paymentMethod || ''}
                 onChange={(e) => handleFieldChange('paymentMethod', e.target.value)}
               >
-                <option value="">Выберите способ оплаты...</option>
-                <option value="cash">Наличными</option>
-                <option value="bank-transfer">Банковский перевод (Карта/перевод)</option>
+                <option value="">{t('paymentMethodPlaceholder')}</option>
+                {['cash', 'bank-transfer'].map(option => (
+                  <option key={option} value={option}>
+                    {intl.formatMessage({ id: `CustomExtendedDataField.paymentMethod.${option}` })}
+                  </option>
+                ))}
               </select>
               {errors.paymentMethod && <div className={css.error}>{errors.paymentMethod}</div>}
               <div className={css.paymentWarning}>
-                <strong>Оплата напрямую исполнителю</strong><br />
-                Без гарантий и компенсаций YouDu: вы напрямую договариваетесь с исполнителем об условиях и способе оплаты.
+                <strong>{t('paymentWarningTitle')}</strong><br />
+                {t('paymentWarningText')}
               </div>
             </div>
 
             <div className={css.actions}>
               {!isFirstStep() && (
                 <SecondaryButton onClick={handlePrevious}>
-                  Назад
+                  {t('back')}
                 </SecondaryButton>
               )}
               <PrimaryButton onClick={handleNext}>
-                Далее
+                {t('next')}
               </PrimaryButton>
             </div>
           </div>
@@ -533,12 +539,12 @@ const GuestListingWizard = () => {
         return (
           <div className={css.stepContent}>
             <div className={css.stepHeader}>
-              <h2 className={css.stepTitle}>Местоположение</h2>
+              <h2 className={css.stepTitle}>{t('locationStepTitle')}</h2>
             </div>
             
             <div className={css.field}>
               <label className={css.label}>
-                Адрес или район *
+                {t('locationLabel')}
               </label>
               <LocationAutocompleteInputImpl
                 rootClassName={css.locationAddress}
@@ -547,7 +553,7 @@ const GuestListingWizard = () => {
                 predictionsClassName={css.predictionsRoot}
                 validClassName={css.validLocation}
                 useDarkText={true}
-                placeholder="Введите адрес или район (только UAE)"
+                placeholder={t('locationPlaceholder')}
                 input={{
                   name: 'location',
                   value: formData.location || { search: '', predictions: [], selectedPlace: null },
@@ -570,11 +576,11 @@ const GuestListingWizard = () => {
             <div className={css.actions}>
               {!isFirstStep() && (
                 <SecondaryButton onClick={handlePrevious}>
-                  Назад
+                  {t('back')}
                 </SecondaryButton>
               )}
               <PrimaryButton onClick={handleNext}>
-                Далее
+                {t('next')}
               </PrimaryButton>
             </div>
           </div>
@@ -584,12 +590,12 @@ const GuestListingWizard = () => {
         return (
           <div className={css.stepContent}>
             <div className={css.stepHeader}>
-              <h2 className={css.stepTitle}>Цена</h2>
+              <h2 className={css.stepTitle}>{t('pricingStepTitle')}</h2>
             </div>
             
             <div className={css.field}>
               <label className={css.label}>
-                Бюджет (AED) *
+                {t('priceLabel')}
               </label>
               <input
                 type="number"
@@ -604,17 +610,17 @@ const GuestListingWizard = () => {
             </div>
 
             <div className={css.infoBox}>
-              💡 Укажите примерный бюджет. Исполнители смогут предложить свою цену
+              💡 {t('pricingInfo')}
             </div>
 
             <div className={css.actions}>
               {!isFirstStep() && (
                 <SecondaryButton onClick={handlePrevious}>
-                  Назад
+                  {t('back')}
                 </SecondaryButton>
               )}
               <PrimaryButton onClick={handleNext}>
-                Далее
+                {t('next')}
               </PrimaryButton>
             </div>
           </div>
@@ -624,15 +630,14 @@ const GuestListingWizard = () => {
         return (
           <div className={css.stepContent}>
             <div className={css.stepHeader}>
-              <h2 className={css.stepTitle}>Фотографии</h2>
+              <h2 className={css.stepTitle}>{t('photosStepTitle')}</h2>
             </div>
             
             <div className={css.field}>
               <label className={css.label}>
-                Добавьте фото{' '}
                 {formData.images && formData.images.length > 0
-                  ? `(${formData.images.length} из ${MAX_PHOTOS})`
-                  : `* (до ${MAX_PHOTOS})`}
+                  ? t('photosLabelWithCount', { count: formData.images.length, max: MAX_PHOTOS })
+                  : t('photosLabelEmpty', { max: MAX_PHOTOS })}
               </label>
               <div className={css.fileInputWrapper}>
                 <input
@@ -661,17 +666,17 @@ const GuestListingWizard = () => {
                   </span>
                   <span>
                     {isUploadingImages
-                      ? 'Обработка фото...'
+                      ? t('photosProcessing')
                       : (formData.images || []).length >= MAX_PHOTOS
-                      ? `Добавлено максимум ${MAX_PHOTOS} фото`
-                      : 'Выберите фотографии'}
+                      ? t('photosMaxReached', { max: MAX_PHOTOS })
+                      : t('choosePhotos')}
                   </span>
                 </label>
               </div>
               {errors.images && <div className={css.error}>{errors.images}</div>}
               {isUploadingImages && (
                 <div className={css.uploadingMessage}>
-                  Обработка изображений, пожалуйста подождите...
+                  {t('imagesProcessingWait')}
                 </div>
               )}
             </div>
@@ -694,14 +699,14 @@ const GuestListingWizard = () => {
                     <div key={index} className={css.imagePreviewItem}>
                       <img 
                         src={imageUrl} 
-                        alt={`Фото ${index + 1}`}
+                        alt={t('photoAlt', { index: index + 1 })}
                         className={css.previewImage}
                       />
                       <button
                         type="button"
                         className={css.removeImageButton}
                         onClick={() => handleRemoveImage(index)}
-                        title="Удалить фото"
+                        title={t('removePhoto')}
                       >
                         ✕
                       </button>
@@ -712,20 +717,20 @@ const GuestListingWizard = () => {
             )}
 
             <div className={css.infoBox}>
-              📷 Фото помогут исполнителям лучше понять задачу. Вы можете добавить несколько фотографий и удалить ненужные.
+              📷 {t('photosInfo')}
             </div>
 
             <div className={css.actions}>
               {!isFirstStep() && (
                 <SecondaryButton onClick={handlePrevious}>
-                  Назад
+                  {t('back')}
                 </SecondaryButton>
               )}
               <PrimaryButton 
                 className={css.finishButton}
                 onClick={handleFinish}
               >
-                {isAuthenticated ? 'Опубликовать задание' : 'Зарегистрироваться и опубликовать'}
+                {isAuthenticated ? t('publish') : t('signupAndPublish')}
               </PrimaryButton>
             </div>
           </div>
@@ -740,8 +745,8 @@ const GuestListingWizard = () => {
 
   return (
     <Page
-      title="Создать задание бесплатно — мастера в ОАЭ | YouDu"
-      description="Опишите задачу за пару минут и получите отклики от русскоговорящих мастеров в ОАЭ. Регистрация нужна только на публикации."
+      title={t('metaTitle')}
+      description={t('metaDescription')}
       scrollingDisabled={false}
     >
       <TopbarContainer />
@@ -750,9 +755,11 @@ const GuestListingWizard = () => {
           {!isAuthenticated && (
             <div className={css.guestBanner}>
               <div className={css.bannerContent}>
-                <div className={css.bannerTitle}>Создайте задание без регистрации</div>
+                <div className={css.bannerTitle}>
+                  <FormattedMessage id="GuestListingWizard.bannerTitle" />
+                </div>
                 <div className={css.bannerText}>
-                  Заполните все детали, и в конце вам нужно будет зарегистрироваться для публикации
+                  <FormattedMessage id="GuestListingWizard.bannerText" />
                 </div>
               </div>
             </div>
@@ -760,7 +767,7 @@ const GuestListingWizard = () => {
 
           {/* Строка с названием задания и процентом */}
           <div className={css.completionStatus}>
-            Задание «{statusTitle()}» заполнено на {getCompletionPercentage()}%
+            {t('completionStatus', { title: statusTitle(), percent: getCompletionPercentage() })}
           </div>
 
           {draftSaveError && <div className={css.draftSaveError}>{draftSaveError}</div>}
@@ -772,11 +779,11 @@ const GuestListingWizard = () => {
                 const isCurrent = index === getCurrentStepIndex();
                 const isCompleted = index < getCurrentStepIndex();
                 const stepNames = {
-                  [STEPS.TITLE]: 'Название',
-                  [STEPS.DETAILS]: 'Детали',
-                  [STEPS.LOCATION]: 'Локация',
-                  [STEPS.PRICING]: 'Цена',
-                  [STEPS.PHOTOS]: 'Фото',
+                  [STEPS.TITLE]: t('stepTitle'),
+                  [STEPS.DETAILS]: t('stepDetails'),
+                  [STEPS.LOCATION]: t('stepLocation'),
+                  [STEPS.PRICING]: t('pricingStepTitle'),
+                  [STEPS.PHOTOS]: t('stepPhotos'),
                 };
                 
                 return (

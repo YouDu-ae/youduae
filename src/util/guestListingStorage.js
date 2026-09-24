@@ -8,6 +8,8 @@
  * сообщалось. У IndexedDB такого потолка нет.
  */
 
+import { localized } from './locale';
+
 const GUEST_LISTING_KEY = 'guestListingData';
 
 const DB_NAME = 'youdu-guest-listing';
@@ -26,7 +28,15 @@ const openDb = () =>
     };
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error);
-    request.onblocked = () => reject(new Error('IndexedDB заблокирована другой вкладкой'));
+    request.onblocked = () =>
+      reject(
+        new Error(
+          localized({
+            ru: 'IndexedDB заблокирована другой вкладкой',
+            en: 'IndexedDB is blocked by another tab',
+          })
+        )
+      );
   });
 
 const withStore = async (mode, run) => {
@@ -139,7 +149,11 @@ const decodeImage = async (file) => {
     };
     img.onerror = () => {
       URL.revokeObjectURL(objectUrl);
-      reject(new Error('Не удалось прочитать изображение'));
+      reject(
+        new Error(
+          localized({ ru: 'Не удалось прочитать изображение', en: "Couldn't read the image" })
+        )
+      );
     };
     img.src = objectUrl;
   });

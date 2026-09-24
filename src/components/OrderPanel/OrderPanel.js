@@ -232,17 +232,6 @@ const hasValidPriceVariants = priceVariants => {
  */
 
 /**
- * Helper function to get the correct Russian word for "review" based on count
- * @param {number} count - Number of reviews
- * @returns {string} Correct word form
- */
-const getReviewWord = count => {
-  if (count % 10 === 1 && count % 100 !== 11) return 'отзыв';
-  if ([2, 3, 4].includes(count % 10) && ![12, 13, 14].includes(count % 100)) return 'отзыва';
-  return 'отзывов';
-};
-
-/**
  * OrderPanel is a component that renders a panel for making bookings, purchases, or inquiries for a listing.
  * It handles different transaction processes and displays appropriate forms based on the listing type.
  *
@@ -529,7 +518,13 @@ const OrderPanel = props => {
               >
                 <StarRating rating={parseFloat(authorStats.averageRating)} />
                 <span className={css.ratingText}>
-                  {parseFloat(authorStats.averageRating).toFixed(1)} ({authorStats.reviewCount} {getReviewWord(authorStats.reviewCount)})
+                  <FormattedMessage
+                    id="OrderPanel.ratingWithReviewCount"
+                    values={{
+                      rating: parseFloat(authorStats.averageRating).toFixed(1),
+                      count: authorStats.reviewCount,
+                    }}
+                  />
                 </span>
               </div>
             )}

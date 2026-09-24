@@ -1,6 +1,7 @@
 import React from 'react';
 import classNames from 'classnames';
 
+import { FormattedMessage } from '../../util/reactIntl';
 import { useTelegramLink } from '../../hooks/useTelegramLink';
 
 import css from './TelegramConnectPrompt.module.css';
@@ -36,7 +37,9 @@ const TelegramConnectPrompt = props => {
       </div>
 
       <button type="button" onClick={connect} disabled={connecting} className={css.button}>
-        {connecting ? 'Открываем…' : 'Подключить'}
+        <FormattedMessage
+          id={connecting ? 'TelegramConnectPrompt.connecting' : 'TelegramConnectPrompt.connect'}
+        />
       </button>
     </div>
   );

@@ -368,10 +368,16 @@ const ModerationStatusBadge = ({ listing }) => {
     <div style={badgeStyle}>
       <span style={{ fontSize: 18 }}>{isApproved ? '✅' : '❌'}</span>
       <span>
-        {isApproved 
-          ? 'Листинг одобрен' 
-          : `Листинг отклонен${moderationReason ? `: ${moderationReason}` : ''}`
-        }
+        {isApproved ? (
+          <FormattedMessage id="ManageListingCard.moderationApproved" />
+        ) : moderationReason ? (
+          <FormattedMessage
+            id="ManageListingCard.moderationRejectedWithReason"
+            values={{ reason: moderationReason }}
+          />
+        ) : (
+          <FormattedMessage id="ManageListingCard.moderationRejected" />
+        )}
       </span>
     </div>
   );
@@ -709,7 +715,7 @@ export const ManageListingCard = props => {
                   fontWeight: 600,
                 }}
               >
-                В работе
+                <FormattedMessage id="ManageListingCard.inProgress" />
               </span>
             )}
             {listingStatus === 'closed' && (
@@ -724,7 +730,7 @@ export const ManageListingCard = props => {
                   fontWeight: 600,
                 }}
               >
-                Закрыт
+                <FormattedMessage id="ManageListingCard.closed" />
               </span>
             )}
           </div>

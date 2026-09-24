@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { compose } from 'redux';
 import { connect } from 'react-redux';
-import { useIntl, FormattedMessage } from '../../util/reactIntl';
+import { useIntl } from '../../util/reactIntl';
 import { apiBaseUrl } from '../../util/api';
 
 import { Page, LayoutSingleColumn, H2, NamedLink } from '../../components';
@@ -11,13 +11,19 @@ import FooterContainer from '../FooterContainer/FooterContainer';
 import css from './SupportPage.module.css';
 
 const CATEGORIES = [
-  { id: 'general', labelRu: 'Общий вопрос', labelEn: 'General question' },
-  { id: 'listing', labelRu: 'Вопрос по заданию', labelEn: 'Task question' },
-  { id: 'payment', labelRu: 'Оплата', labelEn: 'Payment' },
-  { id: 'account', labelRu: 'Аккаунт', labelEn: 'Account' },
-  { id: 'technical', labelRu: 'Техническая проблема', labelEn: 'Technical issue' },
-  { id: 'complaint', labelRu: 'Жалоба', labelEn: 'Complaint' },
+  { id: 'general', labelId: 'SupportPage.categoryGeneral' },
+  { id: 'listing', labelId: 'SupportPage.categoryListing' },
+  { id: 'payment', labelId: 'SupportPage.categoryPayment' },
+  { id: 'account', labelId: 'SupportPage.categoryAccount' },
+  { id: 'technical', labelId: 'SupportPage.categoryTechnical' },
+  { id: 'complaint', labelId: 'SupportPage.categoryComplaint' },
 ];
+
+const TICKET_STATUS_LABEL_IDS = {
+  open: 'SupportPage.statusOpen',
+  pending: 'SupportPage.statusPending',
+  closed: 'SupportPage.statusClosed',
+};
 
 const SupportPageComponent = props => {
   const { currentUser, scrollingDisabled } = props;
@@ -99,19 +105,17 @@ const SupportPageComponent = props => {
         setSubmitted(true);
         setTicketId(data.ticketId);
       } else {
-        setError(data.error || 'Ошибка отправки');
+        setError(data.error || intl.formatMessage({ id: 'SupportPage.errorSubmit' }));
       }
     } catch (err) {
-      setError('Ошибка сети. Попробуйте позже.');
+      setError(intl.formatMessage({ id: 'SupportPage.errorNetwork' }));
     } finally {
       setSubmitting(false);
     }
   };
 
-  const title = locale === 'ru' ? 'Поддержка | YouDu' : 'Support | YouDu';
-  const description = locale === 'ru' 
-    ? 'Свяжитесь с поддержкой YouDu. Мы поможем решить любой вопрос.'
-    : 'Contact YouDu support. We will help resolve any issue.';
+  const title = intl.formatMessage({ id: 'SupportPage.schemaTitle' });
+  const description = intl.formatMessage({ id: 'SupportPage.schemaDescription' });
 
   return (
     <Page title={title} description={description} scrollingDisabled={scrollingDisabled}>
@@ -119,12 +123,12 @@ const SupportPageComponent = props => {
         <div className={css.pageWrapper}>
           <div className={css.container}>
             <H2 className={css.pageTitle}>
-              {locale === 'ru' ? 'Поддержка' : 'Support'}
+              {intl.formatMessage({ id: 'SupportPage.title' })}
             </H2>
 
             <div className={css.telegramBlock}>
               <div className={css.telegramText}>
-                {locale === 'ru' ? 'Связаться с нами:' : 'Contact us:'}
+                {intl.formatMessage({ id: 'SupportPage.contactUs' })}
               </div>
               <a
                 href="https://t.me/youdu_ae"
@@ -142,11 +146,12 @@ const SupportPageComponent = props => {
             {submitted ? (
               <div className={css.successMessage}>
                 <div className={css.successIcon}>✅</div>
-                <h3>{locale === 'ru' ? 'Обращение отправлено!' : 'Request submitted!'}</h3>
+                <h3>{intl.formatMessage({ id: 'SupportPage.successTitle' })}</h3>
                 <p>
-                  {locale === 'ru' 
-                    ? `Номер вашего обращения: ${ticketId}. Мы ответим в ближайшее время на email ${formData.email}`
-                    : `Your ticket number: ${ticketId}. We will respond soon to ${formData.email}`}
+                  {intl.formatMessage(
+                    { id: 'SupportPage.successText' },
+                    { ticketId, email: formData.email }
+                  )}
                 </p>
                 <button 
                   className={css.newTicketButton}
@@ -155,7 +160,7 @@ const SupportPageComponent = props => {
                     setFormData(prev => ({ ...prev, subject: '', message: '', relatedListingId: '' }));
                   }}
                 >
-                  {locale === 'ru' ? 'Создать новое обращение' : 'Create new request'}
+                  {intl.formatMessage({ id: 'SupportPage.newRequest' })}
                 </button>
               </div>
             ) : (
@@ -164,7 +169,7 @@ const SupportPageComponent = props => {
                   <>
                     <div className={css.formGroup}>
                       <label htmlFor="name">
-                        {locale === 'ru' ? 'Ваше имя' : 'Your name'}
+                        {intl.formatMessage({ id: 'SupportPage.nameLabel' })}
                       </label>
                       <input
                         type="text"
@@ -172,7 +177,7 @@ const SupportPageComponent = props => {
                         name="name"
                         value={formData.name}
                         onChange={handleChange}
-                        placeholder={locale === 'ru' ? 'Как к вам обращаться?' : 'How should we address you?'}
+                        placeholder={intl.formatMessage({ id: 'SupportPage.namePlaceholder' })}
                       />
                     </div>
                     <div className={css.formGroup}>
@@ -194,7 +199,7 @@ const SupportPageComponent = props => {
 
                 <div className={css.formGroup}>
                   <label htmlFor="category">
-                    {locale === 'ru' ? 'Категория' : 'Category'}
+                    {intl.formatMessage({ id: 'SupportPage.categoryLabel' })}
                   </label>
                   <select
                     id="category"
@@ -204,7 +209,7 @@ const SupportPageComponent = props => {
                   >
                     {CATEGORIES.map(cat => (
                       <option key={cat.id} value={cat.id}>
-                        {locale === 'ru' ? cat.labelRu : cat.labelEn}
+                        {intl.formatMessage({ id: cat.labelId })}
                       </option>
                     ))}
                   </select>
@@ -212,7 +217,7 @@ const SupportPageComponent = props => {
 
                 <div className={css.formGroup}>
                   <label htmlFor="relatedListingId">
-                    {locale === 'ru' ? 'Номер задания (если есть)' : 'Task ID (if applicable)'}
+                    {intl.formatMessage({ id: 'SupportPage.relatedListingLabel' })}
                   </label>
                   <input
                     type="text"
@@ -226,7 +231,7 @@ const SupportPageComponent = props => {
 
                 <div className={css.formGroup}>
                   <label htmlFor="subject">
-                    {locale === 'ru' ? 'Тема' : 'Subject'} <span className={css.required}>*</span>
+                    {intl.formatMessage({ id: 'SupportPage.subjectLabel' })} <span className={css.required}>*</span>
                   </label>
                   <input
                     type="text"
@@ -235,13 +240,13 @@ const SupportPageComponent = props => {
                     value={formData.subject}
                     onChange={handleChange}
                     required
-                    placeholder={locale === 'ru' ? 'Кратко опишите проблему' : 'Briefly describe the issue'}
+                    placeholder={intl.formatMessage({ id: 'SupportPage.subjectPlaceholder' })}
                   />
                 </div>
 
                 <div className={css.formGroup}>
                   <label htmlFor="message">
-                    {locale === 'ru' ? 'Сообщение' : 'Message'} <span className={css.required}>*</span>
+                    {intl.formatMessage({ id: 'SupportPage.messageLabel' })} <span className={css.required}>*</span>
                   </label>
                   <textarea
                     id="message"
@@ -250,9 +255,7 @@ const SupportPageComponent = props => {
                     onChange={handleChange}
                     required
                     rows={6}
-                    placeholder={locale === 'ru' 
-                      ? 'Подробно опишите вашу проблему или вопрос...'
-                      : 'Please describe your issue or question in detail...'}
+                    placeholder={intl.formatMessage({ id: 'SupportPage.messagePlaceholder' })}
                   />
                 </div>
 
@@ -263,25 +266,25 @@ const SupportPageComponent = props => {
                   className={css.submitButton}
                   disabled={submitting}
                 >
-                  {submitting 
-                    ? (locale === 'ru' ? 'Отправка...' : 'Sending...') 
-                    : (locale === 'ru' ? 'Отправить' : 'Submit')}
+                  {intl.formatMessage({
+                    id: submitting ? 'SupportPage.submitting' : 'SupportPage.submit',
+                  })}
                 </button>
               </form>
             )}
 
             {isLoggedIn && myTickets.length > 0 && (
               <div className={css.myTickets}>
-                <h3>{locale === 'ru' ? 'Мои обращения' : 'My requests'}</h3>
+                <h3>{intl.formatMessage({ id: 'SupportPage.myRequests' })}</h3>
                 <div className={css.ticketsList}>
                   {myTickets.map(ticket => (
                     <div key={ticket.ticket_id} className={css.ticketItem}>
                       <div className={css.ticketHeader}>
                         <span className={css.ticketId}>{ticket.ticket_id}</span>
                         <span className={`${css.ticketStatus} ${css[ticket.status]}`}>
-                          {ticket.status === 'open' && (locale === 'ru' ? 'Открыт' : 'Open')}
-                          {ticket.status === 'pending' && (locale === 'ru' ? 'Ожидает ответа' : 'Pending')}
-                          {ticket.status === 'closed' && (locale === 'ru' ? 'Закрыт' : 'Closed')}
+                          {TICKET_STATUS_LABEL_IDS[ticket.status]
+                            ? intl.formatMessage({ id: TICKET_STATUS_LABEL_IDS[ticket.status] })
+                            : null}
                         </span>
                       </div>
                       <div className={css.ticketSubject}>{ticket.subject}</div>
@@ -295,7 +298,7 @@ const SupportPageComponent = props => {
             )}
 
             <div className={css.contactInfo}>
-              <h3>{locale === 'ru' ? 'Другие способы связи' : 'Other ways to contact us'}</h3>
+              <h3>{intl.formatMessage({ id: 'SupportPage.otherContacts' })}</h3>
               <p>
                 <strong>Telegram:</strong>{' '}
                 <a href="https://t.me/youdu_uae" target="_blank" rel="noopener noreferrer">

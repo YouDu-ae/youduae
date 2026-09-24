@@ -5,6 +5,7 @@ import {
   union,
   // mergeListingConfig перенесена в configHelpers.js чтобы избежать циклической зависимости
 } from '../util/configHelpers';
+import { localized } from '../util/locale';
 
 //////////////////////////////////////////////////////////////////////////////////
 // Configurations related to listing.                  //
@@ -38,25 +39,25 @@ export const listingFields = [
     scope: 'public',
     schemaType: 'enum',
     enumOptions: [
-      { option: 'today', label: 'Сегодня' },
-      { option: 'tomorrow', label: 'Завтра' },
-      { option: 'week', label: 'В течении недели' },
-      { option: 'long-term', label: 'Долгосрочно' },
+      { option: 'today', label: localized({ ru: 'Сегодня', en: 'Today' }) },
+      { option: 'tomorrow', label: localized({ ru: 'Завтра', en: 'Tomorrow' }) },
+      { option: 'week', label: localized({ ru: 'В течении недели', en: 'Within a week' }) },
+      { option: 'long-term', label: localized({ ru: 'Долгосрочно', en: 'Long-term' }) },
     ],
     filterConfig: {
       indexForSearch: true,
-      label: 'Дата выполнения',
+      label: localized({ ru: 'Дата выполнения', en: 'Due date' }),
       group: 'primary',
     },
     showConfig: {
-      label: 'Дата выполнения',
+      label: localized({ ru: 'Дата выполнения', en: 'Due date' }),
       isRequired: true,
     },
     saveConfig: {
-      label: 'Дата выполнения',
-      placeholderMessage: 'Выберите срок выполнения',
+      label: localized({ ru: 'Дата выполнения', en: 'Due date' }),
+      placeholderMessage: localized({ ru: 'Выберите срок выполнения', en: 'Select a timeframe' }),
       isRequired: true,
-      requiredMessage: 'Выберите дату выполнения',
+      requiredMessage: localized({ ru: 'Выберите дату выполнения', en: 'Select a due date' }),
     },
   },
   {
@@ -64,23 +65,29 @@ export const listingFields = [
     scope: 'public',
     schemaType: 'enum',
     enumOptions: [
-      { option: 'cash', label: 'Наличными' },
-      { option: 'bank-transfer', label: 'Банковский перевод (Карта/перевод)' },
+      { option: 'cash', label: localized({ ru: 'Наличными', en: 'Cash' }) },
+      {
+        option: 'bank-transfer',
+        label: localized({
+          ru: 'Банковский перевод (Карта/перевод)',
+          en: 'Bank transfer (Card/transfer)',
+        }),
+      },
     ],
     filterConfig: {
       indexForSearch: true,
-      label: 'Способ оплаты',
+      label: localized({ ru: 'Способ оплаты', en: 'Payment method' }),
       group: 'secondary',
     },
     showConfig: {
-      label: 'Способ оплаты',
+      label: localized({ ru: 'Способ оплаты', en: 'Payment method' }),
       isRequired: true,
     },
     saveConfig: {
-      label: 'Способ оплаты',
-      placeholderMessage: 'Выберите способ оплаты',
+      label: localized({ ru: 'Способ оплаты', en: 'Payment method' }),
+      placeholderMessage: localized({ ru: 'Выберите способ оплаты', en: 'Select a payment method' }),
       isRequired: true,
-      requiredMessage: 'Выберите способ оплаты',
+      requiredMessage: localized({ ru: 'Выберите способ оплаты', en: 'Select a payment method' }),
     },
   },
 ];

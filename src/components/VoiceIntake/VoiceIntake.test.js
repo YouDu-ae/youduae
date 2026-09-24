@@ -99,7 +99,7 @@ describe('VoiceIntake', () => {
   });
 
   const clickStart = async () => {
-    fireEvent.click(await screen.findByRole('button', { name: 'Рассказать голосом' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'VoiceIntake.start' }));
   };
 
   const startConversation = async () => {
@@ -133,7 +133,7 @@ describe('VoiceIntake', () => {
       type: 'answer',
       sdp: 'v=0 answer',
     });
-    expect(screen.getByRole('button', { name: 'Завершить' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'VoiceIntake.stop' })).toBeInTheDocument();
   });
 
   // Results have to go back together, and only then may the backend continue.
@@ -200,7 +200,7 @@ describe('VoiceIntake', () => {
 
     await waitFor(() => expect(onDraft).toHaveBeenCalledWith(draft, { sessionId: 'sess_1' }));
     expect(screen.getByText('Dubai Marina, Dubai, UAE')).toBeInTheDocument();
-    expect(screen.getByText('Бюджет: 400 AED')).toBeInTheDocument();
+    expect(screen.getByText('VoiceIntake.summaryBudget')).toBeInTheDocument();
   });
 
   // Silence would leave the person waiting; the assistant should offer the form.
@@ -241,7 +241,7 @@ describe('VoiceIntake', () => {
     render(<VoiceIntake onDraft={jest.fn()} />);
     await clickStart();
 
-    expect(await screen.findByText(/Нет доступа к микрофону/)).toBeInTheDocument();
+    expect(await screen.findByText('VoiceIntake.microphoneDenied')).toBeInTheDocument();
     expect(requestsTo('/api/voice/session')).toEqual([]);
   });
 
@@ -249,7 +249,7 @@ describe('VoiceIntake', () => {
     render(<VoiceIntake onDraft={jest.fn()} />);
     await startConversation();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Завершить' }));
+    fireEvent.click(screen.getByRole('button', { name: 'VoiceIntake.stop' }));
 
     expect(sentEvents(fakes.channel)).toEqual([{ type: 'session.close' }]);
   });

@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import classNames from 'classnames';
+import { FormattedMessage } from '../../../../../util/reactIntl';
 import CategoryList from '../CategoryList/CategoryList';
 import css from './FilterCategory.module.css';
 
@@ -54,7 +55,7 @@ const FilterCategory = ({ alignLeft }) => {
           <path d="M21 21L15 15M17 10C17 13.866 13.866 17 10 17C6.13401 17 3 13.866 3 10C3 6.13401 6.13401 3 10 3C13.866 3 17 6.13401 17 10Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
         </svg>
         <span className={css.placeholder}>
-          Выберите категорию услуги...
+          <FormattedMessage id="FilterCategory.placeholder" />
         </span>
       </div>
       

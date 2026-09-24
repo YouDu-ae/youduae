@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import classNames from 'classnames';
 
-import { FormattedMessage } from '../../util/reactIntl';
+import { FormattedMessage, useIntl } from '../../util/reactIntl';
 import { IconSpinner, Button, ExternalLink } from '../../components';
 import {
   generateTelegramCode,
@@ -15,6 +15,7 @@ const TELEGRAM_BOT_USERNAME = 'YouDuAE_bot';
 
 const TelegramConnect = props => {
   const { currentUser, className } = props;
+  const intl = useIntl();
   
   const [isLinked, setIsLinked] = useState(false);
   const [linkedAt, setLinkedAt] = useState(null);
@@ -44,7 +45,7 @@ const TelegramConnect = props => {
       setError(null);
     } catch (err) {
       console.error('Error checking Telegram status:', err);
-      setError('Ошибка проверки статуса');
+      setError('TelegramConnect.statusError');
     } finally {
       setLoading(false);
     }
@@ -65,14 +66,14 @@ const TelegramConnect = props => {
       setDeepLink(data.deepLink);
     } catch (err) {
       console.error('Error generating code:', err);
-      setError('Ошибка генерации кода');
+      setError('TelegramConnect.generateCodeError');
     } finally {
       setGenerating(false);
     }
   };
   
   const unlinkTelegram = async () => {
-    if (!window.confirm('Вы уверены, что хотите отключить Telegram уведомления?')) {
+    if (!window.confirm(intl.formatMessage({ id: 'TelegramConnect.unlinkConfirm' }))) {
       return;
     }
     
@@ -92,7 +93,7 @@ const TelegramConnect = props => {
       setDeepLink(null);
     } catch (err) {
       console.error('Error unlinking Telegram:', err);
-      setError('Ошибка отключения');
+      setError('TelegramConnect.unlinkError');
     } finally {
       setUnlinking(false);
     }
@@ -101,7 +102,7 @@ const TelegramConnect = props => {
   const formatDate = (dateString) => {
     if (!dateString) return '';
     const date = new Date(dateString);
-    return date.toLocaleDateString('ru-RU', {
+    return intl.formatDate(date, {
       day: 'numeric',
       month: 'long',
       year: 'numeric',
@@ -115,7 +116,7 @@ const TelegramConnect = props => {
       <div className={classes}>
         <h3 className={css.title}>
           <span className={css.telegramIcon}>📱</span>
-          Telegram уведомления
+          <FormattedMessage id="TelegramConnect.title" />
         </h3>
         <div className={css.loadingWrapper}>
           <IconSpinner />
@@ -128,16 +129,16 @@ const TelegramConnect = props => {
     <div className={classes}>
       <h3 className={css.title}>
         <span className={css.telegramIcon}>📱</span>
-        Telegram уведомления
+        <FormattedMessage id="TelegramConnect.title" />
       </h3>
       
       <p className={css.description}>
-        Получайте мгновенные уведомления о новых откликах, сообщениях и заданиях прямо в Telegram.
+        <FormattedMessage id="TelegramConnect.description" />
       </p>
       
       {error && (
         <div className={css.error}>
-          {error}
+          <FormattedMessage id={error} />
         </div>
       )}
       
@@ -146,22 +147,33 @@ const TelegramConnect = props => {
           <div className={css.statusConnected}>
             <span className={css.statusIcon}>✅</span>
             <div className={css.statusText}>
-              <strong>Telegram подключён</strong>
+              <strong>
+                <FormattedMessage id="TelegramConnect.connected" />
+              </strong>
               {linkedAt && (
                 <span className={css.linkedDate}>
-                  с {formatDate(linkedAt)}
+                  <FormattedMessage
+                    id="TelegramConnect.linkedSince"
+                    values={{ date: formatDate(linkedAt) }}
+                  />
                 </span>
               )}
             </div>
           </div>
           
           <p className={css.linkedInfo}>
-            Вы будете получать уведомления о:
+            <FormattedMessage id="TelegramConnect.notificationsIntro" />
           </p>
           <ul className={css.featureList}>
-            <li>📬 Новых откликах на ваши задания</li>
-            <li>✅ Когда вас выбрали исполнителем</li>
-            <li>💬 Новых сообщениях в чатах</li>
+            <li>
+              📬 <FormattedMessage id="TelegramConnect.featureNewOffers" />
+            </li>
+            <li>
+              ✅ <FormattedMessage id="TelegramConnect.featureSelected" />
+            </li>
+            <li>
+              💬 <FormattedMessage id="TelegramConnect.featureNewMessages" />
+            </li>
           </ul>
           
           <Button
@@ -169,7 +181,7 @@ const TelegramConnect = props => {
             onClick={unlinkTelegram}
             inProgress={unlinking}
           >
-            Отключить Telegram
+            <FormattedMessage id="TelegramConnect.unlinkButton" />
           </Button>
         </div>
       ) : (
@@ -177,7 +189,10 @@ const TelegramConnect = props => {
           {verificationCode ? (
             <div className={css.codeSection}>
               <p className={css.codeInstructions}>
-                <strong>Шаг 1:</strong> Откройте бота в Telegram
+                <FormattedMessage
+                  id="TelegramConnect.step1"
+                  values={{ strong: chunks => <strong>{chunks}</strong> }}
+                />
               </p>
               
               <ExternalLink
@@ -188,7 +203,10 @@ const TelegramConnect = props => {
               </ExternalLink>
               
               <p className={css.codeInstructions}>
-                <strong>Шаг 2:</strong> Отправьте боту этот код:
+                <FormattedMessage
+                  id="TelegramConnect.step2"
+                  values={{ strong: chunks => <strong>{chunks}</strong> }}
+                />
               </p>
               
               <div className={css.codeDisplay}>
@@ -196,32 +214,36 @@ const TelegramConnect = props => {
               </div>
               
               <p className={css.codeExpiry}>
-                Код действителен 10 минут
+                <FormattedMessage id="TelegramConnect.codeExpiry" values={{ minutes: 10 }} />
               </p>
               
               <div className={css.orDivider}>
-                <span>или</span>
+                <span>
+                  <FormattedMessage id="TelegramConnect.or" />
+                </span>
               </div>
               
               <ExternalLink
                 href={deepLink}
                 className={css.deepLinkButton}
               >
-                Открыть бота и подключить автоматически
+                <FormattedMessage id="TelegramConnect.openBotAutomatically" />
               </ExternalLink>
               
               <Button
                 className={css.refreshButton}
                 onClick={checkStatus}
               >
-                Я отправил код — проверить
+                <FormattedMessage id="TelegramConnect.checkCode" />
               </Button>
             </div>
           ) : (
             <div className={css.generateSection}>
               <div className={css.statusDisconnected}>
                 <span className={css.statusIcon}>🔕</span>
-                <span>Telegram не подключён</span>
+                <span>
+                  <FormattedMessage id="TelegramConnect.notConnected" />
+                </span>
               </div>
               
               <Button
@@ -229,7 +251,7 @@ const TelegramConnect = props => {
                 onClick={generateCode}
                 inProgress={generating}
               >
-                Подключить Telegram
+                <FormattedMessage id="TelegramConnect.connectButton" />
               </Button>
             </div>
           )}

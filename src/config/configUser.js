@@ -7,6 +7,7 @@
 //       (E.g. use mergeDefaultTypesAndFieldsForDebugging func)
 
 import { SERVICE_CATEGORIES } from './serviceCategories';
+import { localized } from '../util/locale';
 
 /**
  * Configuration options for user fields (custom extended data fields):
@@ -150,7 +151,7 @@ export const userFields = [
 export const userTypes = [
   {
     userType: 'customer',  // ← Исполнитель (НЕТ прав создавать задания в Console)
-    label: 'Стать исполнителем',
+    label: localized({ ru: 'Стать исполнителем', en: 'Become a specialist' }),
     roles: {
       customer: false,  // ⚠️ НЕ может создавать листинги
       provider: true,   // ✅ Предоставляет услуги
@@ -165,7 +166,7 @@ export const userTypes = [
   },
   {
     userType: 'provider',  // ← Заказчик (ЕСТЬ права создавать задания в Console)
-    label: 'Стать заказчиком',
+    label: localized({ ru: 'Стать заказчиком', en: 'Become a client' }),
     roles: {
       customer: true,   // ✅ Может создавать листинги
       provider: false,  // ⚠️ НЕ предоставляет услуги

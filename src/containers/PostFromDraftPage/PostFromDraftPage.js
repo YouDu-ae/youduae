@@ -5,6 +5,7 @@ import { getGuestListingData, clearGuestListingData } from '../../util/guestList
 import { trackVoiceTaskPublished } from '../../analytics/plausibleEvents';
 import { Page, LayoutSingleColumn, IconSpinner } from '../../components';
 import { useConfiguration } from '../../context/configurationContext';
+import { useIntl } from '../../util/reactIntl';
 import TopbarContainer from '../TopbarContainer/TopbarContainer';
 import FooterContainer from '../FooterContainer/FooterContainer';
 
@@ -22,7 +23,9 @@ const FALLBACK_LISTING_TYPE = {
 
 const PostFromDraftPage = ({ onCreateListing, onPublishListing, onUpdateListing, onImageUpload }) => {
   const [error, setError] = useState(null);
-  const [progress, setProgress] = useState('Загрузка данных...');
+  const intl = useIntl();
+  const t = (id, values) => intl.formatMessage({ id: `PostFromDraftPage.${id}` }, values);
+  const [progress, setProgress] = useState(t('loadingData'));
   const [partialUpload, setPartialUpload] = useState(null);
   const history = useHistory();
   const config = useConfiguration();
@@ -43,13 +46,13 @@ const PostFromDraftPage = ({ onCreateListing, onPublishListing, onUpdateListing,
         console.log('📥 Draft data retrieved:', draft);
         
         if (!draft || !draft.title) {
-          throw new Error('Черновик пуст или неполный. Пожалуйста, заполните форму заново.');
+          throw new Error(t('draftEmpty'));
         }
 
         const { title, description, category, subcategory, deadline, paymentMethod, location, price, images } = draft;
 
         // 2. Создаем черновик листинга
-        setProgress('Создаем задание...');
+        setProgress(t('creatingTask'));
         console.log('📝 Creating listing:', { 
           title, 
           category,
@@ -139,12 +142,12 @@ const PostFromDraftPage = ({ onCreateListing, onPublishListing, onUpdateListing,
         let failedImages = 0;
 
         if (images && images.length > 0) {
-          setProgress(`Загружаем изображения (0/${images.length})...`);
+          setProgress(t('uploadingImages', { current: 0, total: images.length }));
           console.log(`📸 Uploading ${images.length} images...`);
           
           for (let i = 0; i < images.length; i++) {
             const imageData = images[i];
-            setProgress(`Загружаем изображения (${i + 1}/${images.length})...`);
+            setProgress(t('uploadingImages', { current: i + 1, total: images.length }));
             
             try {
               console.log(`📸 Processing image ${i + 1}:`, {
@@ -237,7 +240,7 @@ const PostFromDraftPage = ({ onCreateListing, onPublishListing, onUpdateListing,
         }
 
         // 4. Публикуем листинг (переводим из draft в published/pendingApproval)
-        setProgress('Публикуем задание...');
+        setProgress(t('publishingTask'));
         const publishResponse = await onPublishListing({ id: listingId });
         
         const listing = publishResponse.data.data;
@@ -273,7 +276,7 @@ const PostFromDraftPage = ({ onCreateListing, onPublishListing, onUpdateListing,
         if (listingState === 'pendingApproval') {
           // Листинг требует модерации - редиректим на страницу успеха
           console.log('⏳ Listing pending approval - redirecting to ListingCreatedPage');
-          setProgress('Задание успешно создано! Перенаправление...');
+          setProgress(t('taskCreatedRedirecting'));
           
           setTimeout(() => {
             history.replace('/listing-created');
@@ -304,7 +307,7 @@ const PostFromDraftPage = ({ onCreateListing, onPublishListing, onUpdateListing,
         });
         
         // Extract more detailed error message
-        let errorMessage = 'Не удалось создать задание';
+        let errorMessage = t('createFailed');
         
         if (e.data?.errors && e.data.errors.length > 0) {
           const firstError = e.data.errors[0];
@@ -327,7 +330,7 @@ const PostFromDraftPage = ({ onCreateListing, onPublishListing, onUpdateListing,
     // отработать ровно один раз, а не повторяться при обновлении конфигурации.
   }, [history, onCreateListing, onPublishListing, onUpdateListing, onImageUpload]);
 
-  const title = 'Создание задания';
+  const title = t('pageTitle');
 
   if (partialUpload) {
     const { failedImages, totalImages, listingPath } = partialUpload;
@@ -336,13 +339,12 @@ const PostFromDraftPage = ({ onCreateListing, onPublishListing, onUpdateListing,
         <LayoutSingleColumn topbar={<TopbarContainer />} footer={<FooterContainer />}>
           <div className={css.root}>
             <div className={css.content}>
-              <h2 className={css.title}>Задание опубликовано</h2>
+              <h2 className={css.title}>{t('publishedTitle')}</h2>
               <p className={css.description}>
-                Но {failedImages} из {totalImages} фото загрузить не удалось. Их можно добавить,
-                отредактировав задание.
+                {t('partialUploadDescription', { failed: failedImages, total: totalImages })}
               </p>
               <button className={css.retryButton} onClick={() => history.replace(listingPath)}>
-                Открыть задание
+                {t('openTask')}
               </button>
             </div>
           </div>
@@ -360,13 +362,13 @@ const PostFromDraftPage = ({ onCreateListing, onPublishListing, onUpdateListing,
         >
           <div className={css.root}>
             <div className={css.error}>
-              <h1>Ошибка</h1>
+              <h1>{t('errorTitle')}</h1>
               <p>{error}</p>
               <button 
                 className={css.retryButton}
                 onClick={() => history.push('/l/new-draft/draft/new/details')}
               >
-                Создать задание вручную
+                {t('createManually')}
               </button>
             </div>
           </div>
@@ -386,7 +388,7 @@ const PostFromDraftPage = ({ onCreateListing, onPublishListing, onUpdateListing,
             <IconSpinner className={css.spinner} />
             <h2 className={css.title}>{progress}</h2>
             <p className={css.description}>
-              Пожалуйста, не закрывайте страницу...
+              {t('doNotClose')}
             </p>
           </div>
         </div>

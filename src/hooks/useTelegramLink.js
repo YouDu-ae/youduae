@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 
 import { generateTelegramCode, getTelegramStatus } from '../util/api';
+import { localized } from '../util/locale';
 
 /**
  * Shared logic for every "connect Telegram" entry point.
@@ -76,7 +77,12 @@ export const useTelegramLink = ({ currentUser, skipStatusCheck = false } = {}) =
       if (popup) {
         popup.close();
       }
-      setError('Не удалось создать ссылку. Попробуйте ещё раз.');
+      setError(
+        localized({
+          ru: 'Не удалось создать ссылку. Попробуйте ещё раз.',
+          en: "Couldn't create the link. Please try again.",
+        })
+      );
     } finally {
       setConnecting(false);
     }

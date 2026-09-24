@@ -143,7 +143,9 @@ export const ContactDetailsPageComponent = props => {
             <div className={css.section}>
               <div className={css.sectionHeader}>
                 <span className={css.sectionIcon}>✉️</span>
-                <h3 className={css.sectionTitle}>Контактные данные</h3>
+                <h3 className={css.sectionTitle}>
+                  <FormattedMessage id="ContactDetailsPage.contactDetailsSectionTitle" />
+                </h3>
               </div>
               {contactInfoForm}
             </div>

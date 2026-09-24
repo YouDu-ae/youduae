@@ -13,13 +13,14 @@ import {
 import { useRouteConfiguration } from '../../context/routeConfigurationContext';
 import { useConfiguration } from '../../context/configurationContext';
 import { pathByRouteName } from '../../util/routes';
-import { FormattedMessage } from '../../util/reactIntl';
+import { FormattedMessage, useIntl } from '../../util/reactIntl';
 import { getCurrentUserTypeRoles } from '../../util/userHelpers';
 import css from './TopbarCustom.module.css';
 
 const TopbarCustom = props => {
   const { isAuthenticated, currentUser, onLogout, notificationCount = 0 } = props;
   
+  const intl = useIntl();
   const history = useHistory();
   const routeConfiguration = useRouteConfiguration();
   const config = useConfiguration();
@@ -317,7 +318,7 @@ const TopbarCustom = props => {
       <div className={css.container}>
         {/* ЛОГО */}
         <div className={css.leftSection}>
-          <NamedLink name="LandingPage" className={css.logoLink} aria-label="На главную" onClick={closeBurger}>
+          <NamedLink name="LandingPage" className={css.logoLink} aria-label={intl.formatMessage({ id: 'TopbarCustom.homeAriaLabel' })} onClick={closeBurger}>
             <div className={css.logoBox}>
               <div className={css.logoBadge} />
               <span className={css.logoText}>YouDu</span>
@@ -327,7 +328,7 @@ const TopbarCustom = props => {
 
         {/* Десктоп-навигация (прячем на <=1023px) */}
         {isAuthenticated ? (
-          <nav className={`${css.rightSection} ${css.hideOnMobile}`} aria-label="Главная навигация">
+          <nav className={`${css.rightSection} ${css.hideOnMobile}`} aria-label={intl.formatMessage({ id: 'TopbarCustom.mainNavigationAriaLabel' })}>
             {isProvider ? (
               // Provider (Заказчик): Создать задания | Мои задания | Сообщения
               <>
@@ -369,7 +370,7 @@ const TopbarCustom = props => {
             </div>
           </nav>
         ) : (
-          <nav className={`${css.nav} ${css.hideOnMobile}`} aria-label="Главная навигация">
+          <nav className={`${css.nav} ${css.hideOnMobile}`} aria-label={intl.formatMessage({ id: 'TopbarCustom.mainNavigationAriaLabel' })}>
           <NamedLink name="CooperationPage" className={css.navLink}>
               <FormattedMessage id="TopbarDesktop.forSpecialists" />
             </NamedLink>
@@ -390,7 +391,9 @@ const TopbarCustom = props => {
           <button
             type="button"
             className={css.burgerBtn}
-            aria-label={isBurgerOpen ? 'Закрыть меню' : 'Открыть меню'}
+            aria-label={intl.formatMessage({
+              id: isBurgerOpen ? 'TopbarCustom.closeMenuAriaLabel' : 'TopbarCustom.openMenuAriaLabel',
+            })}
             aria-expanded={isBurgerOpen}
             onClick={toggleBurger}
           >
@@ -421,7 +424,7 @@ const TopbarCustom = props => {
           ) : (
             <div className={css.burgerLogo} />
           )}
-          <button className={css.burgerClose} aria-label="Закрыть" onClick={closeBurger}>
+          <button className={css.burgerClose} aria-label={intl.formatMessage({ id: 'TopbarCustom.closeAriaLabel' })} onClick={closeBurger}>
             <span />
             <span />
           </button>

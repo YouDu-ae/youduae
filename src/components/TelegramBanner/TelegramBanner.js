@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ExternalLink } from '../../components';
+import { FormattedMessage, useIntl } from '../../util/reactIntl';
 import { useTelegramLink } from '../../hooks/useTelegramLink';
 import css from './TelegramBanner.module.css';
 
@@ -8,6 +9,7 @@ const STORAGE_KEY = 'telegramBannerDismissed';
 const DISMISS_DAYS = 7; // Show again after 7 days
 
 const TelegramBanner = ({ userType, currentUser }) => {
+  const intl = useIntl();
   const [isDismissed, setIsDismissed] = useState(true);
   const { isLinked, connecting, error, connect } = useTelegramLink({ currentUser });
 
@@ -53,14 +55,18 @@ const TelegramBanner = ({ userType, currentUser }) => {
         
         <div className={css.textContent}>
           <h3 className={css.title}>
-            {isProvider 
-              ? 'Не пропустите отклики специалистов!' 
-              : 'Не пропустите новые задания!'}
+            <FormattedMessage
+              id={isProvider ? 'TelegramBanner.titleProvider' : 'TelegramBanner.titleCustomer'}
+            />
           </h3>
           <p className={css.description}>
-            {isProvider
-              ? 'Подключите Telegram-бот и получайте уведомления о новых откликах мгновенно.'
-              : 'Подключите Telegram-бот и узнавайте о новых заданиях первым.'}
+            <FormattedMessage
+              id={
+                isProvider
+                  ? 'TelegramBanner.descriptionProvider'
+                  : 'TelegramBanner.descriptionCustomer'
+              }
+            />
           </p>
           
           <div className={css.links}>
@@ -70,10 +76,12 @@ const TelegramBanner = ({ userType, currentUser }) => {
               disabled={connecting}
               className={css.primaryLink}
             >
-              {connecting ? 'Открываем Telegram…' : 'Подключить за один клик'}
+              <FormattedMessage
+                id={connecting ? 'TelegramBanner.connecting' : 'TelegramBanner.connectButton'}
+              />
             </button>
             <ExternalLink href={TELEGRAM_GROUP_URL} className={css.secondaryLink}>
-              Новости YouDu
+              <FormattedMessage id="TelegramBanner.newsLink" />
             </ExternalLink>
           </div>
           {error ? <p className={css.error}>{error}</p> : null}
@@ -83,7 +91,7 @@ const TelegramBanner = ({ userType, currentUser }) => {
           type="button" 
           className={css.closeButton} 
           onClick={handleDismiss}
-          aria-label="Закрыть"
+          aria-label={intl.formatMessage({ id: 'TelegramBanner.closeAriaLabel' })}
         >
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={css.closeIcon}>
             <path d="M18 6L6 18M6 6l12 12" />

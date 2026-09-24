@@ -1,5 +1,5 @@
 import React from 'react';
-import { FormattedMessage } from '../../util/reactIntl';
+import { FormattedMessage, useIntl } from '../../util/reactIntl';
 import { Page, LayoutSingleColumn, PrimaryButton, IconSuccess, NamedLink } from '../../components';
 import TopbarContainer from '../TopbarContainer/TopbarContainer';
 import FooterContainer from '../FooterContainer/FooterContainer';
@@ -7,7 +7,8 @@ import FooterContainer from '../FooterContainer/FooterContainer';
 import css from './ListingCreatedPage.module.css';
 
 const ListingCreatedPage = () => {
-  const title = 'Задание создано!';
+  const intl = useIntl();
+  const title = intl.formatMessage({ id: 'ListingCreatedPage.pageTitle' });
 
   return (
     <Page title={title} scrollingDisabled={false}>
@@ -24,17 +25,16 @@ const ListingCreatedPage = () => {
             
             {/* Main Title */}
             <h1 className={css.title}>
-              Ваше задание успешно создано! 🎉
+              <FormattedMessage id="ListingCreatedPage.heading" /> 🎉
             </h1>
             
             {/* Moderation Notice */}
             <div className={css.moderationNotice}>
               <div className={css.moderationIcon}>⏳</div>
               <div className={css.moderationText}>
-                <h3>Задание отправлено на модерацию</h3>
+                <h3><FormattedMessage id="ListingCreatedPage.moderationTitle" /></h3>
                 <p>
-                  Пожалуйста, дождитесь одобрения публикации задания на нашем сайте после модерации.
-                  Обычно это занимает не более 24 часов.
+                  <FormattedMessage id="ListingCreatedPage.moderationText" />
                 </p>
               </div>
             </div>
@@ -43,9 +43,12 @@ const ListingCreatedPage = () => {
             <div className={css.infoBox}>
               <div className={css.infoIcon}>💡</div>
               <div className={css.infoContent}>
-                <p className={css.infoTitle}>Где найти мои задания?</p>
+                <p className={css.infoTitle}><FormattedMessage id="ListingCreatedPage.infoTitle" /></p>
                 <p className={css.infoDescription}>
-                  Все ваши задания находятся в личном кабинете - <strong>"Мои задания"</strong>
+                  <FormattedMessage
+                    id="ListingCreatedPage.infoDescription"
+                    values={{ b: chunks => <strong>{chunks}</strong> }}
+                  />
                 </p>
               </div>
             </div>
@@ -55,22 +58,22 @@ const ListingCreatedPage = () => {
               <div className={css.step}>
                 <div className={css.stepNumber}>✓</div>
                 <div className={css.stepContent}>
-                  <h4>Регистрация завершена</h4>
-                  <p>Ваш аккаунт успешно создан</p>
+                  <h4><FormattedMessage id="ListingCreatedPage.stepSignupTitle" /></h4>
+                  <p><FormattedMessage id="ListingCreatedPage.stepSignupText" /></p>
                 </div>
               </div>
               <div className={css.step}>
                 <div className={css.stepNumber}>✓</div>
                 <div className={css.stepContent}>
-                  <h4>Задание создано</h4>
-                  <p>Все данные сохранены</p>
+                  <h4><FormattedMessage id="ListingCreatedPage.stepCreatedTitle" /></h4>
+                  <p><FormattedMessage id="ListingCreatedPage.stepCreatedText" /></p>
                 </div>
               </div>
               <div className={css.step}>
                 <div className={css.stepNumber}>⏳</div>
                 <div className={css.stepContent}>
-                  <h4>Ожидает модерацию</h4>
-                  <p>Скоро будет опубликовано</p>
+                  <h4><FormattedMessage id="ListingCreatedPage.stepModerationTitle" /></h4>
+                  <p><FormattedMessage id="ListingCreatedPage.stepModerationText" /></p>
                 </div>
               </div>
             </div>
@@ -82,7 +85,7 @@ const ListingCreatedPage = () => {
                 className={css.primaryButton}
               >
                 <PrimaryButton>
-                  Перейти в "Мои задания"
+                  <FormattedMessage id="ListingCreatedPage.goToMyTasks" />
                 </PrimaryButton>
               </NamedLink>
               
@@ -90,7 +93,7 @@ const ListingCreatedPage = () => {
                 name="LandingPage" 
                 className={css.secondaryLink}
               >
-                Вернуться на главную
+                <FormattedMessage id="ListingCreatedPage.backToHome" />
               </NamedLink>
             </div>
           </div>

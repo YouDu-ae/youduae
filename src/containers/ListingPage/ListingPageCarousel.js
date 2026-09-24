@@ -489,7 +489,9 @@ const isOnlyCustomer = !userRoles.customer && userRoles.provider; // Испол�
             {/* Цена для мобильной версии */}
             {price && (
               <div className={css.mobilePriceContainer}>
-                <div className={css.mobilePriceLabel}>Цена:</div>
+                <div className={css.mobilePriceLabel}>
+                  <FormattedMessage id="ListingPageCarousel.mobilePriceLabel" />
+                </div>
                 <div className={css.mobilePriceValue}>{formattedPrice}</div>
               </div>
             )}
@@ -645,10 +647,10 @@ const isOnlyCustomer = !userRoles.customer && userRoles.provider; // Испол�
       }}
     >
       <div style={{ fontSize: 18, fontWeight: 600, color: '#64748b', marginBottom: 8 }}>
-        ⚫ Работа завершена
+        ⚫ <FormattedMessage id="ListingPageCarousel.workCompletedTitle" />
       </div>
       <div style={{ color: '#64748b' }}>
-        Листинг закрыт. Работа выполнена.
+        <FormattedMessage id="ListingPageCarousel.workCompletedMessage" />
       </div>
     </div>
   )}

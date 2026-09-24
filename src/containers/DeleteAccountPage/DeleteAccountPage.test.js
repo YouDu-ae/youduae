@@ -37,10 +37,10 @@ describe('DeleteAccountPage', () => {
   it('keeps the button disabled until deletion is confirmed', () => {
     renderPage(createCurrentUser('user1'));
 
-    const button = screen.getByRole('button', { name: 'Удалить аккаунт' });
+    const button = screen.getByRole('button', { name: 'DeleteAccountPage.submitDelete' });
     expect(button).toBeDisabled();
 
-    fireEvent.change(screen.getByLabelText('Пароль для подтверждения'), {
+    fireEvent.change(screen.getByLabelText('DeleteAccountPage.passwordLabel'), {
       target: { value: 'secret' },
     });
     expect(button).toBeDisabled();
@@ -53,13 +53,13 @@ describe('DeleteAccountPage', () => {
     global.fetch = jest.fn(async () => response(200, { status: 'deleted' }));
     renderPage(createCurrentUser('user1'));
 
-    fireEvent.change(screen.getByLabelText('Пароль для подтверждения'), {
+    fireEvent.change(screen.getByLabelText('DeleteAccountPage.passwordLabel'), {
       target: { value: 'secret' },
     });
     confirm();
-    fireEvent.click(screen.getByRole('button', { name: 'Удалить аккаунт' }));
+    fireEvent.click(screen.getByRole('button', { name: 'DeleteAccountPage.submitDelete' }));
 
-    expect(await screen.findByText('Аккаунт удалён.')).toBeInTheDocument();
+    expect(await screen.findByText('DeleteAccountPage.deletedTitle')).toBeInTheDocument();
     expect(requestBody()).toEqual({ currentPassword: 'secret', source: 'web' });
   });
 
@@ -67,13 +67,13 @@ describe('DeleteAccountPage', () => {
     global.fetch = jest.fn(async () => response(403, { error: 'wrong_password' }));
     renderPage(createCurrentUser('user1'));
 
-    fireEvent.change(screen.getByLabelText('Пароль для подтверждения'), {
+    fireEvent.change(screen.getByLabelText('DeleteAccountPage.passwordLabel'), {
       target: { value: 'wrong' },
     });
     confirm();
-    fireEvent.click(screen.getByRole('button', { name: 'Удалить аккаунт' }));
+    fireEvent.click(screen.getByRole('button', { name: 'DeleteAccountPage.submitDelete' }));
 
-    expect(await screen.findByText('Неверный пароль.')).toBeInTheDocument();
+    expect(await screen.findByText('DeleteAccountPage.errorWrongPassword')).toBeInTheDocument();
   });
 
   // Google and Apple sign-ins have no password to give, so Sharetribe cannot
@@ -82,11 +82,11 @@ describe('DeleteAccountPage', () => {
     global.fetch = jest.fn(async () => response(202, { status: 'requested', withinDays: 30 }));
     renderPage(userWithProvider());
 
-    expect(screen.queryByLabelText('Пароль для подтверждения')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('DeleteAccountPage.passwordLabel')).not.toBeInTheDocument();
     confirm();
-    fireEvent.click(screen.getByRole('button', { name: 'Отправить запрос на удаление' }));
+    fireEvent.click(screen.getByRole('button', { name: 'DeleteAccountPage.submitRequest' }));
 
-    expect(await screen.findByText('Запрос принят.')).toBeInTheDocument();
+    expect(await screen.findByText('DeleteAccountPage.requestedTitle')).toBeInTheDocument();
     await waitFor(() => expect(requestBody()).toEqual({ source: 'web' }));
   });
 });

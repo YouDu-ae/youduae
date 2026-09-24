@@ -3,20 +3,21 @@ import { useHistory } from 'react-router-dom';
 import { useRouteConfiguration } from '../../../../../context/routeConfigurationContext';
 import { createResourceLocatorString } from '../../../../../util/routes';
 import classNames from 'classnames';
+import { FormattedMessage } from '../../../../../util/reactIntl';
 import css from './CategoryList.module.css';
 
 const CATEGORIES = [
-  { id: 'repair-construction', label: 'Ремонт и строительство' },
-  { id: 'courier-services', label: 'Курьерские услуги' },
-  { id: 'cleaning-home-help', label: 'Уборка и помощь в доме' },
-  { id: 'cargo-transport', label: 'Грузоперевозки' },
-  { id: 'appliance-installation', label: 'Установка бытовой техники' },
-  { id: 'beauty-health', label: 'Красота и здоровье' },
-  { id: 'photo-video-audio', label: 'Фото, видео, аудио' },
-  { id: 'digital-tech-repair', label: 'Ремонт цифровой техники' },
-  { id: 'legal-accounting', label: 'Юридическая и бухгалтерская помощь' },
-  { id: 'tutoring-education', label: 'Репетиторы и обучение' },
-  { id: 'automotive-services', label: 'Автомобильные услуги' },
+  { id: 'repair-construction', labelId: 'CategoryList.repairConstruction' },
+  { id: 'courier-services', labelId: 'CategoryList.courierServices' },
+  { id: 'cleaning-home-help', labelId: 'CategoryList.cleaningHomeHelp' },
+  { id: 'cargo-transport', labelId: 'CategoryList.cargoTransport' },
+  { id: 'appliance-installation', labelId: 'CategoryList.applianceInstallation' },
+  { id: 'beauty-health', labelId: 'CategoryList.beautyHealth' },
+  { id: 'photo-video-audio', labelId: 'CategoryList.photoVideoAudio' },
+  { id: 'digital-tech-repair', labelId: 'CategoryList.digitalTechRepair' },
+  { id: 'legal-accounting', labelId: 'CategoryList.legalAccounting' },
+  { id: 'tutoring-education', labelId: 'CategoryList.tutoringEducation' },
+  { id: 'automotive-services', labelId: 'CategoryList.automotiveServices' },
 ];
 
 const CategoryList = ({ isOpen, onClose }) => {
@@ -52,7 +53,7 @@ const CategoryList = ({ isOpen, onClose }) => {
             onClick={() => handleCategoryClick(category.id)}
             type="button"
           >
-            {category.label}
+            <FormattedMessage id={category.labelId} />
           </button>
         ))}
       </div>

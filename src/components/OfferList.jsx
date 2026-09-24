@@ -10,6 +10,7 @@ import {
 } from '../util/api';
 import StarRating from './StarRating/StarRating';
 import { NamedLink, Avatar, VerificationBadge } from '../components';
+import { FormattedMessage, useIntl } from '../util/reactIntl';
 
 import css from './OfferList.module.css';
 import { trackProviderSelected } from '../analytics/plausibleEvents';
@@ -73,6 +74,7 @@ const attachProfileImage = (user, included) => {
  * Показывает цену/комментарий и позволяет выбрать исполнителя.
  */
 export default function OfferList({ listingId, isOwner, publicData = {} }) {
+  const intl = useIntl();
   const [loading, setLoading] = useState(true);
   const [offers, setOffers] = useState([]);
   const [included, setIncluded] = useState([]); // Сохраняем included массив
@@ -165,8 +167,9 @@ export default function OfferList({ listingId, isOwner, publicData = {} }) {
         // eslint-disable-next-line no-console
         console.error('❌ OfferList query error:', e?.status, e?.data || e);
         setErr(
-          'Не удалось загрузить отклики. ' +
-            (e?.status === 401 ? 'Войдите снова.' : 'Обновите страницу.')
+          intl.formatMessage({
+            id: e?.status === 401 ? 'OfferList.loadFailedLoginAgain' : 'OfferList.loadFailedRefresh',
+          })
         );
       } finally {
         setLoading(false);
@@ -226,15 +229,18 @@ export default function OfferList({ listingId, isOwner, publicData = {} }) {
     } catch (e) {
       // eslint-disable-next-line no-console
       console.error('❌ OfferList accept error:', e?.status, e?.data || e);
-      const errorMessage = e?.data?.errors?.[0]?.title || e?.message || 'Неизвестная ошибка';
-      setErr(`Не удалось выбрать исполнителя: ${errorMessage}`);
+      const errorMessage =
+        e?.data?.errors?.[0]?.title ||
+        e?.message ||
+        intl.formatMessage({ id: 'OfferList.unknownError' });
+      setErr(intl.formatMessage({ id: 'OfferList.acceptFailed' }, { error: errorMessage }));
     } finally {
       setBusyTxId(null);
     }
   };
 
   const decline = async tx => {
-    if (!window.confirm('Вы уверены, что хотите отклонить этот отклик?')) {
+    if (!window.confirm(intl.formatMessage({ id: 'OfferList.declineConfirm' }))) {
       return;
     }
 
@@ -263,16 +269,29 @@ export default function OfferList({ listingId, isOwner, publicData = {} }) {
     } catch (e) {
       // eslint-disable-next-line no-console
       console.error('❌ OfferList decline error:', e?.status, e?.data || e);
-      const errorMessage = e?.data?.errors?.[0]?.title || e?.message || 'Неизвестная ошибка';
-      setErr(`Не удалось отклонить отклик: ${errorMessage}`);
+      const errorMessage =
+        e?.data?.errors?.[0]?.title ||
+        e?.message ||
+        intl.formatMessage({ id: 'OfferList.unknownError' });
+      setErr(intl.formatMessage({ id: 'OfferList.declineFailed' }, { error: errorMessage }));
     } finally {
       setBusyTxId(null);
     }
   };
 
-  if (loading) return <div>Загрузка откликов…</div>;
+  if (loading)
+    return (
+      <div>
+        <FormattedMessage id="OfferList.loading" />
+      </div>
+    );
   if (err) return <div style={{ color: 'crimson' }}>{err}</div>;
-  if (!offers.length) return <div>Пока нет откликов</div>;
+  if (!offers.length)
+    return (
+      <div>
+        <FormattedMessage id="OfferList.noOffers" />
+      </div>
+    );
 
   /**
    * Функция сортировки откликов с приоритетом верифицированным пользователям
@@ -433,7 +452,9 @@ export default function OfferList({ listingId, isOwner, publicData = {} }) {
 
   return (
     <div>
-      <h3 style={{ marginTop: 24, marginBottom: 12, fontSize: '16px' }}>Отклики исполнителей</h3>
+      <h3 style={{ marginTop: 24, marginBottom: 12, fontSize: '16px' }}>
+        <FormattedMessage id="OfferList.title" />
+      </h3>
       <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
         {offersToDisplay.map(tx => {
           const offer = tx.attributes?.protectedData?.offer || {};
@@ -456,7 +477,7 @@ export default function OfferList({ listingId, isOwner, publicData = {} }) {
           }
           
           const customerProfile = customer?.attributes?.profile || {};
-          const customerName = customerProfile.displayName || 'Исполнитель';
+          const customerName = customerProfile.displayName || intl.formatMessage({ id: 'OfferList.defaultSpecialistName' });
           const customerId = customer?.id?.uuid;
           
           // ✅ ДЕТАЛЬНАЯ ПРОВЕРКА ВЕРИФИКАЦИИ
@@ -532,28 +553,36 @@ export default function OfferList({ listingId, isOwner, publicData = {} }) {
                   <>
                     <StarRating rating={rating} />
                     <span className={css.ratingText}>
-                      {rating.toFixed(1)} ({reviewCount}{' '}
-                      {reviewCount === 1
-                        ? 'отзыв'
-                        : reviewCount < 5
-                        ? 'отзыва'
-                        : 'отзывов'}
-                      )
+                      <FormattedMessage
+                        id="OfferList.ratingWithReviewCount"
+                        values={{ rating: rating.toFixed(1), count: reviewCount }}
+                      />
                     </span>
                   </>
                 ) : (
-                  <span className={css.noRatingText}>Пока нет отзывов</span>
+                  <span className={css.noRatingText}>
+                    <FormattedMessage id="OfferList.noReviews" />
+                  </span>
                 )}
               </div>
 
               {/* Цена */}
               <div className={css.priceLabel}>
-                Предложенная цена:{' '}
-                {price !== undefined && price !== null ? `${price} ${currency}` : '—'}
+                <FormattedMessage
+                  id="OfferList.proposedPrice"
+                  values={{
+                    price: price !== undefined && price !== null ? `${price} ${currency}` : '—',
+                  }}
+                />
               </div>
 
               {/* Комментарий */}
-              <div className={css.commentLabel}>Комментарий: {comment ? comment : '—'}</div>
+              <div className={css.commentLabel}>
+                <FormattedMessage
+                  id="OfferList.comment"
+                  values={{ comment: comment ? comment : '—' }}
+                />
+              </div>
 
               {/* Кнопки выбора/отклонения */}
               {!accepted ? (
@@ -563,25 +592,31 @@ export default function OfferList({ listingId, isOwner, publicData = {} }) {
                     disabled={busyTxId === tx.id.uuid}
                     className={css.selectButton}
                   >
-                    {busyTxId === tx.id.uuid ? 'Выбираю…' : 'Выбрать исполнителя'}
+                    <FormattedMessage
+                      id={busyTxId === tx.id.uuid ? 'OfferList.accepting' : 'OfferList.acceptButton'}
+                    />
                   </button>
                   <button
                     onClick={() => decline(tx)}
                     disabled={busyTxId === tx.id.uuid}
                     className={css.declineButton}
                   >
-                    {busyTxId === tx.id.uuid ? 'Отклоняю…' : 'Отклонить'}
+                    <FormattedMessage
+                      id={busyTxId === tx.id.uuid ? 'OfferList.declining' : 'OfferList.declineButton'}
+                    />
                   </button>
                 </div>
               ) : (
                 <div className={css.acceptedSection}>
-                  <div className={css.acceptedLabel}>✅ Исполнитель выбран</div>
+                  <div className={css.acceptedLabel}>
+                    ✅ <FormattedMessage id="OfferList.specialistSelected" />
+                  </div>
                   <NamedLink
                     name="SaleDetailsPage"
                     params={{ id: tx.id.uuid }}
                     className={css.chatButton}
                   >
-                    💬 Перейти в чат
+                    💬 <FormattedMessage id="OfferList.goToChat" />
                   </NamedLink>
                 </div>
               )}

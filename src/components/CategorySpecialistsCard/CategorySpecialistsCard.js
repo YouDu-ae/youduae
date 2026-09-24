@@ -4,6 +4,7 @@ import { object, string } from 'prop-types';
 import { fetchAreaStats, fetchCategorySpecialists } from '../../util/api';
 import { useRouteConfiguration } from '../../context/routeConfigurationContext';
 import { pathByRouteName } from '../../util/routes';
+import { useIntl } from '../../util/reactIntl';
 
 import css from './CategorySpecialistsCard.module.css';
 
@@ -26,17 +27,11 @@ const loadSummary = () => {
   return summaryPromise;
 };
 
-const pluralize = (count, one, few, many) => {
-  const mod10 = count % 10;
-  const mod100 = count % 100;
-  if (mod10 === 1 && mod100 !== 11) return one;
-  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return few;
-  return many;
-};
-
 const CategorySpecialistsCard = props => {
   const { categoryId, categoryName, className, location } = props;
   const routeConfiguration = useRouteConfiguration();
+  const intl = useIntl();
+  const t = (id, values) => intl.formatMessage({ id: `CategorySpecialistsCard.${id}` }, values);
   const [summary, setSummary] = useState(null);
   const [areaStats, setAreaStats] = useState(null);
 
@@ -109,44 +104,32 @@ const CategorySpecialistsCard = props => {
   // счётчиком читались бы как мастера этой категории.
   const avatars = (showCategory ? inCategory.avatars : summary.avatars) || [];
 
-  const totalOnYoudu = `${total} ${pluralize(
-    total,
-    'специалист',
-    'специалиста',
-    'специалистов'
-  )} на YouDu`;
-
   const title = showCategory
-    ? `${count} ${pluralize(count, 'мастер', 'мастера', 'мастеров')} по категории «${categoryName}»`
-    : totalOnYoudu;
+    ? t('titleCategory', { count, categoryName })
+    : t('titleTotal', { total });
 
   // Лента заданий общая, фильтра по категориям для откликов нет — поэтому обещание
   // «увидят все» верно и для категории, где мастеров пока нет.
   const text = showCategory
-    ? `Задание увидят все специалисты YouDu — сейчас их ${total}, откликнуться может любой.`
+    ? t('textCategory', { total })
     : categoryName
-    ? `В категории «${categoryName}» мастеров пока нет — задание попадёт в общую ленту, откликнуться может любой.`
-    : 'Задание попадёт в общую ленту — её смотрят все специалисты площадки.';
+    ? t('textEmptyCategory', { categoryName })
+    : t('textNoCategory');
 
   // Район точнее и убедительнее города, поэтому он вытесняет городскую строку,
   // когда набралось достаточно выполненных заданий именно там. Сервер отдаёт
   // ячейку только после порога, так что здесь достаточно проверить наличие.
   const proofCell = areaStats?.area || areaStats?.city || null;
-  const proofPlace = areaStats?.area ? `в районе ${areaStats.area.communityLabel}` : 'в Дубае';
+  const proofValues = proofCell && {
+    orders: proofCell.orders,
+    specialists: proofCell.specialists,
+  };
 
-  const proof = proofCell
-    ? `Через YouDu ${proofPlace} уже выполнено ${proofCell.orders} ${pluralize(
-        proofCell.orders,
-        'задание',
-        'задания',
-        'заданий'
-      )} этой категории — работали ${proofCell.specialists} ${pluralize(
-        proofCell.specialists,
-        'мастер',
-        'мастера',
-        'мастеров'
-      )}.`
-    : null;
+  const proof = !proofCell
+    ? null
+    : areaStats?.area
+    ? t('proofArea', { ...proofValues, area: areaStats.area.communityLabel })
+    : t('proofCity', proofValues);
 
   const classes = className ? `${css.root} ${className}` : css.root;
 
@@ -172,7 +155,7 @@ const CategorySpecialistsCard = props => {
             rel="noopener noreferrer"
             className={css.link}
           >
-            Посмотреть мастеров
+            {t('viewSpecialists')}
           </a>
         )}
       </div>

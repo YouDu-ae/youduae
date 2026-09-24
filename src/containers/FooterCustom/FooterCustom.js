@@ -1,10 +1,11 @@
 import React from 'react';
-import { FormattedMessage } from '../../util/reactIntl';
+import { FormattedMessage, useIntl } from '../../util/reactIntl';
 import { NamedLink } from '../../components';
 import css from './FooterCustom.module.css';
 import logo from '../../assets/Logo.png'; // проверь путь к картинке
 
 const FooterCustom = () => {
+  const intl = useIntl();
   const year = new Date().getFullYear();
 
   return (
@@ -12,7 +13,8 @@ const FooterCustom = () => {
       <div className={css.container}>
 
         {/* Логотип */}
-        <NamedLink name="LandingPage" className={css.logoName} aria-label="На главную">
+        <NamedLink name="LandingPage" className={css.logoName} aria-label={intl.formatMessage({ id: 'FooterCustom.homeAriaLabel' })}
+        >
           <div className={css.logoPic}>
             <img src={logo} alt="YouDu" className={css.logoImg} />
           </div>

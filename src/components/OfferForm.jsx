@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { initiatePrivileged, checkMyOffer } from '../util/api';
 import { NamedLink, TelegramConnectPrompt } from '../components';
+import { FormattedMessage, useIntl } from '../util/reactIntl';
 import { trackOfferSubmitted } from '../analytics/plausibleEvents';
 import css from './OfferForm.module.css';
 
@@ -30,6 +31,7 @@ export default function OfferForm({
   category,
   city,
 }) {
+  const intl = useIntl();
   const [price, setPrice] = useState('');
   const [comment, setComment] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -75,11 +77,11 @@ export default function OfferForm({
 
     const amount = Number(price);
     if (!amount || amount < 1) {
-      setErr('Укажите корректную сумму');
+      setErr(intl.formatMessage({ id: 'OfferForm.invalidPrice' }));
       return;
     }
     if (!comment.trim()) {
-      setErr('Добавьте комментарий');
+      setErr(intl.formatMessage({ id: 'OfferForm.commentRequired' }));
       return;
     }
 
@@ -141,8 +143,11 @@ export default function OfferForm({
     } catch (e2) {
       // eslint-disable-next-line no-console
       console.error('❌ OfferForm error:', e2);
-      const errorMessage = e2?.data?.errors?.[0]?.title || e2?.message || 'Неизвестная ошибка';
-      setErr(`Не удалось отправить отклик: ${errorMessage}`);
+      const errorMessage =
+        e2?.data?.errors?.[0]?.title ||
+        e2?.message ||
+        intl.formatMessage({ id: 'OfferForm.unknownError' });
+      setErr(intl.formatMessage({ id: 'OfferForm.submitFailed' }, { error: errorMessage }));
     } finally {
       setSubmitting(false);
     }
@@ -156,14 +161,14 @@ export default function OfferForm({
     return (
       <div className={css.blockMessage}>
         <div className={css.blockMessageTitle}>
-          {isAuthenticated 
-            ? 'Вы не можете откликнуться на это задание' 
-            : 'Авторизуйтесь для отклика на задание'}
+          <FormattedMessage
+            id={isAuthenticated ? 'OfferForm.cannotRespondTitle' : 'OfferForm.loginToRespondTitle'}
+          />
         </div>
         <p className={css.blockMessageText}>
-          {isAuthenticated 
-            ? 'Вы являетесь заказчиком (Provider). Только исполнители (Customer) могут откликаться на задания. Вы можете создавать свои задания в разделе "Мои задания".'
-            : 'Вы не авторизованы и не можете откликнуться на задание. Только авторизованные пользователи (Специалисты) могут откликаться и предложить свою цену или принять текущую.'}
+          <FormattedMessage
+            id={isAuthenticated ? 'OfferForm.cannotRespondText' : 'OfferForm.loginToRespondText'}
+          />
         </p>
       </div>
     );
@@ -171,7 +176,9 @@ export default function OfferForm({
 
   // Показываем индикатор загрузки при проверке
   if (checking) {
-    return <div className={css.loadingSpinner}>Проверка...</div>;
+    return <div className={css.loadingSpinner}>
+        <FormattedMessage id="OfferForm.checking" />
+      </div>;
   }
 
   // Если пользователь уже отправил отклик, показываем сообщение
@@ -180,9 +187,11 @@ export default function OfferForm({
     if (offerStatus === 'declined') {
       return (
         <div className={css.errorMessage}>
-          <strong>Отклик отклонён</strong>
+          <strong>
+            <FormattedMessage id="OfferForm.declinedTitle" />
+          </strong>
           <p style={{ marginTop: 8, marginBottom: 0 }}>
-            К сожалению, заказчик отклонил ваш отклик на это задание. Вы можете найти другие задания в разделе "Найти задания".
+            <FormattedMessage id="OfferForm.declinedText" />
           </p>
         </div>
       );
@@ -192,9 +201,11 @@ export default function OfferForm({
     if (offerStatus === 'accepted') {
       return (
         <div className={css.successMessage}>
-          <strong>Ваш отклик принят! 🎉</strong>
+          <strong>
+            <FormattedMessage id="OfferForm.acceptedTitle" /> 🎉
+          </strong>
           <p style={{ marginTop: 8, marginBottom: 8 }}>
-            Поздравляем! Заказчик выбрал вас для выполнения этого задания.
+            <FormattedMessage id="OfferForm.acceptedText" />
           </p>
           {transactionId && (
             <NamedLink
@@ -211,7 +222,7 @@ export default function OfferForm({
                 cursor: 'pointer',
               }}
             >
-              💬 Перейти в чат
+              💬 <FormattedMessage id="OfferForm.goToChat" />
             </NamedLink>
           )}
         </div>
@@ -222,9 +233,11 @@ export default function OfferForm({
     if (offerStatus === 'completed') {
       return (
         <div style={{ padding: 16, backgroundColor: '#dbeafe', border: '1px solid #3b82f6', borderRadius: 4 }}>
-          <strong style={{ color: '#1e3a8a' }}>Работа завершена</strong>
+          <strong style={{ color: '#1e3a8a' }}>
+            <FormattedMessage id="OfferForm.completedTitle" />
+          </strong>
           <p style={{ marginTop: 8, marginBottom: 0, color: '#1e40af' }}>
-            Вы завершили выполнение этого задания. Вы можете оставить отзыв о заказчике в разделе "Входящие".
+            <FormattedMessage id="OfferForm.completedText" />
           </p>
         </div>
       );
@@ -240,9 +253,11 @@ export default function OfferForm({
       // Выбран другой исполнитель
       return (
         <div style={{ padding: 16, backgroundColor: '#fff7ed', border: '1px solid #fb923c', borderRadius: 4 }}>
-          <strong style={{ color: '#9a3412' }}>Выбран другой исполнитель</strong>
+          <strong style={{ color: '#9a3412' }}>
+            <FormattedMessage id="OfferForm.anotherExecutorTitle" />
+          </strong>
           <p style={{ marginTop: 8, marginBottom: 0, color: '#78350f' }}>
-            К сожалению, заказчик выбрал другого исполнителя для выполнения этого задания.
+            <FormattedMessage id="OfferForm.anotherExecutorText" />
           </p>
         </div>
       );
@@ -251,14 +266,16 @@ export default function OfferForm({
     // Заявка отправлена, ожидаем ответа (pending или неизвестный статус)
     return (
       <div style={{ padding: 16, backgroundColor: '#f0fff4', border: '1px solid #48bb78', borderRadius: 4 }}>
-        <strong style={{ color: '#22543d' }}>Заявка отправлена!</strong>
+        <strong style={{ color: '#22543d' }}>
+          <FormattedMessage id="OfferForm.pendingTitle" />
+        </strong>
         <p style={{ marginTop: 8, marginBottom: 0, color: '#2d3748' }}>
-          Дождитесь ответа от заказчика. Вы можете посмотреть статус вашего отклика в разделе "Входящие".
+          <FormattedMessage id="OfferForm.pendingText" />
         </p>
         <TelegramConnectPrompt
           currentUser={currentUser}
-          title="Узнайте об ответе первым"
-          description="Заказчики выбирают тех, кто отвечает быстро. Пришлём уведомление в Telegram, как только придёт ответ."
+          title={intl.formatMessage({ id: 'OfferForm.telegramPromptTitle' })}
+          description={intl.formatMessage({ id: 'OfferForm.telegramPromptDescription' })}
         />
       </div>
     );
@@ -266,12 +283,14 @@ export default function OfferForm({
 
   return (
     <div className={css.root}>
-      <h3 className={css.title}>Отправить отклик</h3>
+      <h3 className={css.title}>
+        <FormattedMessage id="OfferForm.title" />
+      </h3>
       
     <form onSubmit={onSubmit}>
         <div className={css.inputGroup}>
           <label className={css.label}>
-            Ваша цена (AED)
+            <FormattedMessage id="OfferForm.priceLabel" />
             <span className={css.required}>*</span>
           </label>
           <div className={css.priceInputContainer}>
@@ -283,7 +302,7 @@ export default function OfferForm({
           value={price}
           onChange={e => setPrice(e.target.value)}
               className={css.priceInput}
-          placeholder="Например, 250"
+          placeholder={intl.formatMessage({ id: 'OfferForm.pricePlaceholder' })}
               required
         />
           </div>
@@ -291,26 +310,28 @@ export default function OfferForm({
 
         <div className={css.inputGroup}>
           <label className={css.label}>
-        Комментарий
+            <FormattedMessage id="OfferForm.commentLabel" />
           </label>
         <textarea
           value={comment}
           onChange={e => setComment(e.target.value)}
             className={css.commentTextarea}
           rows={4}
-            placeholder="Кратко опишите: сроки выполнения, условия, что входит в работу..."
+            placeholder={intl.formatMessage({ id: 'OfferForm.commentPlaceholder' })}
         />
         </div>
 
         {err && <div className={css.errorMessage}>{err}</div>}
-        {ok && <div className={css.successMessage}>Отклик отправлен!</div>}
+        {ok && <div className={css.successMessage}>
+            <FormattedMessage id="OfferForm.submitSuccess" />
+          </div>}
 
         <button 
           type="submit" 
           disabled={submitting} 
           className={css.submitButton}
         >
-        {submitting ? 'Отправка…' : 'Отправить отклик'}
+        <FormattedMessage id={submitting ? 'OfferForm.submitting' : 'OfferForm.submitButton'} />
       </button>
     </form>
     </div>

@@ -4,13 +4,10 @@ import { NamedLink, Page } from '../../components';
 import TopbarContainer from '../../containers/TopbarContainer/TopbarContainer';
 import FooterCustom from '../FooterCustom/FooterCustom';
 import { getPlatformStats } from '../../util/api';
+import { useIntl, FormattedMessage } from '../../util/reactIntl';
 
 import css from './CooperationPage.module.css';
 
-// SEO content
-const SEO_TITLE = 'Стать специалистом YouDu | Работа в ОАЭ без комиссии';
-const SEO_DESCRIPTION = 'Зарабатывайте на своих навыках с YouDu в Дубае и ОАЭ. Находите заказы рядом, предлагайте свою цену, работайте по гибкому графику. Без комиссии и скрытых платежей. Регистрация бесплатна.';
-const SEO_KEYWORDS = 'работа в ОАЭ, подработка Дубай, фриланс ОАЭ, найти работу Дубай, специалист YouDu, заработок в Эмиратах, услуги Дубай, мастер на час, ремонт Дубай, клининг ОАЭ';
 const CANONICAL_URL = 'https://youdu.ae/cooperation';
 
 // Animated counter hook
@@ -49,7 +46,32 @@ const useAnimatedCounter = (targetValue, duration = 2000, enabled = true) => {
   return count;
 };
 
+const FAQ_KEYS = [
+  'verificationRequired',
+  'cost',
+  'earnings',
+  'rating',
+  'areas',
+  'skipTasks',
+  'getChosen',
+];
+
+const SERVICE_TYPE_KEYS = [
+  'serviceTypeRepair',
+  'serviceTypeCleaning',
+  'serviceTypeTutors',
+  'serviceTypeBeauty',
+  'serviceTypeDelivery',
+  'serviceTypeIt',
+];
+
+const capitalize = str => str.charAt(0).toUpperCase() + str.slice(1);
+
 const CooperationPage = () => {
+  const intl = useIntl();
+  const SEO_TITLE = intl.formatMessage({ id: 'CooperationPage.schemaTitle' });
+  const SEO_DESCRIPTION = intl.formatMessage({ id: 'CooperationPage.schemaDescription' });
+  const SEO_KEYWORDS = intl.formatMessage({ id: 'CooperationPage.schemaKeywords' });
   const [stats, setStats] = useState({ totalCompletedTasks: 0, totalSumAED: 0 });
   const [statsLoading, setStatsLoading] = useState(true);
   
@@ -77,36 +99,10 @@ const CooperationPage = () => {
       });
   }, []);
 
-  const faqData = [
-  {
-    question: "Нужно ли проходить верификацию?",
-    answer: "Можно и без неё, но верифицированные мастера получают приоритет показа и больше заказов."
-  },
-  {
-    question: "Сколько это стоит?",
-    answer: "Регистрация специалиста бесплатна.  Комиссий за сделки нет, оплаты за отклики тоже нет."
-  },
-  {
-    question: "Сколько можно заработать через YouDu?",
-    answer: "Все зависит от количества ваших откликов и рейтинга. Вы сами регулируете это."
-  },
-   {
-    question: "Как формируется рейтинг?",
-    answer: "Рейтинг основан на отзывах клиентов и качестве выполненных заданий. Verified-отзывы влияют сильнее."
-  },
-   {
-    question: "Как выбрать удобные районы для работы?",
-    answer: "Укажите районы/радиус в профиле и мы покажем задания рядом."
-  },
-   {
-    question: "Можно ли пропускать задания?",
-    answer: "Да. Вы сами решаете, когда и на какие задания откликаться."
-  },
-   {
-    question: "Как повысить шанс, что выберут мой отклик?",
-    answer: "Заполните профиль, пройдите верификацию, прикладывайте фото работ и пишите конкретное предложение с чёткой ценой и сроками."
-  }
-];
+  const faqData = FAQ_KEYS.map(key => ({
+    question: intl.formatMessage({ id: `CooperationPage.faq${capitalize(key)}Question` }),
+    answer: intl.formatMessage({ id: `CooperationPage.faq${capitalize(key)}Answer` }),
+  }));
 
 const [openIndex, setOpenIndex] = React.useState(null);
 
@@ -126,12 +122,12 @@ const toggle = i => {
       name: 'YouDu',
       url: 'https://youdu.ae',
       logo: 'https://youdu.ae/static/icons/youdu-logo.png',
-      description: 'Платформа для поиска специалистов и заказов в ОАЭ',
+      description: intl.formatMessage({ id: 'CooperationPage.schemaOrganizationDescription' }),
       areaServed: {
         '@type': 'Country',
         name: 'United Arab Emirates'
       },
-      serviceType: ['Ремонт', 'Клининг', 'Репетиторы', 'Красота', 'Доставка', 'IT услуги']
+      serviceType: SERVICE_TYPE_KEYS.map(key => intl.formatMessage({ id: `CooperationPage.${key}` })),
     },
     breadcrumb: {
       '@type': 'BreadcrumbList',
@@ -139,13 +135,13 @@ const toggle = i => {
         {
           '@type': 'ListItem',
           position: 1,
-          name: 'Главная',
+          name: intl.formatMessage({ id: 'CooperationPage.breadcrumbHome' }),
           item: 'https://youdu.ae'
         },
         {
           '@type': 'ListItem',
           position: 2,
-          name: 'Для специалистов',
+          name: intl.formatMessage({ id: 'CooperationPage.breadcrumbSpecialists' }),
           item: CANONICAL_URL
         }
       ]
@@ -189,8 +185,8 @@ const toggle = i => {
         <meta name="robots" content="index, follow" />
         
         {/* Additional SEO for AI assistants */}
-        <meta name="subject" content="Работа для специалистов в ОАЭ" />
-        <meta name="topic" content="Фриланс и подработка в Дубае" />
+        <meta name="subject" content={intl.formatMessage({ id: 'CooperationPage.metaSubject' })} />
+        <meta name="topic" content={intl.formatMessage({ id: 'CooperationPage.metaTopic' })} />
         <meta name="coverage" content="UAE, Dubai, Abu Dhabi, Sharjah" />
         <meta name="distribution" content="global" />
         
@@ -211,22 +207,22 @@ const toggle = i => {
             {/* ===== HERO ===== */}
             <section className={css.hero}>
               <h1 className={css.heroTitle}>
-                Зарабатывайте на своих навыках с YouDu
+                {intl.formatMessage({ id: 'CooperationPage.heroTitle' })}
             </h1>
 
             <p className={css.heroSubtitle}>
-              Выбирайте задания поблизости, предлагайте цену, получайте оплату
+              {intl.formatMessage({ id: 'CooperationPage.heroSubtitle' })}
             </p>
 
             <div className={css.heroActions}>
               <NamedLink name="CooperationSignupPage" className={css.heroBtn}>
-                Стать специалистом
+                {intl.formatMessage({ id: 'CooperationPage.becomeSpecialist' })}
               </NamedLink>
 
               {/* Задания видно без регистрации: специалист сначала смотрит,
                   есть ли для него работа, и только потом заводит аккаунт */}
               <NamedLink name="SearchPage" className={css.heroBtnSecondary}>
-                Посмотреть задания
+                {intl.formatMessage({ id: 'CooperationPage.viewTasks' })}
               </NamedLink>
             </div>
           </section>
@@ -238,36 +234,36 @@ const toggle = i => {
           <section className={css.advantages}>
             <div className={css.advCard}>
               <div className={css.advText}>
-                <h3 className={css.advTitle}>Своя цена</h3>
+                <h3 className={css.advTitle}>{intl.formatMessage({ id: 'CooperationPage.advOwnPriceTitle' })}</h3>
                 <p className={css.advDesc}>
-                  Откликайтесь и предлагайте<br />комфортную стоимость<br />на ваши услуги
+                  <FormattedMessage id="CooperationPage.advOwnPriceDescription" values={{ br: <br /> }} />
                 </p>
               </div>
             </div>
 
             <div className={css.advCard}>
               <div className={css.advText}>
-                <h3 className={css.advTitle}>Гибкий график</h3>
+                <h3 className={css.advTitle}>{intl.formatMessage({ id: 'CooperationPage.advFlexibleScheduleTitle' })}</h3>
                 <p className={css.advDesc}>
-                  Работайте, когда удобно.<br />Вы работаете на себя и сами<br />устраиваете выходные
+                  <FormattedMessage id="CooperationPage.advFlexibleScheduleDescription" values={{ br: <br /> }} />
                 </p>
               </div>
             </div>
 
             <div className={css.advCard}>
               <div className={css.advText}>
-                <h3 className={css.advTitle}>Рейтинг и отзывы</h3>
+                <h3 className={css.advTitle}>{intl.formatMessage({ id: 'CooperationPage.advRatingTitle' })}</h3>
                 <p className={css.advDesc}>
-                  Получайте отзывы<br />и поднимайтесь выше в поиске,<br />читайте отзывы о заказчиках
+                  <FormattedMessage id="CooperationPage.advRatingDescription" values={{ br: <br /> }} />
                 </p>
               </div>
             </div>
 
             <div className={css.advCard}>
               <div className={css.advText}>
-                <h3 className={css.advTitle}>Нет комиссии</h3>
+                <h3 className={css.advTitle}>{intl.formatMessage({ id: 'CooperationPage.advNoCommissionTitle' })}</h3>
                 <p className={css.advDesc}>
-                  Наш сервис не берёт<br />комиссию с вас,<br />никаких скрытых платежей
+                  <FormattedMessage id="CooperationPage.advNoCommissionDescription" values={{ br: <br /> }} />
                 </p>
               </div>
             </div>
@@ -279,10 +275,10 @@ const toggle = i => {
 
     {/* LEFT COLUMN */}
     <div className={css.howLeft}>
-      <h2 className={css.howTitle}>Как это работает</h2>
+      <h2 className={css.howTitle}>{intl.formatMessage({ id: 'CooperationPage.howTitle' })}</h2>
 
       <p className={css.howSubtitle}>
-        Мы работаем, чтобы сделать условия работы для вас комфортными
+        {intl.formatMessage({ id: 'CooperationPage.howSubtitle' })}
       </p>
 
       <div className={css.howSteps}>
@@ -297,10 +293,9 @@ const toggle = i => {
           </div>
 
           <div className={css.stepText}>
-            <h3 className={css.stepTitle}>Профиль специалиста</h3>
+            <h3 className={css.stepTitle}>{intl.formatMessage({ id: 'CooperationPage.step1Title' })}</h3>
             <p className={css.stepDesc}>
-              Создайте профиль. Выберите категории, районы и добавьте фото работ,
-              чтобы заказчикам было проще довериться вам
+              {intl.formatMessage({ id: 'CooperationPage.step1Description' })}
             </p>
           </div>
         </div>
@@ -315,10 +310,9 @@ const toggle = i => {
           </div>
 
           <div className={css.stepText}>
-            <h3 className={css.stepTitle}>Отклик и цена</h3>
+            <h3 className={css.stepTitle}>{intl.formatMessage({ id: 'CooperationPage.step2Title' })}</h3>
             <p className={css.stepDesc}>
-              Находите подходящие задания, отправляйте предложение и вашу цену,
-              общайтесь в чате с заказчиком
+              {intl.formatMessage({ id: 'CooperationPage.step2Description' })}
             </p>
           </div>
         </div>
@@ -333,16 +327,15 @@ const toggle = i => {
           </div>
 
           <div className={css.stepText}>
-            <h3 className={css.stepTitle}>Работа и отзыв</h3>
+            <h3 className={css.stepTitle}>{intl.formatMessage({ id: 'CooperationPage.step3Title' })}</h3>
             <p className={css.stepDesc}>
-              Выполните задание, получите оплату, получите отзыв
-              и оставьте отзыв заказчику
+              {intl.formatMessage({ id: 'CooperationPage.step3Description' })}
             </p>
           </div>
         </div>
 
         <NamedLink name="CooperationSignupPage" className={css.howBtn}>
-          Регистрация специалиста
+          {intl.formatMessage({ id: 'CooperationPage.specialistSignup' })}
         </NamedLink>
       </div>
     </div>
@@ -356,19 +349,17 @@ const toggle = i => {
 {/* ===== VERIFY ===== */}
       
 <section className={css.verifySection}>
-  <h2 className={css.verifyTitle}>Верификация = больше заказов</h2>
+  <h2 className={css.verifyTitle}>{intl.formatMessage({ id: 'CooperationPage.verifyTitle' })}</h2>
   <p className={css.verifySubtitle}>
-    Пройдите верификацию и поднимитесь в поисковой выдаче сервиса
+    {intl.formatMessage({ id: 'CooperationPage.verifySubtitle' })}
   </p>
 
   {/* Карточка 1 */}
   <div className={css.verifyRow}>
     <div className={css.verifyText}>
-      <h3 className={css.verifyTextTitle}>Что даёт верификация</h3>
+      <h3 className={css.verifyTextTitle}>{intl.formatMessage({ id: 'CooperationPage.verifyBenefitsTitle' })}</h3>
       <p className={css.verifyTextDesc}>
-        • Бейдж доверия в профиле и откликах<br />
-        • Приоритет показа отклика над неверифицированными<br />
-        • Больше просмотров и откликов от клиентов
+        <FormattedMessage id="CooperationPage.verifyBenefitsList" values={{ br: <br /> }} />
       </p>
     </div>
 
@@ -378,11 +369,9 @@ const toggle = i => {
   {/* Карточка 2 */}
   <div className={css.verifyRow}>
     <div className={css.verifyText}>
-      <h3 className={css.verifyTextTitle}>Что потребуется (один из вариантов)</h3>
+      <h3 className={css.verifyTextTitle}>{intl.formatMessage({ id: 'CooperationPage.verifyRequirementsTitle' })}</h3>
       <p className={css.verifyTextDesc}>
-        • Emirates ID / паспорт (для физлиц)<br />
-        • Trade License (для компаний)<br />
-        • По запросу – селфи / подтверждение адреса
+        <FormattedMessage id="CooperationPage.verifyRequirementsList" values={{ br: <br /> }} />
       </p>
     </div>
 
@@ -398,9 +387,9 @@ const toggle = i => {
 
               <div className={css.actionRight}>
                 <div className={css.actionTitleBlock}>
-                  <h3 className={css.actionTitle}>Зарабатывайте с YouDu</h3>
+                  <h3 className={css.actionTitle}>{intl.formatMessage({ id: 'CooperationPage.actionTitle' })}</h3>
                   <p className={css.actionSubtitle}>
-                    Экономьте на рекламе, получайте клиентов
+                    {intl.formatMessage({ id: 'CooperationPage.actionSubtitle' })}
                   </p>
                   
                   {/* Platform Statistics */}
@@ -408,26 +397,27 @@ const toggle = i => {
                     <div className={css.statsBlock}>
                       <div className={css.statItem}>
                         <div className={css.statValue}>
-                          {animatedTasks.toLocaleString('ru-RU')}
+                          {intl.formatNumber(animatedTasks)}
                         </div>
-                        <div className={css.statLabel}>заданий на платформе</div>
+                        <div className={css.statLabel}>{intl.formatMessage({ id: 'CooperationPage.statTasksLabel' })}</div>
                       </div>
                       <div className={css.statDivider} />
                       <div className={css.statItem}>
                         <div className={css.statValue}>
-                          {animatedSum.toLocaleString('ru-RU', { 
-                            minimumFractionDigits: 0, 
-                            maximumFractionDigits: 0 
-                          })} AED
+                          {intl.formatNumber(animatedSum, {
+                            minimumFractionDigits: 0,
+                            maximumFractionDigits: 0,
+                          })}{' '}
+                          AED
                         </div>
-                        <div className={css.statLabel}>общая сумма заданий</div>
+                        <div className={css.statLabel}>{intl.formatMessage({ id: 'CooperationPage.statSumLabel' })}</div>
                       </div>
                     </div>
                   )}
                 </div>
 
                 <NamedLink name="CooperationSignupPage" className={css.actionBtn}>
-                  Стать специалистом
+                  {intl.formatMessage({ id: 'CooperationPage.becomeSpecialist' })}
                 </NamedLink>
               </div>
             </div>
@@ -437,7 +427,7 @@ const toggle = i => {
 
         {/* ===== REVIEWS ===== */}
 <section className={css.reviewsSection}>
-  <h2 className={css.reviewsTitle}>Отзывы специалистов</h2>
+  <h2 className={css.reviewsTitle}>{intl.formatMessage({ id: 'CooperationPage.reviewsTitle' })}</h2>
 
   <div className={css.reviewsContent}>
     {/* ЛЕВАЯ КАРТОЧКА С ФОТО */}
@@ -451,8 +441,7 @@ const toggle = i => {
     {/* ПРАВАЯ КОЛОНКА С ТЕКСТОМ */}
     <div className={css.reviewRight}>
       <p className={css.reviewText}>
-        Сервис помогает мне зарабатывать онлайн и находить клиентов. Плюс,
-        я сама выбираю, когда мне брать клиентов. Это очень удобно!
+        {intl.formatMessage({ id: 'CooperationPage.review1Text' })}
       </p>
 
       <div className={css.reviewDivider} />
@@ -463,10 +452,10 @@ const toggle = i => {
         </div>
 
         <div className={css.reviewAuthorInfo}>
-          <div className={css.reviewAuthorName}>Дебушева Вероника</div>
+          <div className={css.reviewAuthorName}>{intl.formatMessage({ id: 'CooperationPage.review1Author' })}</div>
           <div className={css.reviewRatingRow}>
             <span className={css.reviewRatingStar} />
-            <span className={css.reviewRatingText}>5 Английский язык</span>
+            <span className={css.reviewRatingText}>{intl.formatMessage({ id: 'CooperationPage.review1Rating' })}</span>
           </div>
         </div>
       </div>
@@ -482,8 +471,7 @@ const toggle = i => {
     {/* ЛЕВАЯ КОЛОНКА — текст */}
     <div className={css.reviewRightAlt}>
       <p className={css.reviewTextAlt}>
-        На YouDu нашла себе постоянных клиентов и отрегулировала доход.
-        Теперь мне, как человеку в эмиграции стало проще жить и не переживать.
+        {intl.formatMessage({ id: 'CooperationPage.review2Text' })}
       </p>
 
       <div className={css.reviewDividerAlt} />
@@ -494,11 +482,11 @@ const toggle = i => {
         </div>
 
         <div className={css.reviewAuthorInfoAlt}>
-          <div className={css.reviewAuthorNameAlt}>Эльвира Муратовна</div>
+          <div className={css.reviewAuthorNameAlt}>{intl.formatMessage({ id: 'CooperationPage.review2Author' })}</div>
 
           <div className={css.reviewRatingRowAlt}>
             <span className={css.reviewRatingStarAlt} />
-            <span className={css.reviewRatingTextAlt}>4.9 Клининг</span>
+            <span className={css.reviewRatingTextAlt}>{intl.formatMessage({ id: 'CooperationPage.review2Rating' })}</span>
           </div>
         </div>
       </div>
@@ -532,8 +520,7 @@ const toggle = i => {
     {/* ПРАВАЯ КОЛОНКА С ТЕКСТОМ */}
     <div className={css.reviewRight}>
       <p className={css.reviewText}>
-        Началось все с подработки в свободное время, но наработал репутацию, 
-        сейчас заказчики рекомендуют меня другим. <br />Не ожидал, что вырасту в этой сфере.
+        <FormattedMessage id="CooperationPage.review3Text" values={{ br: <br /> }} />
       </p>
 
       <div className={css.reviewDivider} />
@@ -547,7 +534,7 @@ const toggle = i => {
           <div className={css.reviewAuthorName}>Ruslan B.</div>
           <div className={css.reviewRatingRow}>
             <span className={css.reviewRatingStar} />
-            <span className={css.reviewRatingText}>5 Ремонты</span>
+            <span className={css.reviewRatingText}>{intl.formatMessage({ id: 'CooperationPage.review3Rating' })}</span>
           </div>
         </div>
       </div>
@@ -557,23 +544,23 @@ const toggle = i => {
 
 {/* ===== PRESENTATION ===== */}
 <section className={css.presentationSection}>
-  <h2 className={css.presentationTitle}>Презентация YouDu</h2>
+  <h2 className={css.presentationTitle}>{intl.formatMessage({ id: 'CooperationPage.presentationTitle' })}</h2>
   <p className={css.presentationSubtitle}>
-    Узнайте больше о возможностях платформы
+    {intl.formatMessage({ id: 'CooperationPage.presentationSubtitle' })}
   </p>
   
   <div className={css.presentationContent}>
     <div className={css.pdfViewer}>
       <iframe
         src="/static/presentation/youdu-presentation.pdf"
-        title="Презентация YouDu"
+        title={intl.formatMessage({ id: 'CooperationPage.presentationTitle' })}
         className={css.pdfFrame}
       />
     </div>
     
     <a
       href="/static/presentation/youdu-presentation.pdf"
-      download="Презентация YouDu.pdf"
+      download={intl.formatMessage({ id: 'CooperationPage.presentationFileName' })}
       className={css.downloadBtn}
     >
       <svg className={css.downloadIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -581,14 +568,14 @@ const toggle = i => {
         <polyline points="7 10 12 15 17 10" />
         <line x1="12" y1="15" x2="12" y2="3" />
       </svg>
-      Скачать презентацию (PDF)
+      {intl.formatMessage({ id: 'CooperationPage.presentationDownload' })}
     </a>
   </div>
 </section>
 
  {/* ===== FAQ ===== */}
 <section className={css.faqSection}>
-  <h2 className={css.faqHeading}>Частые вопросы</h2>
+  <h2 className={css.faqHeading}>{intl.formatMessage({ id: 'CooperationPage.faqTitle' })}</h2>
 
   <div className={css.faqList}>
     {faqData.map((item, i) => {
