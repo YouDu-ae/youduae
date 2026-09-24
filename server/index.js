@@ -166,6 +166,12 @@ const sharetribeProxy = require('./sharetribeProxy');
 app.use('/api/st', sharetribeProxy);
 
 app.use(compression());
+// Email clients and the Sharetribe Console preview load the logo from another
+// origin, which helmet's default same-origin resource policy blocks.
+app.use('/static/email', (req, res, next) => {
+  res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+  next();
+});
 app.use('/static', express.static(path.join(buildPath, 'static')));
 // Serve static files from build root (og-banner.png, favicons, etc.)
 app.use(express.static(buildPath, {
