@@ -10,7 +10,7 @@ const PageBuilder = loadable(() =>
 const fallbackPrivacyPolicyRu = `
 # Политика обработки и защиты информации
 
-**Последнее обновление:** 10 ноября 2025 года
+**Последнее обновление:** 24 сентября 2026 года
 
 **Контролёр:** Aleksandr Gross, действующий как индивидуальный оператор платформы «YouDu.ae» (MVP-версия).
 
@@ -23,6 +23,8 @@ United Arab Emirates.
 
 - **Аккаунт:** имя/никнейм, e-mail, телефон.
 - **Данные заданий и откликов:** заголовок, описание, категория, район/адрес (при необходимости), бюджет, фото.
+- **Профиль специалиста:** районы работы, языки общения, минимальная стоимость работ, когда вы работаете — если вы их укажете.
+- **История действий на площадке:** когда создано или изменено задание, отправлен или принят отклик, пройден этап сделки, отправлено сообщение, оставлен отзыв, изменён профиль — с датой и прежним значением.
 - **Техданные:** IP, User-Agent, события интерфейса, strictly-necessary cookies. (Маркетинговые/аналитические cookies — только при вашем согласии.)
 
 ---
@@ -49,7 +51,11 @@ United Arab Emirates.
 
 ## 5. Срок хранения
 
-Храним данные столько, сколько необходимо для функционирования сервиса и правовых целей, затем удаляем/анонимизируем. Черновики и неактивные аккаунты удаляются после 6 месяцев, переписка — через 1 месяц, логи — 1 неделя.
+Храним данные столько, сколько необходимо для функционирования сервиса и правовых целей, затем удаляем/анонимизируем. Аккаунт, задания, переписку, отзывы и историю действий храним, пока существует аккаунт.
+
+**История действий.** Платформа Sharetribe, на которой работает YouDu, хранит журнал изменений только 90 дней. Поэтому мы сохраняем его копию и копию заданий и сделок в собственной базе данных YouDu (серверы Heroku в ЕС), чтобы история сделок не пропадала, чтобы разбирать споры и считать показатели специалистов: сколько заданий выполнено, отзывы, скорость ответа, районы и категории работ. Статистику цен и сроков по категориям и районам мы используем только в обобщённом виде. Копия доступна только YouDu. Если мы подключим AI-помощника, ему будут доступны только публичные данные профилей, опубликованные задания и обобщённые показатели — без переписки, контактов и точного адреса; действия от вашего имени — только с вашего подтверждения.
+
+При удалении аккаунта мы удаляем из этой копии все записи, где вы упоминаетесь. В резервных копиях базы они остаются не дольше 14 дней, пока копии не перезапишутся.
 
 ---
 
@@ -108,7 +114,7 @@ United Arab Emirates.
 const fallbackPrivacyPolicyEn = `
 # Privacy Policy
 
-**Last updated:** 10 November 2025
+**Last updated:** 24 September 2026
 
 **Controller:** Aleksandr Gross, acting as the individual operator of the YouDu.ae platform (MVP version).
 
@@ -121,6 +127,8 @@ United Arab Emirates.
 
 - **Account:** name/display name, e-mail, phone number.
 - **Jobs and offers:** title, description, category, district/address (if required), budget, photos.
+- **Specialist profile:** service areas, languages, minimum job price and when you work — if you provide them.
+- **Activity history on the platform:** when a task is created or changed, an offer is sent or accepted, a deal moves to a new stage, a message is sent, a review is left or a profile is changed — with the date and the previous value.
 - **Technical data:** IP, User-Agent, interface events, strictly necessary cookies. (Marketing/analytics cookies are used only with your consent.)
 
 ---
@@ -147,7 +155,11 @@ Data may be processed outside the UAE. Transfers rely on adequacy decisions, con
 
 ## 5. Retention Periods
 
-We retain data as long as necessary for the service and legal purposes, then delete or anonymize it. Drafts and inactive accounts are removed after 6 months, conversations after 1 month, logs after 1 week.
+We retain data as long as necessary for the service and legal purposes, then delete or anonymize it. We keep your account, tasks, messages, reviews and activity history for as long as your account exists.
+
+**Activity history.** Sharetribe, the platform YouDu runs on, keeps its change log for 90 days only. We therefore keep a copy of it, along with a copy of tasks and deals, in YouDu's own database (Heroku servers in the EU), so that deal history is not lost, disputes can be resolved, and specialist track records can be calculated: tasks completed, reviews, response time, areas and categories of work. Price and timing statistics by category and area are used only in aggregate. Only YouDu has access to this copy. If we connect an AI assistant, it will only see public profile data, published tasks and aggregate figures — never messages, contact details or exact addresses — and it will act on your behalf only after you confirm.
+
+When you delete your account, we remove every record in this copy that mentions you. Database backups may keep them for up to 14 days, until the backups are overwritten.
 
 ---
 
