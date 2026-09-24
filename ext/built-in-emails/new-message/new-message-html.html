@@ -32,7 +32,7 @@
                 <p style="margin:0 0 16px 0;font-size:16px;line-height:24px;color:#374151;">
                   Здравствуйте, {{recipient.first-name}}! Новое сообщение по заданию «{{message.transaction.listing.title}}» от {{message.sender.display-name}}.
                 </p>
-                <p style="margin:0 0 16px 0;font-size:16px;line-height:24px;color:#374151;padding:16px 20px;background-color:#f9fafb;border-radius:12px;">
+                <p style="margin:0 0 16px 0;font-size:16px;line-height:24px;color:#374151;padding:16px 20px;background-color:#f9fafb;border-radius:12px;white-space:pre-line;">
                   {{message.content}}
                 </p>
               </td>
@@ -42,7 +42,7 @@
                 <table role="presentation" cellpadding="0" cellspacing="0" border="0">
                   <tr>
                     <td align="center" class="youdu-cta" bgcolor="#16a34a" style="background-color:#16a34a;border-radius:12px;">
-                      {{#eq recipient-role 'provider'}}
+                      {{#eq message.recipient-role 'provider'}}
                       <a href="{{marketplace.url}}/sale/{{url-encode message.transaction.id}}" style="display:inline-block;padding:14px 32px;font-size:16px;font-weight:700;background-color:#16a34a;color:#ffffff;text-decoration:none;border-radius:12px;">
                         Открыть чат
                       </a>
@@ -60,7 +60,7 @@
               <td style="padding:12px 32px 0 32px;">
                 <p style="margin:0;font-size:13px;line-height:20px;color:#9ca3af;text-align:center;">
                   Кнопка не открывается? Скопируйте ссылку:<br />
-                  {{#eq recipient-role 'provider'}}{{marketplace.url}}/sale/{{url-encode message.transaction.id}}{{else}}{{marketplace.url}}/order/{{url-encode message.transaction.id}}{{/eq}}
+                  {{#eq message.recipient-role 'provider'}}{{marketplace.url}}/sale/{{url-encode message.transaction.id}}{{else}}{{marketplace.url}}/order/{{url-encode message.transaction.id}}{{/eq}}
                 </p>
               </td>
             </tr>
