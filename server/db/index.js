@@ -202,6 +202,44 @@ const initDatabase = async () => {
         requested_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         completed_at TIMESTAMP
       );
+
+      -- Every Sharetribe event, kept past Sharetribe's 90-day retention.
+      -- Append-only: rows are never updated, only removed with the user they
+      -- mention when that user deletes their account. user_ids lists every
+      -- user an event refers to so that removal can find them.
+      CREATE TABLE IF NOT EXISTS marketplace_events (
+        sequence_id BIGINT PRIMARY KEY,
+        event_type VARCHAR(50) NOT NULL,
+        resource_type VARCHAR(30),
+        resource_id VARCHAR(100),
+        source VARCHAR(50),
+        created_at TIMESTAMPTZ NOT NULL,
+        user_ids TEXT[] NOT NULL DEFAULT '{}',
+        payload JSONB NOT NULL,
+        archived_at TIMESTAMPTZ DEFAULT NOW()
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_marketplace_events_resource
+        ON marketplace_events (resource_type, resource_id, sequence_id);
+      CREATE INDEX IF NOT EXISTS idx_marketplace_events_type_time
+        ON marketplace_events (event_type, created_at);
+      CREATE INDEX IF NOT EXISTS idx_marketplace_events_users
+        ON marketplace_events USING GIN (user_ids);
+
+      -- Point-in-time copies of listings and transactions, for history that
+      -- predates the event archive. A transaction carries its own dated
+      -- transitions, so one copy preserves its whole lifecycle.
+      CREATE TABLE IF NOT EXISTS marketplace_snapshots (
+        resource_type VARCHAR(30) NOT NULL,
+        resource_id VARCHAR(100) NOT NULL,
+        taken_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        user_ids TEXT[] NOT NULL DEFAULT '{}',
+        payload JSONB NOT NULL,
+        PRIMARY KEY (resource_type, resource_id, taken_at)
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_marketplace_snapshots_users
+        ON marketplace_snapshots USING GIN (user_ids);
     `);
     
     console.log('Database tables initialized');
@@ -907,6 +945,76 @@ const saveEventCursor = async (name, sequenceId) => {
 };
 
 /**
+ * Stores a page of events in one transaction and returns how many were new.
+ * A user/deleted event also removes what the archive already held about that
+ * user, since events arrive in order and the rest of their history is in.
+ */
+const archiveMarketplaceEvents = async rows => {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    let inserted = 0;
+    for (const row of rows) {
+      const result = await client.query(
+        `INSERT INTO marketplace_events
+           (sequence_id, event_type, resource_type, resource_id, source, created_at, user_ids, payload)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+         ON CONFLICT (sequence_id) DO NOTHING`,
+        [
+          row.sequenceId,
+          row.eventType,
+          row.resourceType,
+          row.resourceId,
+          row.source,
+          row.createdAt,
+          row.userIds,
+          JSON.stringify(row.payload),
+        ]
+      );
+      inserted += result.rowCount;
+      if (row.deletedUserId) {
+        await client.query(
+          `DELETE FROM marketplace_events
+           WHERE $1 = ANY(user_ids) AND event_type <> 'user/deleted'`,
+          [row.deletedUserId]
+        );
+        await client.query('DELETE FROM marketplace_snapshots WHERE $1 = ANY(user_ids)', [
+          row.deletedUserId,
+        ]);
+      }
+    }
+    await client.query('COMMIT');
+    return inserted;
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
+};
+
+const saveMarketplaceSnapshots = async rows => {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    for (const row of rows) {
+      await client.query(
+        `INSERT INTO marketplace_snapshots (resource_type, resource_id, taken_at, user_ids, payload)
+         VALUES ($1, $2, $3, $4, $5)
+         ON CONFLICT DO NOTHING`,
+        [row.resourceType, row.resourceId, row.takenAt, row.userIds, JSON.stringify(row.payload)]
+      );
+    }
+    await client.query('COMMIT');
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
+};
+
+/**
  * Records a deletion request. Returns true only the first time, so a repeated
  * tap does not alert the operator twice.
  */
@@ -956,6 +1064,11 @@ const deleteUserLocalData = async userId => {
     await client.query('DELETE FROM telegram_subscribers WHERE user_id = $1', [userId]);
     await client.query('DELETE FROM voice_sessions WHERE user_id = $1', [userId]);
     await client.query('DELETE FROM reminder_log WHERE recipient_user_id = $1', [userId]);
+    await client.query(
+      `DELETE FROM marketplace_events WHERE $1 = ANY(user_ids) AND event_type <> 'user/deleted'`,
+      [userId]
+    );
+    await client.query('DELETE FROM marketplace_snapshots WHERE $1 = ANY(user_ids)', [userId]);
     await client.query('COMMIT');
   } catch (error) {
     await client.query('ROLLBACK');
@@ -1061,6 +1174,8 @@ module.exports = {
   // Sharetribe event consumers
   getOrStartEventCursor,
   saveEventCursor,
+  archiveMarketplaceEvents,
+  saveMarketplaceSnapshots,
   // Account deletion
   recordDeletionRequest,
   completeDeletionRequest,

@@ -1,8 +1,9 @@
 /**
- * Reads Sharetribe's event log once a minute for the consumers that react to
- * what happens in Console — task approvals and account deletions run none of
- * our code otherwise. Each consumer keeps its own place in event_cursors, so
- * one of them failing or lagging does not hold up the other.
+ * Reads Sharetribe's event log once a minute. Two consumers react to what
+ * happens in Console — task approvals and account deletions run none of our
+ * code otherwise — and the archive keeps every event past Sharetribe's 90-day
+ * retention. Each consumer keeps its own place in event_cursors, so one of
+ * them failing or lagging does not hold up the others.
  */
 
 const db = require('../db');
@@ -11,6 +12,7 @@ const { sendAccountEmail } = require('../api-util/accountEmails');
 const { createIntegrationSdk } = require('./context');
 const { processApprovalEvents } = require('./listingApprovals');
 const { processDeletionEvents } = require('./accountDeletions');
+const { processArchiveEvents } = require('./eventArchive');
 
 // An operator acts in Console and expects the effect to follow; an hour-long
 // sweep would feel broken. Two queries a minute are far below the API limit.
@@ -36,6 +38,12 @@ const buildConsumers = integrationSdk =>
       enabled: process.env.ACCOUNT_DELETION_POLLER !== 'false',
       run: () => processDeletionEvents({ integrationSdk, db, sendEmail: sendAccountEmail }),
       isWorthLogging: result => result.events > 0,
+    },
+    {
+      name: 'archive',
+      enabled: process.env.EVENT_ARCHIVE_POLLER !== 'false',
+      run: () => processArchiveEvents({ integrationSdk, db }),
+      isWorthLogging: result => result.archived > 0,
     },
   ].filter(consumer => consumer.enabled);
 
