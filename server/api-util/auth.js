@@ -8,9 +8,12 @@
  */
 
 const { getSdk } = require('./sdk');
+const { hasBearerToken, userSdkFromBearer } = require('./mobileSdk');
 
+// The site sends the Sharetribe session as a cookie, the iOS app as a Bearer
+// token; either way Sharetribe itself confirms who the user is.
 const getAuthenticatedUserId = async (req, res) => {
-  const sdk = getSdk(req, res);
+  const sdk = hasBearerToken(req) ? userSdkFromBearer(req) : getSdk(req, res);
   const response = await sdk.currentUser.show();
   return response.data.data.id.uuid;
 };

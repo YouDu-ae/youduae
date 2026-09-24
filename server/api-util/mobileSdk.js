@@ -67,4 +67,10 @@ const trustedSdkFromBearer = async req => {
   return sdkWithToken(exchangeResponse.data);
 };
 
-module.exports = { trustedSdkFromBearer, BearerAuthError };
+const hasBearerToken = req => (req.headers.authorization || '').startsWith('Bearer ');
+
+/** A user SDK for reading as the app's user; no token exchange needed. */
+const userSdkFromBearer = req =>
+  sdkWithToken({ access_token: readBearerToken(req), token_type: 'bearer' });
+
+module.exports = { trustedSdkFromBearer, userSdkFromBearer, hasBearerToken, BearerAuthError };
