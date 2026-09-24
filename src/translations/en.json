@@ -2151,5 +2151,15 @@
   "SpecialistContext.profileAreas": "Areas",
   "SpecialistContext.profileLanguages": "Languages",
   "SpecialistContext.profilePrice": "Price",
-  "SpecialistContext.profileAvailability": "Availability"
+  "SpecialistContext.profileAvailability": "Availability",
+  "VoiceIntake.consentTitle": "Talking to the voice assistant",
+  "VoiceIntake.consentProvider": "So the assistant can understand you, your voice and what you say about the task will be sent to OpenAI (USA). OpenAI recognizes your speech and helps fill in the task fields.",
+  "VoiceIntake.consentStorage": "YouDu does not keep the recording or the transcript. OpenAI may keep them for up to 30 days to monitor abuse and by default does not use them to train its models.",
+  "VoiceIntake.consentDraft": "The assistant only fills in a draft — you publish the task after checking it. Don't mention card details, ID documents or health information.",
+  "VoiceIntake.consentPolicyLink": "More in the Privacy Policy",
+  "VoiceIntake.consentAccept": "Allow and start",
+  "VoiceIntake.consentDecline": "I'll fill it in myself",
+  "VoiceIntake.consentWithdraw": "Withdraw consent",
+  "VoiceIntake.consentWithdrawn": "Consent withdrawn. Your voice is no longer sent to OpenAI; to talk to the assistant again, you'll need to allow it again.",
+  "VoiceIntake.consentNotSaved": "Couldn't save your choice. Please try again."
 }

@@ -69,12 +69,14 @@ describe('VoiceIntake', () => {
   let fakes;
   let toolResponse;
   let accessResponse;
+  let consentResponse;
   let sessionResponse;
 
   beforeEach(() => {
     fakes = createFakes();
     toolResponse = response(200, { output: { ok: true, candidates: [] } });
-    accessResponse = response(200, { allowed: true });
+    accessResponse = response(200, { allowed: true, consented: true });
+    consentResponse = response(200, { consented: true });
     sessionResponse = response(201, { sessionId: 'sess_1', sdp: 'v=0 answer' });
 
     window.RTCPeerConnection = jest.fn(() => fakes.peer);
@@ -87,6 +89,7 @@ describe('VoiceIntake', () => {
 
     global.fetch = jest.fn(async url => {
       if (url === '/api/voice/access') return accessResponse;
+      if (url === '/api/voice/consent') return consentResponse;
       if (url === '/api/voice/session') return sessionResponse;
       return toolResponse;
     });
@@ -252,5 +255,70 @@ describe('VoiceIntake', () => {
     fireEvent.click(screen.getByRole('button', { name: 'VoiceIntake.stop' }));
 
     expect(sentEvents(fakes.channel)).toEqual([{ type: 'session.close' }]);
+  });
+
+  describe('consent', () => {
+    beforeEach(() => {
+      accessResponse = response(200, { allowed: true, consented: false });
+    });
+
+    it('asks before the first conversation and sends nothing until allowed', async () => {
+      render(<VoiceIntake onDraft={jest.fn()} />);
+      await clickStart();
+
+      expect(await screen.findByText('VoiceIntake.consentTitle')).toBeInTheDocument();
+      expect(navigator.mediaDevices.getUserMedia).not.toHaveBeenCalled();
+      expect(requestsTo('/api/voice/session')).toEqual([]);
+    });
+
+    it('records consent, then opens the conversation from the same click', async () => {
+      render(<VoiceIntake onDraft={jest.fn()} />);
+      await clickStart();
+      fireEvent.click(await screen.findByRole('button', { name: 'VoiceIntake.consentAccept' }));
+
+      await waitFor(() => expect(fakes.peer.setRemoteDescription).toHaveBeenCalled());
+      expect(requestsTo('/api/voice/consent')).toEqual([{ granted: true }]);
+
+      const order = global.fetch.mock.calls.map(([url]) => url);
+      expect(order.indexOf('/api/voice/consent')).toBeLessThan(order.indexOf('/api/voice/session'));
+    });
+
+    it('does not start when consent could not be saved', async () => {
+      consentResponse = response(500, { error: 'consent_not_saved' });
+      render(<VoiceIntake onDraft={jest.fn()} />);
+      await clickStart();
+      fireEvent.click(await screen.findByRole('button', { name: 'VoiceIntake.consentAccept' }));
+
+      expect(await screen.findByText('VoiceIntake.consentNotSaved')).toBeInTheDocument();
+      expect(requestsTo('/api/voice/session')).toEqual([]);
+    });
+
+    it('goes back to the form when the person declines', async () => {
+      render(<VoiceIntake onDraft={jest.fn()} />);
+      await clickStart();
+      fireEvent.click(await screen.findByRole('button', { name: 'VoiceIntake.consentDecline' }));
+
+      expect(await screen.findByRole('button', { name: 'VoiceIntake.start' })).toBeInTheDocument();
+      expect(requestsTo('/api/voice/consent')).toEqual([]);
+    });
+
+    it('asks again when the server says consent is missing', async () => {
+      accessResponse = response(200, { allowed: true, consented: true });
+      sessionResponse = response(403, { error: 'consent_required' });
+      render(<VoiceIntake onDraft={jest.fn()} />);
+      await clickStart();
+
+      expect(await screen.findByText('VoiceIntake.consentTitle')).toBeInTheDocument();
+    });
+
+    it('lets the person withdraw consent', async () => {
+      accessResponse = response(200, { allowed: true, consented: true });
+      render(<VoiceIntake onDraft={jest.fn()} />);
+      fireEvent.click(await screen.findByRole('button', { name: 'VoiceIntake.consentWithdraw' }));
+
+      expect(await screen.findByText('VoiceIntake.consentWithdrawn')).toBeInTheDocument();
+      expect(requestsTo('/api/voice/consent')).toEqual([{ granted: false }]);
+      expect(screen.queryByRole('button', { name: 'VoiceIntake.consentWithdraw' })).toBeNull();
+    });
   });
 });

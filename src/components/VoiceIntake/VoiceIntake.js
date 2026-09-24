@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 
 import { trackVoiceDraftReady, trackVoiceSessionStarted } from '../../analytics/plausibleEvents';
 import { useIntl } from '../../util/reactIntl';
+import NamedLink from '../NamedLink/NamedLink';
 
 import css from './VoiceIntake.module.css';
 
@@ -37,6 +38,9 @@ const TOOL_UNAVAILABLE = {
 };
 
 class VoiceError extends Error {}
+
+// The server refused because consent is missing, e.g. withdrawn in another tab.
+class ConsentRequiredError extends VoiceError {}
 
 const isSupported = () =>
   typeof window !== 'undefined' &&
@@ -116,6 +120,8 @@ const VoiceIntake = ({ onDraft }) => {
   // Открыт ли пилот этому пользователю, решает сервер; до ответа блок не виден,
   // чтобы кнопка не мелькала у тех, кому пилот закрыт.
   const [allowed, setAllowed] = useState(false);
+  const [consented, setConsented] = useState(false);
+  const [askingConsent, setAskingConsent] = useState(false);
   const [status, setStatus] = useState(STATUS.IDLE);
   const [message, setMessage] = useState(null);
   const [summary, setSummary] = useState(null);
@@ -146,7 +152,9 @@ const VoiceIntake = ({ onDraft }) => {
     fetch('/api/voice/access', { credentials: 'same-origin' })
       .then(response => (response.ok ? response.json() : { allowed: false }))
       .then(data => {
-        if (!cancelled) setAllowed(data?.allowed === true);
+        if (cancelled) return;
+        setAllowed(data?.allowed === true);
+        setConsented(data?.consented === true);
       })
       .catch(() => {});
     return () => {
@@ -256,7 +264,13 @@ const VoiceIntake = ({ onDraft }) => {
     );
   };
 
-  const start = async () => {
+  /**
+   * @param {Promise<{ok: boolean}>} [consentSaved] consent being recorded right
+   *   now; the session is requested only after it is stored. Starting from the
+   *   same click keeps the microphone request inside the user gesture Safari
+   *   on iPhone insists on.
+   */
+  const start = async consentSaved => {
     if (!isSupported()) {
       setStatus(STATUS.ERROR);
       setMessage(intl.formatMessage({ id: 'VoiceIntake.browserNotSupported' }));
@@ -303,9 +317,20 @@ const VoiceIntake = ({ onDraft }) => {
       await peer.setLocalDescription(offer);
       await waitForIceGathering(peer, intl);
 
+      if (consentSaved) {
+        const saved = await consentSaved;
+        if (!saved.ok) {
+          throw new VoiceError(intl.formatMessage({ id: 'VoiceIntake.consentNotSaved' }));
+        }
+        setConsented(true);
+      }
+
       const { ok, status: httpStatus, data } = await postJson('/api/voice/session', {
         sdp: peer.localDescription.sdp,
       });
+      if (httpStatus === 403 && data?.error === 'consent_required') {
+        throw new ConsentRequiredError();
+      }
       if (!ok) {
         throw new VoiceError(sessionErrorMessage(httpStatus, data, intl));
       }
@@ -317,13 +342,76 @@ const VoiceIntake = ({ onDraft }) => {
       connection.current.timers.push(setTimeout(stop, MAX_SESSION_MS));
     } catch (error) {
       cleanup();
+      if (error instanceof ConsentRequiredError) {
+        setConsented(false);
+        setAskingConsent(true);
+        setStatus(STATUS.IDLE);
+        return;
+      }
       setStatus(STATUS.ERROR);
       setMessage(microphoneErrorMessage(error, intl));
     }
   };
 
+  const onStartClick = () => {
+    if (consented) {
+      start();
+    } else {
+      setMessage(null);
+      setAskingConsent(true);
+    }
+  };
+
+  const acceptConsent = () => {
+    setAskingConsent(false);
+    start(postJson('/api/voice/consent', { granted: true }).catch(() => ({ ok: false })));
+  };
+
+  const withdrawConsent = async () => {
+    stop();
+    const { ok } = await postJson('/api/voice/consent', { granted: false }).catch(() => ({
+      ok: false,
+    }));
+    if (ok) {
+      setConsented(false);
+      setMessage(intl.formatMessage({ id: 'VoiceIntake.consentWithdrawn' }));
+    } else {
+      setMessage(intl.formatMessage({ id: 'VoiceIntake.consentNotSaved' }));
+    }
+  };
+
   if (!allowed) {
     return null;
+  }
+
+  if (askingConsent) {
+    return (
+      <div className={css.root} role="dialog" aria-labelledby="voice-consent-title">
+        <div id="voice-consent-title" className={css.title}>
+          {intl.formatMessage({ id: 'VoiceIntake.consentTitle' })}
+        </div>
+        <div className={css.consentText}>
+          <p>{intl.formatMessage({ id: 'VoiceIntake.consentProvider' })}</p>
+          <p>{intl.formatMessage({ id: 'VoiceIntake.consentStorage' })}</p>
+          <p>{intl.formatMessage({ id: 'VoiceIntake.consentDraft' })}</p>
+        </div>
+        <NamedLink name="PrivacyPolicyPage" className={css.consentLink}>
+          {intl.formatMessage({ id: 'VoiceIntake.consentPolicyLink' })}
+        </NamedLink>
+        <div className={css.consentActions}>
+          <button type="button" className={css.startButton} onClick={acceptConsent}>
+            {intl.formatMessage({ id: 'VoiceIntake.consentAccept' })}
+          </button>
+          <button
+            type="button"
+            className={css.stopButton}
+            onClick={() => setAskingConsent(false)}
+          >
+            {intl.formatMessage({ id: 'VoiceIntake.consentDecline' })}
+          </button>
+        </div>
+      </div>
+    );
   }
 
   const isBusy = status === STATUS.CONNECTING || status === STATUS.FINISHING;
@@ -348,7 +436,7 @@ const VoiceIntake = ({ onDraft }) => {
             {intl.formatMessage({ id: 'VoiceIntake.stop' })}
           </button>
         ) : (
-          <button type="button" className={css.startButton} onClick={start} disabled={isBusy}>
+          <button type="button" className={css.startButton} onClick={onStartClick} disabled={isBusy}>
             {status === STATUS.CONNECTING
               ? intl.formatMessage({ id: 'VoiceIntake.connecting' })
               : status === STATUS.FINISHING
@@ -379,6 +467,14 @@ const VoiceIntake = ({ onDraft }) => {
 
       <div className={css.privacy}>
         {intl.formatMessage({ id: 'VoiceIntake.privacy' })}
+        {consented ? (
+          <>
+            {' '}
+            <button type="button" className={css.linkButton} onClick={withdrawConsent}>
+              {intl.formatMessage({ id: 'VoiceIntake.consentWithdraw' })}
+            </button>
+          </>
+        ) : null}
       </div>
     </div>
   );

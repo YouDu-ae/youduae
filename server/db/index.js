@@ -204,6 +204,16 @@ const initDatabase = async () => {
         completed_at TIMESTAMP
       );
 
+      -- Consent to send voice to OpenAI, required before every voice session.
+      -- version names the consent text the person accepted, so a changed text
+      -- can ask again; withdrawn_at keeps the record that consent once existed.
+      CREATE TABLE IF NOT EXISTS voice_consents (
+        user_id VARCHAR(100) PRIMARY KEY,
+        version VARCHAR(20) NOT NULL,
+        consented_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        withdrawn_at TIMESTAMPTZ
+      );
+
       -- Every Sharetribe event, kept past Sharetribe's 90-day retention.
       -- Append-only: rows are never updated, only removed with the user they
       -- mention when that user deletes their account. user_ids lists every
@@ -903,6 +913,34 @@ const countRecentVoiceSessions = async userId => {
   return result.rows[0].count;
 };
 
+/** True when the user accepted this version of the consent text and kept it. */
+const hasVoiceConsent = async (userId, version) => {
+  const result = await pool.query(
+    `SELECT 1 FROM voice_consents
+     WHERE user_id = $1 AND version = $2 AND withdrawn_at IS NULL`,
+    [userId, version]
+  );
+  return result.rowCount > 0;
+};
+
+const grantVoiceConsent = async (userId, version) => {
+  await pool.query(
+    `INSERT INTO voice_consents (user_id, version, consented_at, withdrawn_at)
+     VALUES ($1, $2, NOW(), NULL)
+     ON CONFLICT (user_id) DO UPDATE
+       SET version = EXCLUDED.version, consented_at = NOW(), withdrawn_at = NULL`,
+    [userId, version]
+  );
+};
+
+const withdrawVoiceConsent = async userId => {
+  await pool.query(
+    `UPDATE voice_consents SET withdrawn_at = NOW()
+     WHERE user_id = $1 AND withdrawn_at IS NULL`,
+    [userId]
+  );
+};
+
 const getVoiceSession = async sessionId => {
   const result = await pool.query(
     `SELECT session_id, user_id, started_at, draft_ready_at
@@ -1071,6 +1109,7 @@ const deleteUserLocalData = async userId => {
     await client.query('DELETE FROM support_tickets WHERE user_id = $1', [userId]);
     await client.query('DELETE FROM telegram_subscribers WHERE user_id = $1', [userId]);
     await client.query('DELETE FROM voice_sessions WHERE user_id = $1', [userId]);
+    await client.query('DELETE FROM voice_consents WHERE user_id = $1', [userId]);
     await client.query('DELETE FROM reminder_log WHERE recipient_user_id = $1', [userId]);
     await client.query(
       `DELETE FROM marketplace_events WHERE $1 = ANY(user_ids) AND event_type <> 'user/deleted'`,
@@ -1176,6 +1215,9 @@ module.exports = {
   getTelegramSubscriberStats,
   // Voice intake pilot functions
   recordVoiceSession,
+  hasVoiceConsent,
+  grantVoiceConsent,
+  withdrawVoiceConsent,
   countRecentVoiceSessions,
   getVoiceSession,
   markVoiceDraftReady,

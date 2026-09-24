@@ -2151,5 +2151,15 @@
   "SpecialistContext.profileAreas": "Районы",
   "SpecialistContext.profileLanguages": "Языки",
   "SpecialistContext.profilePrice": "Стоимость",
-  "SpecialistContext.profileAvailability": "График"
+  "SpecialistContext.profileAvailability": "График",
+  "VoiceIntake.consentTitle": "Разговор с голосовым помощником",
+  "VoiceIntake.consentProvider": "Чтобы помощник вас понял, ваш голос и то, что вы скажете о задании, будут переданы в OpenAI (США). OpenAI распознаёт речь и помогает заполнить поля задания.",
+  "VoiceIntake.consentStorage": "YouDu не хранит запись и текст разговора. OpenAI может хранить их до 30 дней для контроля злоупотреблений и по умолчанию не использует их для обучения своих моделей.",
+  "VoiceIntake.consentDraft": "Помощник только заполняет черновик — опубликуете задание вы, после проверки. Не называйте в разговоре данные карт, документов и сведения о здоровье.",
+  "VoiceIntake.consentPolicyLink": "Подробнее — в Политике конфиденциальности",
+  "VoiceIntake.consentAccept": "Разрешить и начать",
+  "VoiceIntake.consentDecline": "Заполню сам",
+  "VoiceIntake.consentWithdraw": "Отозвать согласие",
+  "VoiceIntake.consentWithdrawn": "Согласие отозвано. Голос больше не передаётся в OpenAI; чтобы снова говорить с помощником, нужно будет разрешить заново.",
+  "VoiceIntake.consentNotSaved": "Не удалось сохранить ваш выбор. Попробуйте ещё раз."
 }

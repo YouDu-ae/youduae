@@ -97,6 +97,41 @@
   color: var(--colorGrey500);
 }
 
+.consentText {
+  margin-top: 8px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--colorGrey700);
+
+  & p {
+    margin: 0 0 8px 0;
+  }
+}
+
+.consentLink {
+  display: inline-block;
+  font-size: 14px;
+  color: var(--colorGrey800);
+  text-decoration: underline;
+}
+
+.consentActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.linkButton {
+  padding: 0;
+  border: none;
+  background: none;
+  font-size: 12px;
+  color: var(--colorGrey600);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
 @media (max-width: 480px) {
   .header {
     flex-direction: column;

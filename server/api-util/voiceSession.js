@@ -24,6 +24,10 @@ const SESSION_MAX_AGE_MS = 30 * 60 * 1000;
 
 const DEFAULT_DAILY_LIMIT = 5;
 
+// Дата текста согласия на передачу голоса в OpenAI (VoiceIntake.consent*).
+// Меняется вместе с текстом, если меняется смысл: тогда согласие спросят заново.
+const VOICE_CONSENT_VERSION = '2026-09-24';
+
 const isVoicePilotEnabled = () => process.env.VOICE_PILOT_ENABLED === 'true';
 
 // Sharetribe id тех, кому пилот уже открыт, через запятую. Пустой список
@@ -192,4 +196,5 @@ module.exports = {
   createLiveSession,
   LiveSessionError,
   SESSION_MAX_AGE_MS,
+  VOICE_CONSENT_VERSION,
 };

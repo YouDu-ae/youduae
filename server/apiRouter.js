@@ -51,6 +51,7 @@ const notifyPortfolioModeration = require('./api/notify-portfolio-moderation');
 const notifyVerification = require('./api/notify-verification');
 const placesProxy = require('./api/places-proxy');
 const voiceAccess = require('./api/voice-access');
+const voiceConsent = require('./api/voice-consent');
 const voiceSession = require('./api/voice-session');
 const voiceTool = require('./api/voice-tool');
 const deleteAccount = require('./api/delete-account');
@@ -163,6 +164,7 @@ router.post('/notify-verification', requireUser, notifyVerification);
 router.get('/places/autocomplete', placesLimiter, placesProxy.autocomplete);
 router.get('/places/details', placesLimiter, placesProxy.details);
 router.get('/voice/access', requireUser, voiceAccess);
+router.post('/voice/consent', writeLimiter, requireUser, voiceConsent);
 router.post('/voice/session', voiceSessionLimiter, requireUser, voiceSession);
 router.post('/voice/tool', voiceToolLimiter, requireUser, voiceTool);
 // Authenticates itself: the site sends a session cookie, the iOS app a Bearer token.

@@ -19,6 +19,7 @@ const {
   safetyIdentifierFor,
   createLiveSession,
   LiveSessionError,
+  VOICE_CONSENT_VERSION,
 } = require('../api-util/voiceSession');
 
 // SDP-предложение с одним аудиотреком и data channel весит несколько килобайт.
@@ -44,6 +45,12 @@ module.exports = async (req, res) => {
   const userId = req.authUserId;
 
   try {
+    // Голос уходит в OpenAI только с явного согласия на текущий текст.
+    const consented = await db.hasVoiceConsent(userId, VOICE_CONSENT_VERSION);
+    if (!consented) {
+      return res.status(403).json({ error: 'consent_required' });
+    }
+
     // До обращения к OpenAI: отказ после создания сессии уже стоил бы денег.
     const used = await db.countRecentVoiceSessions(userId);
     if (used >= dailySessionLimit()) {
