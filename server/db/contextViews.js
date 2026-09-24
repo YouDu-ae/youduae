@@ -91,7 +91,8 @@ const VIEWS_SQL = `
     r.resource->'relationships'->'author'->'data'->>'id' AS client_id,
     a->>'title' AS title,
     pd->>'publicId' AS public_id,
-    pd->>'categoryLevel1' AS category,
+    -- Tasks from older iOS app builds only carry publicData.category.
+    COALESCE(pd->>'categoryLevel1', pd->>'category') AS category,
     pd->>'categoryLevel2' AS subcategory,
     ${numeric("a->'price'->>'amount'")} / 100 AS budget,
     a->'price'->>'currency' AS currency,
