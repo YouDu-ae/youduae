@@ -1,5 +1,23 @@
 const { trustedSdkFromBearer, BearerAuthError } = require('../api-util/mobileSdk');
 const { isCompletedOrBeyond, isInvalidTransitionError } = require('../api-util/assignmentState');
+const { markListingCompleted, listingIdFromTransaction } = require('../api-util/listingCompletion');
+const { createIntegrationSdk } = require('../reminders/context');
+
+// The app re-reads the listing right after this answers, so the mark goes on
+// before the response. A failure here must not turn a completed deal into an
+// error; the event poller writes the mark within a minute anyway.
+const markCompleted = async listingId => {
+  try {
+    const integrationSdk = createIntegrationSdk();
+    if (!integrationSdk) return 'unavailable';
+    const outcome = await markListingCompleted(integrationSdk, listingId);
+    console.log(`✅ complete-transaction: listing ${listingId} ${outcome}`);
+    return outcome;
+  } catch (error) {
+    console.error('⚠️ complete-transaction: listing not marked completed:', error.message);
+    return 'failed';
+  }
+};
 
 /**
  * Mark the work done — mobile API endpoint.
@@ -28,13 +46,16 @@ module.exports = async (req, res) => {
   try {
     const trustedSdk = await trustedSdkFromBearer(req);
 
-    const current = await trustedSdk.transactions.show({ id: transactionId });
+    const current = await trustedSdk.transactions.show({ id: transactionId, include: ['listing'] });
     const currentTransition = lastTransitionOf(current);
+    const listingId = listingIdFromTransaction(current?.data?.data);
 
     console.log('📊 complete-transaction: current state:', currentTransition);
 
     if (isCompletedOrBeyond(currentTransition)) {
       console.log('✅ complete-transaction: already completed, nothing to do');
+      // Deals completed before the listing was marked still need the mark.
+      await markCompleted(listingId);
       return res
         .status(200)
         .json({
@@ -63,6 +84,7 @@ module.exports = async (req, res) => {
 
       if (isCompletedOrBeyond(recheckedTransition)) {
         console.log('✅ complete-transaction: completed by a parallel request');
+        await markCompleted(listingId);
         return res
           .status(200)
           .json({
@@ -82,6 +104,7 @@ module.exports = async (req, res) => {
     }
 
     console.log('✅ complete-transaction: completed');
+    await markCompleted(listingId);
 
     res
       .status(200)
