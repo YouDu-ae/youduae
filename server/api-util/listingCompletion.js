@@ -21,7 +21,13 @@ const listingIdFromTransaction = transaction => {
 const markListingCompleted = async (integrationSdk, listingId) => {
   if (!listingId) return 'missing';
 
-  const response = await integrationSdk.listings.show({ id: listingId });
+  let response;
+  try {
+    response = await integrationSdk.listings.show({ id: listingId });
+  } catch (error) {
+    if (error?.status === 404) return 'missing';
+    throw error;
+  }
   const publicData = response?.data?.data?.attributes?.publicData || {};
 
   if (publicData.status === 'completed') return 'already';

@@ -34,6 +34,13 @@ describe('markListingCompleted', () => {
     expect(await markListingCompleted(sdk, null)).toBe('missing');
     expect(sdk.listings.show).not.toHaveBeenCalled();
   });
+
+  it('skips a task that has since been deleted', async () => {
+    const sdk = sdkWith({});
+    sdk.listings.show.mockRejectedValue({ status: 404 });
+    expect(await markListingCompleted(sdk, 'gone')).toBe('missing');
+    expect(sdk.listings.update).not.toHaveBeenCalled();
+  });
 });
 
 describe('listingIdFromTransaction', () => {
