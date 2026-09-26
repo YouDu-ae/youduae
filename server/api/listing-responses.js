@@ -158,6 +158,11 @@ module.exports = async (req, res) => {
           lastMessageAt = lastMessage.attributes.createdAt;
         }
       }
+      // Offers no longer copy their comment into the chat.
+      if (!messagePreview) {
+        const comment = (tx.attributes?.protectedData?.offer?.comment || '').trim();
+        messagePreview = comment.length > 100 ? `${comment.substring(0, 100)}...` : comment;
+      }
 
       // Get offer price from protectedData.offer.price (this is where YouDu stores the offer price)
       let offerPrice = 0;

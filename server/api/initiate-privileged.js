@@ -73,28 +73,13 @@ module.exports = (req, res) => {
       console.log('✅ initiate-privileged: success, status =', status);
 
       const transition = req.body?.bodyParams?.transition;
-      const tx = data?.data;
-      const offerComment = (
-        tx?.attributes?.protectedData?.offer?.comment ||
-        req.body?.bodyParams?.params?.protectedData?.offer?.comment ||
-        ''
-      ).trim();
 
-      // Copy the offer comment into the transaction chat so both parties see
-      // it in История, not only on the listing card.
-      const SHARETRIBE_MESSAGE_MAX = 1000;
-      if (transition === 'transition/inquire' && offerComment && tx?.id) {
-        try {
-          const userSdk = getSdk(req, res);
-          await userSdk.messages.send({
-            transactionId: tx.id,
-            content: offerComment.slice(0, SHARETRIBE_MESSAGE_MAX),
-          });
-        } catch (messageError) {
-          console.error('⚠️ Could not copy offer comment into chat:', messageError.message);
-        }
-      }
-      
+      // The offer comment stays in protectedData.offer and is not copied into
+      // the chat: a chat message makes Sharetribe send a "new message" letter
+      // on top of the offer letter, which already quotes the comment. Both
+      // chats show it as the first line from the offer (ActivityFeed
+      // messagesWithOfferComment, the app's utils/offerComment).
+
       // Send Telegram notification for new offer (inquire transition)
       if (transition === 'transition/inquire' && data?.data) {
         try {
