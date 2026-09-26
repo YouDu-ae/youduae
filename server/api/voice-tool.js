@@ -75,6 +75,14 @@ module.exports = async (req, res) => {
       await db.markVoiceDraftReady(sessionId);
     }
 
+    // Enough to follow a conversation without logging what the person said.
+    const detail = output.ok
+      ? output.candidates
+        ? `${output.candidates.length} candidates`
+        : 'ok'
+      : `error: ${String(output.error || '').slice(0, 120)}`;
+    console.log(`🎙 voice-tool: ${sessionId} ${name} → ${detail}`);
+
     return res.status(200).json({ output });
   } catch (error) {
     console.error(`❌ voice-tool ${name} failed:`, error.message);
