@@ -55,6 +55,9 @@ const dailySessionLimit = () => {
 
 const liveModel = () => process.env.VOICE_LIVE_MODEL || 'gpt-live-1';
 const backendModel = () => process.env.VOICE_BACKEND_MODEL || 'gpt-5.6-terra';
+// Unset keeps GPT-Live's default voice (marin). Chosen on the server so it can
+// be switched without a deploy or an app release; applies to new conversations.
+const outputVoice = () => (process.env.VOICE_OUTPUT_VOICE || '').trim();
 
 class LiveSessionError extends Error {
   constructor(status, message) {
@@ -167,6 +170,7 @@ const backendInstructions = ({ categories, now }) =>
 const buildSessionConfig = ({ categories, now }) => ({
   model: liveModel(),
   instructions: LIVE_INSTRUCTIONS,
+  ...(outputVoice() ? { audio: { output: { voice: outputVoice() } } } : {}),
   delegation: {
     type: 'responses',
     responses: {

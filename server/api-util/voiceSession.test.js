@@ -43,6 +43,22 @@ describe('buildSessionConfig', () => {
       .responses;
     expect(instructions).toContain('24 сентября 2026');
   });
+
+  it('uses the configured voice, or leaves the default', () => {
+    const original = process.env.VOICE_OUTPUT_VOICE;
+    try {
+      delete process.env.VOICE_OUTPUT_VOICE;
+      expect(buildSessionConfig({ categories, now: lateEveningUtc }).audio).toBeUndefined();
+
+      process.env.VOICE_OUTPUT_VOICE = 'meridian';
+      expect(buildSessionConfig({ categories, now: lateEveningUtc }).audio).toEqual({
+        output: { voice: 'meridian' },
+      });
+    } finally {
+      if (original === undefined) delete process.env.VOICE_OUTPUT_VOICE;
+      else process.env.VOICE_OUTPUT_VOICE = original;
+    }
+  });
 });
 
 describe('isVoiceAllowedFor', () => {
