@@ -13,6 +13,7 @@ import {
 } from '../../ducks/user.duck';
 import { logout, authenticationInProgress } from '../../ducks/auth.duck';
 import { manageDisableScrolling } from '../../ducks/ui.duck';
+import EmailVerificationBanner from '../../components/EmailVerificationBanner/EmailVerificationBanner';
 
 // Replies arrive while the page stays open, and nothing else reloads the badge.
 const NOTIFICATION_REFRESH_MS = 60 * 1000;
@@ -57,12 +58,23 @@ export const TopbarContainerComponent = props => {
   }, [isAuthenticated, onRefreshNotifications]);
 
   return (
-    <TopbarCustom 
-      isAuthenticated={isAuthenticated}
-      currentUser={currentUser}
-      notificationCount={notificationCount}
-      {...rest}
-    />
+    <>
+      <TopbarCustom
+        isAuthenticated={isAuthenticated}
+        currentUser={currentUser}
+        notificationCount={notificationCount}
+        {...rest}
+      />
+      {isAuthenticated ? (
+        <EmailVerificationBanner
+          currentUser={currentUser}
+          pathname={rest.location?.pathname}
+          onResend={rest.onResendVerificationEmail}
+          inProgress={rest.sendVerificationEmailInProgress}
+          error={rest.sendVerificationEmailError}
+        />
+      ) : null}
+    </>
   );
 };
 

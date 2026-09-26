@@ -1,0 +1,77 @@
+.root {
+  background-color: #fffbeb;
+  border-bottom: 1px solid #fcd34d;
+  color: #111827;
+}
+
+.content {
+  box-sizing: border-box;
+  max-width: 1220px;
+  margin: 0 auto;
+  padding: 8px 16px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+}
+
+.text {
+  flex: 1 1 320px;
+  margin: 0;
+  padding: 0;
+  font-size: 14px;
+  line-height: 20px;
+  overflow-wrap: anywhere;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.resendButton {
+  padding: 6px 14px;
+  background-color: #111827;
+  color: #ffffff;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 20px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: default;
+  }
+}
+
+.laterButton {
+  padding: 6px 10px;
+  background: none;
+  color: #4b5563;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 20px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+
+  &:hover {
+    color: #111827;
+    background-color: #fef3c7;
+  }
+}
+
+.error {
+  max-width: 1220px;
+  margin: 0 auto;
+  padding: 0 16px 8px;
+  font-size: 13px;
+  color: #b91c1c;
+}
