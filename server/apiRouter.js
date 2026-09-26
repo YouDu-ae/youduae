@@ -207,9 +207,13 @@ router.post(
 );
 
 // Viewed transactions (for syncing read/unread state across devices)
-router.get('/viewed-transactions', viewedTransactions.getViewedTransactions);
-router.post('/viewed-transactions', viewedTransactions.markTransactionViewed);
-router.post('/viewed-transactions/batch', viewedTransactions.markTransactionsBatchViewed);
+router.get('/viewed-transactions', requireUser, viewedTransactions.getViewedTransactions);
+router.post('/viewed-transactions', requireUser, viewedTransactions.markTransactionViewed);
+router.post(
+  '/viewed-transactions/batch',
+  requireUser,
+  viewedTransactions.markTransactionsBatchViewed
+);
 
 // Email OTP verification endpoints
 router.post('/otp/email/send', writeLimiter, sendEmailOtp);

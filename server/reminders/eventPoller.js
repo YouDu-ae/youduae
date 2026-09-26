@@ -1,8 +1,8 @@
 /**
  * Reads Sharetribe's event log once a minute. Consumers react to what happens
  * outside our code — task approvals and account deletions in Console, deals
- * completed on the site — and the archive keeps every event past Sharetribe's
- * 90-day retention. Each consumer keeps its own place in event_cursors, so one of
+ * completed on the site, chat messages from anywhere — and the archive keeps
+ * every event past Sharetribe's 90-day retention. Each consumer keeps its own place in event_cursors, so one of
  * them failing or lagging does not hold up the others.
  */
 
@@ -14,6 +14,7 @@ const { processApprovalEvents } = require('./listingApprovals');
 const { processDeletionEvents } = require('./accountDeletions');
 const { processArchiveEvents } = require('./eventArchive');
 const { processCompletionEvents } = require('./listingCompletions');
+const { processMessageEvents } = require('./messageNotifications');
 
 // An operator acts in Console and expects the effect to follow; an hour-long
 // sweep would feel broken. Two queries a minute are far below the API limit.
@@ -45,6 +46,12 @@ const buildConsumers = integrationSdk =>
       enabled: process.env.LISTING_COMPLETION_POLLER !== 'false',
       run: () => processCompletionEvents({ integrationSdk, db }),
       isWorthLogging: result => result.completions > 0,
+    },
+    {
+      name: 'messages',
+      enabled: process.env.MESSAGE_NOTIFICATION_POLLER !== 'false',
+      run: () => processMessageEvents({ integrationSdk, db }),
+      isWorthLogging: result => result.notified > 0 || result.failed > 0,
     },
     {
       name: 'archive',

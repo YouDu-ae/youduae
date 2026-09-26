@@ -338,11 +338,11 @@ export const fetchCurrentUserNotifications = () => async (dispatch, getState, sd
 
   try {
     // First, load viewedTransactions from server to sync across devices
-    const viewedResponse = await fetch(`/api/viewed-transactions?userId=${currentUserId}`);
+    const viewedResponse = await fetch('/api/viewed-transactions');
     const viewedData = await viewedResponse.json();
-    
+
     if (viewedData.success && viewedData.viewedTransactions) {
-      setViewedTransactionsCache(viewedData.viewedTransactions);
+      setViewedTransactionsCache(viewedData.viewedTransactions, viewedData.lastIncomingMessages);
       console.log('📬 Synced viewedTransactions from server:', Object.keys(viewedData.viewedTransactions).length);
     }
 

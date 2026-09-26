@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { compose } from 'redux';
 import { connect } from 'react-redux';
 import { withRouter } from 'react-router-dom';
@@ -6,9 +6,16 @@ import loadable from '@loadable/component';
 
 import { propTypes } from '../../util/types';
 
-import { sendVerificationEmail, hasCurrentUserErrors } from '../../ducks/user.duck';
+import {
+  sendVerificationEmail,
+  hasCurrentUserErrors,
+  fetchCurrentUserNotifications,
+} from '../../ducks/user.duck';
 import { logout, authenticationInProgress } from '../../ducks/auth.duck';
 import { manageDisableScrolling } from '../../ducks/ui.duck';
+
+// Replies arrive while the page stays open, and nothing else reloads the badge.
+const NOTIFICATION_REFRESH_MS = 60 * 1000;
 
 const TopbarCustom = loadable(() => import(/* webpackChunkName: "TopbarCustom" */ '../TopbarCustom/TopbarCustom'));
 
@@ -26,7 +33,28 @@ const TopbarCustom = loadable(() => import(/* webpackChunkName: "TopbarCustom" *
  * @returns {JSX.Element}
  */
 export const TopbarContainerComponent = props => {
-  const { notificationCount = 0, hasGenericError, isAuthenticated, currentUser, ...rest } = props;
+  const {
+    notificationCount = 0,
+    hasGenericError,
+    isAuthenticated,
+    currentUser,
+    onRefreshNotifications,
+    ...rest
+  } = props;
+
+  useEffect(() => {
+    if (!isAuthenticated || !onRefreshNotifications) return undefined;
+
+    const refreshIfVisible = () => {
+      if (document.visibilityState === 'visible') onRefreshNotifications();
+    };
+    const timer = window.setInterval(refreshIfVisible, NOTIFICATION_REFRESH_MS);
+    document.addEventListener('visibilitychange', refreshIfVisible);
+    return () => {
+      window.clearInterval(timer);
+      document.removeEventListener('visibilitychange', refreshIfVisible);
+    };
+  }, [isAuthenticated, onRefreshNotifications]);
 
   return (
     <TopbarCustom 
@@ -71,6 +99,7 @@ const mapDispatchToProps = dispatch => ({
   onManageDisableScrolling: (componentId, disableScrolling) =>
     dispatch(manageDisableScrolling(componentId, disableScrolling)),
   onResendVerificationEmail: () => dispatch(sendVerificationEmail()),
+  onRefreshNotifications: () => dispatch(fetchCurrentUserNotifications()),
 });
 
 // Note: it is important that the withRouter HOC is **outside** the

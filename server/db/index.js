@@ -236,6 +236,9 @@ const initDatabase = async () => {
         ON marketplace_events (event_type, created_at);
       CREATE INDEX IF NOT EXISTS idx_marketplace_events_users
         ON marketplace_events USING GIN (user_ids);
+      CREATE INDEX IF NOT EXISTS idx_marketplace_events_message_tx
+        ON marketplace_events ((payload #>> '{resource,relationships,transaction,data,id}'))
+        WHERE event_type = 'message/created';
 
       -- Point-in-time copies of listings and transactions, for history that
       -- predates the event archive. A transaction carries its own dated
@@ -991,6 +994,36 @@ const saveEventCursor = async (name, sequenceId) => {
 };
 
 /**
+ * When someone else last wrote in each of the user's deals, as
+ * { transactionId: epochMs }.
+ *
+ * Messages are not transitions, so a transaction's lastTransitionedAt does not
+ * move when the other party replies; the archived message/created events are
+ * the only record of that. The user's deals are those whose archived
+ * transaction events list them as a party.
+ */
+const getLastIncomingMessageTimes = async userId => {
+  const result = await pool.query(
+    `WITH my_transactions AS (
+       SELECT DISTINCT resource_id FROM marketplace_events
+       WHERE resource_type = 'transaction' AND $1 = ANY(user_ids)
+     )
+     SELECT payload #>> '{resource,relationships,transaction,data,id}' AS transaction_id,
+            MAX(created_at) AS last_at
+     FROM marketplace_events
+     WHERE event_type = 'message/created'
+       AND payload #>> '{resource,relationships,transaction,data,id}'
+           IN (SELECT resource_id FROM my_transactions)
+       AND payload #>> '{resource,relationships,sender,data,id}' IS DISTINCT FROM $1
+     GROUP BY 1`,
+    [userId]
+  );
+  return Object.fromEntries(
+    result.rows.map(row => [row.transaction_id, new Date(row.last_at).getTime()])
+  );
+};
+
+/**
  * Stores a page of events in one transaction and returns how many were new.
  * A user/deleted event also removes what the archive already held about that
  * user, since events arrive in order and the rest of their history is in.
@@ -1225,6 +1258,7 @@ module.exports = {
   getOrStartEventCursor,
   saveEventCursor,
   archiveMarketplaceEvents,
+  getLastIncomingMessageTimes,
   saveMarketplaceSnapshots,
   // Account deletion
   recordDeletionRequest,

@@ -7,6 +7,9 @@
 
 // In-memory cache of viewed transactions (synced from server)
 let viewedTransactionsCache = {};
+// When the other party last wrote in each deal ({ transactionId: epochMs }).
+// A reply is a message, not a transition, so lastTransitionedAt misses it.
+let lastIncomingMessagesCache = {};
 let cacheInitialized = false;
 
 /**
@@ -17,12 +20,11 @@ export const initViewedTransactionsCache = async (userId) => {
   if (!userId) return;
   
   try {
-    const response = await fetch(`/api/viewed-transactions?userId=${userId}`);
+    const response = await fetch('/api/viewed-transactions');
     const data = await response.json();
-    
+
     if (data.success && data.viewedTransactions) {
-      viewedTransactionsCache = data.viewedTransactions;
-      cacheInitialized = true;
+      setViewedTransactionsCache(data.viewedTransactions, data.lastIncomingMessages);
       console.log('📬 Viewed transactions cache initialized:', Object.keys(viewedTransactionsCache).length);
     }
   } catch (error) {
@@ -34,8 +36,9 @@ export const initViewedTransactionsCache = async (userId) => {
  * Set cache directly (used when data comes from user.duck.js)
  * @param {Object} viewedTransactions - Object with transactionId: timestamp
  */
-export const setViewedTransactionsCache = (viewedTransactions) => {
+export const setViewedTransactionsCache = (viewedTransactions, lastIncomingMessages) => {
   viewedTransactionsCache = viewedTransactions || {};
+  lastIncomingMessagesCache = lastIncomingMessages || {};
   cacheInitialized = true;
 };
 
@@ -62,7 +65,7 @@ export const markTransactionAsViewed = async (transactionId, userId) => {
     await fetch('/api/viewed-transactions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId, transactionId }),
+      body: JSON.stringify({ transactionId }),
     });
   } catch (error) {
     console.error('Error syncing viewed transaction to server:', error);
@@ -89,7 +92,7 @@ export const markTransactionsBatchViewed = async (transactionIds, userId) => {
     await fetch('/api/viewed-transactions/batch', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId, transactionIds }),
+      body: JSON.stringify({ transactionIds }),
     });
   } catch (error) {
     console.error('Error syncing viewed transactions batch to server:', error);
@@ -129,16 +132,12 @@ export const hasUnreadUpdates = (transaction, currentUserId) => {
     return true;
   }
 
-  // Get the last transition time from transaction
   const lastTransitionedAt = transaction.attributes?.lastTransitionedAt;
-  if (!lastTransitionedAt) {
-    return false;
-  }
+  const lastTransitionTime = lastTransitionedAt ? new Date(lastTransitionedAt).getTime() : 0;
+  const lastIncomingMessageTime = lastIncomingMessagesCache[transactionId] || 0;
 
-  const lastTransitionTime = new Date(lastTransitionedAt).getTime();
-
-  // Transaction is unread if it was updated after last view
-  return lastTransitionTime > lastViewedAt;
+  // Unread if the deal moved or the other party wrote after the last view
+  return Math.max(lastTransitionTime, lastIncomingMessageTime) > lastViewedAt;
 };
 
 /**
@@ -146,6 +145,7 @@ export const hasUnreadUpdates = (transaction, currentUserId) => {
  */
 export const clearViewedTransactionsCache = () => {
   viewedTransactionsCache = {};
+  lastIncomingMessagesCache = {};
   cacheInitialized = false;
 };
 

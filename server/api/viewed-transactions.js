@@ -2,9 +2,13 @@
  * API for tracking viewed transactions (read/unread state)
  * Stores lastViewedAt timestamps in user's privateData
  * This syncs across all devices for the same user
+ *
+ * The user comes from the session (requireUser), never from the request:
+ * user ids are public, so trusting one would expose anyone's read state.
  */
 
 const sharetribeIntegrationSdk = require('sharetribe-flex-integration-sdk');
+const db = require('../db');
 
 // Initialize Integration SDK
 const getIntegrationSdk = () => {
@@ -26,12 +30,8 @@ const getIntegrationSdk = () => {
  * Get all viewed transaction timestamps for user
  */
 const getViewedTransactions = async (req, res) => {
-  const { userId } = req.query;
-  
-  if (!userId) {
-    return res.status(400).json({ error: 'userId is required' });
-  }
-  
+  const userId = req.authUserId;
+
   try {
     const integrationSdk = getIntegrationSdk();
     
@@ -41,10 +41,19 @@ const getViewedTransactions = async (req, res) => {
     
     const privateData = userResponse.data.data.attributes.profile.privateData || {};
     const viewedTransactions = privateData.viewedTransactions || {};
-    
+
+    // Without it the inbox falls back to transitions only; still worth answering.
+    let lastIncomingMessages = {};
+    try {
+      lastIncomingMessages = await db.getLastIncomingMessageTimes(userId);
+    } catch (error) {
+      console.error('Error reading last incoming messages:', error.message);
+    }
+
     res.json({
       success: true,
       viewedTransactions,
+      lastIncomingMessages,
     });
   } catch (error) {
     console.error('Error getting viewed transactions:', error.message);
@@ -57,10 +66,11 @@ const getViewedTransactions = async (req, res) => {
  * Mark a transaction as viewed
  */
 const markTransactionViewed = async (req, res) => {
-  const { userId, transactionId } = req.body;
-  
-  if (!userId || !transactionId) {
-    return res.status(400).json({ error: 'userId and transactionId are required' });
+  const userId = req.authUserId;
+  const { transactionId } = req.body;
+
+  if (!transactionId) {
+    return res.status(400).json({ error: 'transactionId is required' });
   }
   
   try {
@@ -110,10 +120,11 @@ const markTransactionViewed = async (req, res) => {
  * Mark multiple transactions as viewed at once
  */
 const markTransactionsBatchViewed = async (req, res) => {
-  const { userId, transactionIds } = req.body;
-  
-  if (!userId || !transactionIds || !Array.isArray(transactionIds)) {
-    return res.status(400).json({ error: 'userId and transactionIds array are required' });
+  const userId = req.authUserId;
+  const { transactionIds } = req.body;
+
+  if (!Array.isArray(transactionIds)) {
+    return res.status(400).json({ error: 'transactionIds array is required' });
   }
   
   try {
