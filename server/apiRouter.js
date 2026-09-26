@@ -58,6 +58,7 @@ const deleteAccount = require('./api/delete-account');
 const telegramBot = require('./api/telegram-bot');
 const syncTelegramCategories = require('./api/sync-telegram-categories');
 const telegramBlogWebhook = require('./api/telegram-blog-webhook');
+const { requireTelegramSecret } = require('./api-util/telegramWebhookAuth');
 const blogArticles = require('./api/blog-articles');
 const viewedTransactions = require('./api/viewed-transactions');
 const listingId = require('./api/listing-id');
@@ -171,14 +172,14 @@ router.post('/voice/tool', voiceToolLimiter, requireUser, voiceTool);
 router.post('/account/delete', writeLimiter, deleteAccount);
 
 // Telegram Bot
-router.post('/telegram/webhook', telegramBot.handleWebhook);
+router.post('/telegram/webhook', requireTelegramSecret, telegramBot.handleWebhook);
 router.post('/telegram/generate-code', writeLimiter, telegramBot.generateCode);
 router.get('/telegram/status', telegramBot.checkTelegramStatus);
 router.post('/telegram/unlink', telegramBot.unlinkTelegram);
 router.post('/telegram/sync-categories', writeLimiter, syncTelegramCategories);
 
 // Telegram Blog integration
-router.post('/telegram/blog-webhook', telegramBlogWebhook.handleBlogWebhook);
+router.post('/telegram/blog-webhook', requireTelegramSecret, telegramBlogWebhook.handleBlogWebhook);
 router.get('/blog/pending', requireOperator, telegramBlogWebhook.getPendingPosts);
 router.post('/blog/approve', requireOperator, telegramBlogWebhook.approvePost);
 router.post('/blog/reject', requireOperator, telegramBlogWebhook.rejectPost);

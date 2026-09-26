@@ -1149,6 +1149,8 @@ async function setupWebhook(webhookUrl) {
       body: JSON.stringify({
         url: webhookUrl,
         allowed_updates: ['message'],
+        // Without it the webhook rejects every update (telegramWebhookAuth).
+        secret_token: process.env.TELEGRAM_WEBHOOK_SECRET,
       }),
     });
     
