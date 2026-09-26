@@ -7,7 +7,8 @@
  * including the sender, and the site never asked, so replies written on the
  * site notified nobody.
  *
- * E-mail: Sharetribe mails offers and messages only to verified addresses, and
+ * E-mail: Sharetribe mails offers, messages and the process letters of later
+ * steps (chosen, declined, completed, reviews) only to verified addresses, and
  * most people who sign up by e-mail never verify. For them the letter comes
  * from here (dealEmails); verified addresses are left to Sharetribe.
  *
@@ -21,10 +22,10 @@
 
 const { notifyNewMessage } = require('../api/telegram-bot');
 const { sendNewMessageNotification } = require('../api/send-notification');
-const { sendDealEmail } = require('../api-util/dealEmails');
+const { sendDealEmail, TRANSITION_LETTERS } = require('../api-util/dealEmails');
 
 const CURSOR_NAME = 'message-notifications';
-const EVENT_TYPES = 'message/created,transaction/initiated';
+const EVENT_TYPES = 'message/created,transaction/initiated,transaction/transitioned';
 const PREVIEW_LENGTH = 100;
 // After an outage, hours-old news is no longer news.
 const MAX_AGE_MS = 6 * 60 * 60 * 1000;
@@ -137,12 +138,36 @@ const handleOffer = async ({ integrationSdk, transactionRef, rootUrl }) => {
   return 'notified';
 };
 
+const handleTransition = async ({ integrationSdk, transactionRef, rootUrl }) => {
+  const transition = transactionRef?.attributes?.lastTransition;
+  const spec = TRANSITION_LETTERS[transition];
+  if (!spec) return 'no-letter';
+
+  const transactionId = transactionRef.id?.uuid || transactionRef.id;
+  const deal = await loadDeal(integrationSdk, transactionId);
+  const recipient = deal[spec.to];
+  const other = deal[spec.to === 'customer' ? 'provider' : 'customer'];
+  if (!recipient || !needsOwnEmail(recipient.user)) return 'sharetribe-mails';
+
+  await sendDealEmail('transition', recipient.user.attributes.email, {
+    transition,
+    recipientName: displayName(recipient.user),
+    otherName: displayName(other?.user),
+    listingTitle: deal.listing?.attributes?.title || 'Задание',
+    transactionId,
+  });
+  return 'notified';
+};
+
 const handleEvent = ({ integrationSdk, event, rootUrl, now }) => {
   const { eventType, resource, createdAt } = event.attributes;
   if (now - new Date(createdAt).getTime() > MAX_AGE_MS) return 'stale';
   if (eventType === 'message/created') return handleMessage({ integrationSdk, message: resource, rootUrl });
   if (eventType === 'transaction/initiated') {
     return handleOffer({ integrationSdk, transactionRef: resource, rootUrl });
+  }
+  if (eventType === 'transaction/transitioned') {
+    return handleTransition({ integrationSdk, transactionRef: resource, rootUrl });
   }
   return 'ignored';
 };

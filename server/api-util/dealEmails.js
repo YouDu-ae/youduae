@@ -1,6 +1,6 @@
 /**
- * Letters about new offers and chat messages for people whose e-mail is not
- * verified.
+ * Letters about offers, chat messages and every step of a deal for people
+ * whose e-mail is not verified.
  *
  * Sharetribe sends transaction and new-message e-mails only to verified
  * addresses and never catches up after verification. Most people who sign up
@@ -146,10 +146,110 @@ const messageEmail = ({ rootUrl, recipientName, senderName, listingTitle, previe
   text: `${senderName}: «${preview}»\n\nОтветить: ${conversationUrl}`,
 });
 
-const BUILDERS = { offer: offerEmail, message: messageEmail };
+/**
+ * The assignment-flow-v3 letters Sharetribe sends on transitions, keyed by
+ * transition: who receives it, and what it says. `to` is the Sharetribe role —
+ * the specialist is the customer, the task author the provider.
+ */
+const TRANSITION_LETTERS = {
+  'transition/accept-offer': {
+    to: 'customer',
+    subject: d => `Вас выбрали исполнителем — «${d.listingTitle}»`,
+    title: 'Вас выбрали исполнителем',
+    intro: d => `${d.otherName} выбрал(а) вас исполнителем задания «${d.listingTitle}».`,
+    body: 'Напишите заказчику в чате, чтобы согласовать детали и сроки.',
+    cta: 'Открыть чат с заказчиком',
+    path: d => `/order/${d.transactionId}`,
+  },
+  'transition/decline-offer': {
+    to: 'customer',
+    subject: d => `Ваш отклик на «${d.listingTitle}» не принят`,
+    title: 'Отклик не принят',
+    intro: d => `Заказчик выбрал другого исполнителя для задания «${d.listingTitle}».`,
+    body: 'На YouDu каждый день появляются новые задания — посмотрите, что подходит вам сейчас.',
+    cta: 'Найти другие задания',
+    path: () => '/s',
+  },
+  'transition/complete': {
+    to: 'customer',
+    subject: d => `Задание «${d.listingTitle}» завершено — оставьте отзыв`,
+    title: 'Задание завершено',
+    intro: d => `${d.otherName} отметил(а) задание «${d.listingTitle}» выполненным.`,
+    body:
+      'Оставьте отзыв о заказчике — это займёт минуту и укрепит вашу репутацию на YouDu. Отзывы обеих сторон публикуются одновременно.',
+    cta: 'Оставить отзыв',
+    path: d => `/order/${d.transactionId}`,
+  },
+  'transition/review-1-by-provider': {
+    to: 'customer',
+    subject: d => `Новый отзыв о вашей работе — от ${d.otherName}`,
+    title: 'Заказчик оставил отзыв',
+    intro: d => `${d.otherName} оставил(а) отзыв о работе по заданию «${d.listingTitle}».`,
+    body:
+      'Отзыв станет виден, как только вы оставите свой. Если не ответить в течение 7 дней, отзыв заказчика опубликуется автоматически.',
+    cta: 'Оставить ответный отзыв',
+    path: d => `/order/${d.transactionId}`,
+  },
+  'transition/review-1-by-customer': {
+    to: 'provider',
+    subject: d => `Новый отзыв о работе с вами — от ${d.otherName}`,
+    title: 'Специалист оставил отзыв',
+    intro: d => `${d.otherName} оставил(а) отзыв о работе по заданию «${d.listingTitle}».`,
+    body:
+      'Отзыв станет виден, как только вы оставите свой. Ваша оценка помогает другим заказчикам выбирать проверенных специалистов.',
+    cta: 'Оставить отзыв о специалисте',
+    path: d => `/sale/${d.transactionId}`,
+  },
+  'transition/review-2-by-provider': {
+    to: 'customer',
+    subject: d => `Отзывы по заданию «${d.listingTitle}» опубликованы`,
+    title: 'Отзывы опубликованы',
+    intro: d => `${d.otherName} ответил(а) на ваш отзыв по заданию «${d.listingTitle}».`,
+    body: 'Отзыв добавлен в ваш профиль и виден будущим заказчикам.',
+    cta: 'Посмотреть отзывы',
+    path: d => `/order/${d.transactionId}`,
+  },
+  'transition/review-2-by-customer': {
+    to: 'provider',
+    subject: d => `Отзывы по заданию «${d.listingTitle}» опубликованы`,
+    title: 'Отзывы опубликованы',
+    intro: d => `${d.otherName} ответил(а) на ваш отзыв по заданию «${d.listingTitle}».`,
+    body: 'Оба отзыва теперь видны в профилях.',
+    cta: 'Посмотреть отзывы',
+    path: d => `/sale/${d.transactionId}`,
+  },
+};
 
 /**
- * @param {'offer'|'message'} kind
+ * @param {Object} data
+ * @param {string} data.transition key of TRANSITION_LETTERS
+ * @param {string} data.recipientName
+ * @param {string} data.otherName the other party of the deal
+ * @param {string} data.listingTitle
+ * @param {string} data.transactionId
+ */
+const transitionEmail = ({ rootUrl, transition, recipientName, otherName, listingTitle, transactionId }) => {
+  const spec = TRANSITION_LETTERS[transition];
+  const fields = { otherName, listingTitle, transactionId };
+  const ctaUrl = `${rootUrl}${spec.path(fields)}`;
+  return {
+    subject: spec.subject(fields),
+    html: layout({
+      rootUrl,
+      title: spec.title,
+      intro: `Здравствуйте, ${escapeHtml(recipientName)}! ${escapeHtml(spec.intro(fields))}`,
+      cardLines: [cardLine(escapeHtml(spec.body), 'margin:0;font-size:15px;line-height:22px;color:#4b5563;')],
+      ctaLabel: spec.cta,
+      ctaUrl,
+    }),
+    text: `${spec.intro(fields)}\n\n${spec.body}\n\n${spec.cta}: ${ctaUrl}`,
+  };
+};
+
+const BUILDERS = { offer: offerEmail, message: messageEmail, transition: transitionEmail };
+
+/**
+ * @param {'offer'|'message'|'transition'} kind
  * @param {string} to
  * @param {Object} data fields of the matching builder
  * @returns {Promise<boolean>} Whether a letter was handed to SendGrid.
@@ -171,4 +271,4 @@ const sendDealEmail = async (kind, to, data) => {
   return true;
 };
 
-module.exports = { sendDealEmail, offerEmail, messageEmail };
+module.exports = { sendDealEmail, offerEmail, messageEmail, transitionEmail, TRANSITION_LETTERS };

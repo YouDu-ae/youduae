@@ -151,6 +151,63 @@
 }
 
 /* Telegram Section */
+.emailSection {
+  padding: 24px 28px;
+  margin-bottom: 24px;
+  border: 2px solid #f59e0b;
+  border-radius: 16px;
+  background-color: #fffbeb;
+  text-align: left;
+  color: #111827;
+}
+
+.emailTitle {
+  margin: 0 0 8px 0;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 28px;
+}
+
+.emailDescription {
+  margin: 0 0 12px 0;
+  font-size: 15px;
+  line-height: 22px;
+  color: #374151;
+  overflow-wrap: anywhere;
+}
+
+.emailButton {
+  display: inline-block;
+  margin-top: 4px;
+  padding: 10px 20px;
+  background-color: #111827;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: inherit;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: default;
+  }
+}
+
+.emailResent {
+  margin: 4px 0 0 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: #1c7c3f;
+}
+
+.emailError {
+  margin: 8px 0 0 0;
+  font-size: 14px;
+  color: #b91c1c;
+}
+
 .telegramSection {
   display: flex;
   align-items: center;

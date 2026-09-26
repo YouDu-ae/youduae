@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { compose } from 'redux';
 import { connect } from 'react-redux';
 import { useHistory, useLocation } from 'react-router-dom';
@@ -7,6 +7,7 @@ import { useConfiguration } from '../../context/configurationContext';
 import { ensureCurrentUser } from '../../util/data';
 import { getCurrentUserTypeRoles } from '../../util/userHelpers';
 import { isScrollingDisabled } from '../../ducks/ui.duck';
+import { sendVerificationEmail } from '../../ducks/user.duck';
 import { Page, NamedLink, LayoutSingleColumn, PrimaryButton, SecondaryButton, ExternalLink } from '../../components';
 import { useTelegramLink } from '../../hooks/useTelegramLink';
 import TopbarContainer from '../TopbarContainer/TopbarContainer';
@@ -15,7 +16,14 @@ import FooterContainer from '../FooterContainer/FooterContainer';
 import css from './WelcomePage.module.css';
 
 export const WelcomePageComponent = props => {
-  const { scrollingDisabled, currentUser } = props;
+  const {
+    scrollingDisabled,
+    currentUser,
+    onResendVerificationEmail,
+    sendVerificationEmailInProgress,
+    sendVerificationEmailError,
+  } = props;
+  const [verificationResent, setVerificationResent] = useState(false);
   const config = useConfiguration();
   const intl = useIntl();
   const history = useHistory();
@@ -59,6 +67,13 @@ export const WelcomePageComponent = props => {
     isCustomer,
   });
 
+  // Sharetribe mails offers, replies and deal updates only to a verified
+  // address, and most people who sign up by e-mail never click the link.
+  const email = user?.attributes?.email;
+  const needsEmailVerification = !!email && user.attributes.emailVerified === false;
+  const resendVerification = () =>
+    onResendVerificationEmail().then(() => setVerificationResent(true));
+
   const title = intl.formatMessage({ id: 'WelcomePage.title' });
   const schemaTitle = intl.formatMessage({ id: 'WelcomePage.schemaTitle' });
 
@@ -90,6 +105,54 @@ export const WelcomePageComponent = props => {
             <p className={css.subtitle}>
               <FormattedMessage id="WelcomePage.subtitle" />
             </p>
+
+            {needsEmailVerification ? (
+              <div className={css.emailSection} role="status">
+                <h3 className={css.emailTitle}>
+                  <FormattedMessage id="WelcomePage.verifyEmailTitle" />
+                </h3>
+                <p className={css.emailDescription}>
+                  <FormattedMessage
+                    id={
+                      isProvider
+                        ? 'WelcomePage.verifyEmailProvider'
+                        : 'WelcomePage.verifyEmailCustomer'
+                    }
+                  />
+                </p>
+                <p className={css.emailDescription}>
+                  <FormattedMessage
+                    id="WelcomePage.verifyEmailSentTo"
+                    values={{ email: <strong>{email}</strong> }}
+                  />
+                </p>
+                {verificationResent && !sendVerificationEmailError ? (
+                  <p className={css.emailResent}>
+                    <FormattedMessage id="WelcomePage.verifyEmailResent" />
+                  </p>
+                ) : (
+                  <button
+                    type="button"
+                    className={css.emailButton}
+                    onClick={resendVerification}
+                    disabled={sendVerificationEmailInProgress}
+                  >
+                    <FormattedMessage
+                      id={
+                        sendVerificationEmailInProgress
+                          ? 'WelcomePage.verifyEmailSending'
+                          : 'WelcomePage.verifyEmailResend'
+                      }
+                    />
+                  </button>
+                )}
+                {sendVerificationEmailError ? (
+                  <p className={css.emailError}>
+                    <FormattedMessage id="WelcomePage.verifyEmailError" />
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
 
             {/* Telegram Section - First thing user sees */}
             <div className={css.telegramSection}>
@@ -257,14 +320,20 @@ export const WelcomePageComponent = props => {
 };
 
 const mapStateToProps = state => {
-  const { currentUser } = state.user;
+  const { currentUser, sendVerificationEmailInProgress, sendVerificationEmailError } = state.user;
   return {
     scrollingDisabled: isScrollingDisabled(state),
     currentUser,
+    sendVerificationEmailInProgress,
+    sendVerificationEmailError,
   };
 };
 
-const WelcomePage = compose(connect(mapStateToProps))(WelcomePageComponent);
+const mapDispatchToProps = dispatch => ({
+  onResendVerificationEmail: () => dispatch(sendVerificationEmail()),
+});
+
+const WelcomePage = compose(connect(mapStateToProps, mapDispatchToProps))(WelcomePageComponent);
 
 export default WelcomePage;
 

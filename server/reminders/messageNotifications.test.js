@@ -6,7 +6,10 @@ jest.mock('../api/telegram-bot', () => ({ notifyNewMessage: (...args) => mockTel
 jest.mock('../api/send-notification', () => ({
   sendNewMessageNotification: (...args) => mockPush(...args),
 }));
-jest.mock('../api-util/dealEmails', () => ({ sendDealEmail: (...args) => mockEmail(...args) }));
+jest.mock('../api-util/dealEmails', () => ({
+  ...jest.requireActual('../api-util/dealEmails'),
+  sendDealEmail: (...args) => mockEmail(...args),
+}));
 
 const { processMessageEvents, CURSOR_NAME } = require('./messageNotifications');
 
@@ -160,6 +163,51 @@ describe('processMessageEvents', () => {
     });
     expect(mockTelegram).not.toHaveBeenCalled();
     expect(result.notified).toBe(1);
+  });
+
+  const transitioned = (sequenceId, lastTransition) => ({
+    attributes: {
+      eventType: 'transaction/transitioned',
+      sequenceId,
+      resourceId: 'tx-1',
+      createdAt: new Date('2026-09-26T13:59:00Z'),
+      resource: { id: { uuid: 'tx-1' }, attributes: { lastTransition } },
+    },
+  });
+
+  it('tells an unverified specialist by e-mail that they were chosen', async () => {
+    const { run } = setup([transitioned(8, 'transition/accept-offer')], { masterVerified: false });
+    await run();
+
+    expect(mockEmail).toHaveBeenCalledWith('transition', `${MASTER}@example.com`, {
+      transition: 'transition/accept-offer',
+      recipientName: 'Ahmad Said',
+      otherName: 'Alex',
+      listingTitle: 'Установить выключатель',
+      transactionId: 'tx-1',
+    });
+  });
+
+  it("e-mails the specialist's review to an unverified task author", async () => {
+    const { run } = setup([transitioned(8, 'transition/review-1-by-customer')], {
+      authorVerified: false,
+    });
+    await run();
+
+    expect(mockEmail).toHaveBeenCalledWith(
+      'transition',
+      `${AUTHOR}@example.com`,
+      expect.objectContaining({ transition: 'transition/review-1-by-customer', otherName: 'Ahmad Said' })
+    );
+  });
+
+  it('sends nothing for verified recipients or steps without a letter', async () => {
+    const { run } = setup([
+      transitioned(8, 'transition/accept-offer'),
+      transitioned(9, 'transition/expire-review-period'),
+    ]);
+    await run();
+    expect(mockEmail).not.toHaveBeenCalled();
   });
 
   it('stays quiet about events hours old, as after an outage', async () => {
