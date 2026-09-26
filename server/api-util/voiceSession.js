@@ -96,6 +96,18 @@ const LIVE_INSTRUCTIONS = [
   'Задание не публикуется в разговоре. Когда черновик готов, кратко перескажи его и попроси проверить на экране и нажать «Опубликовать».',
 ].join('\n');
 
+/**
+ * GPT-Live waits for the caller to speak first, so after allowing the
+ * microphone people heard nothing and could not tell the conversation had
+ * started. The client sends this with session.instructions.append right after
+ * session.started, which makes the model open the conversation.
+ */
+const GREETING_INSTRUCTIONS = [
+  'Поздоровайся сейчас, первым, по-русски, не дожидаясь, пока человек заговорит.',
+  'Скажи примерно так: «Здравствуйте! Я голосовой помощник YouDu. Расскажите, что нужно сделать, — я помогу составить задание».',
+  'Затем замолчи и слушай. Если человек заговорит во время приветствия, остановись и слушай его.',
+].join(' ');
+
 const backendInstructions = ({ categories, now }) =>
   [
     'Ты бэкенд голосового помощника YouDu. Твоя цель — собрать данные для prepare_task_draft и вызвать его.',
@@ -192,6 +204,7 @@ module.exports = {
   isVoiceAllowedFor,
   dailySessionLimit,
   buildSessionConfig,
+  GREETING_INSTRUCTIONS,
   safetyIdentifierFor,
   createLiveSession,
   LiveSessionError,

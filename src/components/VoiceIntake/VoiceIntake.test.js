@@ -139,6 +139,23 @@ describe('VoiceIntake', () => {
     expect(screen.getByRole('button', { name: 'VoiceIntake.stop' })).toBeInTheDocument();
   });
 
+  it('asks the assistant to greet first once the session starts', async () => {
+    sessionResponse = response(201, {
+      sessionId: 'sess_1',
+      sdp: 'v=0 answer',
+      greeting: 'Поздоровайся сейчас',
+    });
+    render(<VoiceIntake onDraft={jest.fn()} />);
+    await startConversation();
+
+    expect(sentEvents(fakes.channel)).toContainEqual({
+      type: 'session.instructions.append',
+      event_id: 'greeting',
+      delegation_id: null,
+      content: 'Поздоровайся сейчас',
+    });
+  });
+
   // Results have to go back together, and only then may the backend continue.
   it('runs a call once the backend response completes, then continues it', async () => {
     render(<VoiceIntake onDraft={jest.fn()} />);

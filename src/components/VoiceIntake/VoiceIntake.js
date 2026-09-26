@@ -103,6 +103,7 @@ const emptyConnection = () => ({
   channel: null,
   microphone: null,
   sessionId: null,
+  greeting: null,
   // Вызовы функций копятся по delegation_id до завершения ответа backend-модели:
   // результаты нужно отдать все сразу и только потом продолжить.
   pendingCalls: new Map(),
@@ -230,6 +231,15 @@ const VoiceIntake = ({ onDraft }) => {
     switch (event.type) {
       case 'session.started':
         setStatus(STATUS.LISTENING);
+        // GPT-Live otherwise waits in silence for the person to speak first.
+        if (connection.current.greeting) {
+          send({
+            type: 'session.instructions.append',
+            event_id: 'greeting',
+            delegation_id: null,
+            content: connection.current.greeting,
+          });
+        }
         break;
       case 'session.closed':
         cleanup();
@@ -336,6 +346,7 @@ const VoiceIntake = ({ onDraft }) => {
       }
 
       connection.current.sessionId = data.sessionId;
+      connection.current.greeting = data.greeting || null;
       await peer.setRemoteDescription({ type: 'answer', sdp: data.sdp });
 
       trackVoiceSessionStarted();
