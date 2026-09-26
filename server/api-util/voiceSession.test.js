@@ -1,6 +1,9 @@
 const {
   isVoiceAllowedFor,
   buildSessionConfig,
+  sanitizeCurrentFields,
+  greetingFor,
+  GREETING_INSTRUCTIONS,
   safetyIdentifierFor,
   createLiveSession,
   dailySessionLimit,
@@ -42,6 +45,42 @@ describe('buildSessionConfig', () => {
     const { instructions } = buildSessionConfig({ categories, now: lateEveningUtc }).delegation
       .responses;
     expect(instructions).toContain('24 сентября 2026');
+  });
+
+  it('tells the backend what the form already holds', () => {
+    const currentFields = sanitizeCurrentFields({
+      title: 'Заменить уплотнитель на окне',
+      address: 'Port de La Mer, La Cote 2',
+      price: '300',
+      photos: 'ignored',
+      evil: 'x'.repeat(5000),
+    });
+    expect(currentFields).toEqual({
+      title: 'Заменить уплотнитель на окне',
+      address: 'Port de La Mer, La Cote 2',
+      price: 300,
+    });
+
+    const { instructions } = buildSessionConfig({
+      categories,
+      now: lateEveningUtc,
+      currentFields,
+    }).delegation.responses;
+    expect(instructions).toContain('В форме уже заполнено');
+    expect(instructions).toContain('- Адрес: Port de La Mer, La Cote 2');
+    expect(instructions).toContain('- Бюджет, AED: 300');
+  });
+
+  it('says nothing about the form when it is empty', () => {
+    const { instructions } = buildSessionConfig({ categories, now: lateEveningUtc }).delegation
+      .responses;
+    expect(instructions).not.toContain('В форме уже заполнено');
+    expect(sanitizeCurrentFields(null)).toEqual({});
+  });
+
+  it('greets differently when part of the task is already filled', () => {
+    expect(greetingFor({})).toBe(GREETING_INSTRUCTIONS);
+    expect(greetingFor({ title: 'Кран' })).toContain('часть задания уже заполнена');
   });
 
   it('uses the configured voice, or leaves the default', () => {

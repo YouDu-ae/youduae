@@ -114,6 +114,7 @@ const emptyConnection = () => ({
   sessionId: null,
   greeting: null,
   farewell: null,
+  photoTip: null,
   wrapUp: initialWrapUp(),
   // Вызовы функций копятся по delegation_id до завершения ответа backend-модели:
   // результаты нужно отдать все сразу и только потом продолжить.
@@ -127,8 +128,13 @@ const emptyConnection = () => ({
  * @param {Object} props
  * @param {(draft: Object, meta: {sessionId: string}) => void} props.onDraft
  *   Черновик в формате guestListingStorage, без фотографий.
+ * @param {Object} [props.currentFields] what the form holds now (title,
+ *   description, category, subcategory, deadline, paymentMethod, address,
+ *   price), so the assistant can change part of it instead of starting over.
+ * @param {boolean} [props.hasPhotos] whether photos are attached; without them
+ *   the assistant suggests adding some once the draft is ready.
  */
-const VoiceIntake = ({ onDraft }) => {
+const VoiceIntake = ({ onDraft, currentFields, hasPhotos = false }) => {
   const intl = useIntl();
   // Открыт ли пилот этому пользователю, решает сервер; до ответа блок не виден,
   // чтобы кнопка не мелькала у тех, кому пилот закрыт.
@@ -145,6 +151,10 @@ const VoiceIntake = ({ onDraft }) => {
   const audioRef = useRef(null);
   const onDraftRef = useRef(onDraft);
   onDraftRef.current = onDraft;
+  const currentFieldsRef = useRef(currentFields);
+  currentFieldsRef.current = currentFields;
+  const hasPhotosRef = useRef(hasPhotos);
+  hasPhotosRef.current = hasPhotos;
 
   const cleanup = () => {
     const current = connection.current;
@@ -209,6 +219,14 @@ const VoiceIntake = ({ onDraft }) => {
         setSummary(output.summary);
         connection.current.wrapUp = onDraftReady(connection.current.wrapUp, Date.now());
         onDraftRef.current(output.draft, { sessionId });
+        if (connection.current.photoTip && !hasPhotosRef.current) {
+          send({
+            type: 'session.instructions.append',
+            event_id: `photo-tip-${Date.now()}`,
+            delegation_id: null,
+            content: connection.current.photoTip,
+          });
+        }
         trackVoiceDraftReady({ category: output.draft.category });
       }
 
@@ -381,6 +399,7 @@ const VoiceIntake = ({ onDraft }) => {
 
       const { ok, status: httpStatus, data } = await postJson('/api/voice/session', {
         sdp: peer.localDescription.sdp,
+        currentFields: currentFieldsRef.current || {},
       });
       if (httpStatus === 403 && data?.error === 'consent_required') {
         throw new ConsentRequiredError();
@@ -392,6 +411,7 @@ const VoiceIntake = ({ onDraft }) => {
       connection.current.sessionId = data.sessionId;
       connection.current.greeting = data.greeting || null;
       connection.current.farewell = data.farewell || null;
+      connection.current.photoTip = data.photoTip || null;
       await peer.setRemoteDescription({ type: 'answer', sdp: data.sdp });
 
       trackVoiceSessionStarted();

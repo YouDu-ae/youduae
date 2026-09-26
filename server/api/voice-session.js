@@ -16,8 +16,10 @@ const {
   isVoiceAllowedFor,
   dailySessionLimit,
   buildSessionConfig,
-  GREETING_INSTRUCTIONS,
   FAREWELL_INSTRUCTIONS,
+  PHOTO_TIP_INSTRUCTIONS,
+  sanitizeCurrentFields,
+  greetingFor,
   safetyIdentifierFor,
   createLiveSession,
   LiveSessionError,
@@ -63,7 +65,8 @@ module.exports = async (req, res) => {
     }
 
     const categories = await fetchListingCategories(getSdk(req, res));
-    const session = buildSessionConfig({ categories, now: new Date() });
+    const currentFields = sanitizeCurrentFields(req.body?.currentFields);
+    const session = buildSessionConfig({ categories, now: new Date(), currentFields });
 
     const created = await createLiveSession({
       sdp,
@@ -78,7 +81,12 @@ module.exports = async (req, res) => {
     console.log(`🎙 voice-session: ${created.sessionId} for ${userId} (${used + 1} in 24h)`);
     return res
       .status(201)
-      .json({ ...created, greeting: GREETING_INSTRUCTIONS, farewell: FAREWELL_INSTRUCTIONS });
+      .json({
+        ...created,
+        greeting: greetingFor(currentFields),
+        farewell: FAREWELL_INSTRUCTIONS,
+        photoTip: PHOTO_TIP_INSTRUCTIONS,
+      });
   } catch (error) {
     if (error instanceof LiveSessionError) {
       console.error('❌ voice-session:', error.message);

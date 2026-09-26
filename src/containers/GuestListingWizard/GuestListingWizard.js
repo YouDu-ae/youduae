@@ -228,6 +228,18 @@ const GuestListingWizard = () => {
 
   // Помощник заполняет поля, но фотографии не трогает: их голосом не добавить,
   // а уже выбранные снимки терять нельзя. Автосохранение запишет черновик само.
+  // What the voice assistant should know is already filled in.
+  const voiceCurrentFields = {
+    title: formData.title,
+    description: formData.description,
+    category: formData.category,
+    subcategory: formData.subcategory,
+    deadline: formData.deadline,
+    paymentMethod: formData.paymentMethod,
+    address: formData.location?.selectedPlace?.address || formData.location?.address,
+    price: formData.price,
+  };
+
   const applyVoiceDraft = (draft, { sessionId }) => {
     setFormData(prev => ({ ...prev, ...draft, images: prev.images, voiceSessionId: sessionId }));
     const selectedCategory = categories.find(cat => cat.id === draft.category);
@@ -390,7 +402,13 @@ const GuestListingWizard = () => {
             {/* Голос только для вошедших: у гостя не к чему привязать дневной
                 лимит, а каждая сессия оплачивается. Открыт ли пилот этому
                 пользователю, VoiceIntake спрашивает у сервера сам. */}
-            {isAuthenticated ? <VoiceIntake onDraft={applyVoiceDraft} /> : null}
+            {isAuthenticated ? (
+              <VoiceIntake
+                onDraft={applyVoiceDraft}
+                currentFields={voiceCurrentFields}
+                hasPhotos={(formData.images || []).length > 0}
+              />
+            ) : null}
 
             <div className={css.field}>
               <label className={css.label}>

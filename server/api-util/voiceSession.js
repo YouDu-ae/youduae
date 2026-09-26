@@ -120,6 +120,74 @@ const GREETING_INSTRUCTIONS = [
  * for a while, so the conversation ends instead of recording silence. The
  * closing words are what the client listens for before closing the session.
  */
+/**
+ * Sent by the client once the draft is ready and no photo is attached yet.
+ */
+const PHOTO_TIP_INSTRUCTIONS = [
+  'Черновик готов, а фото к заданию ещё нет. Коротко, одним предложением, в своём характере посоветуй прикрепить фото на шаге «Фото»:',
+  'по фото мастерам проще оценить работу и точнее назвать цену. Не настаивай.',
+].join(' ');
+
+/**
+ * What the form already holds when a conversation starts: typed by the person
+ * or left by an earlier conversation. Only known fields, trimmed to sane
+ * lengths — this text goes into the backend prompt.
+ */
+const CURRENT_FIELD_LIMITS = {
+  title: 100,
+  description: 1000,
+  category: 60,
+  subcategory: 60,
+  deadline: 20,
+  paymentMethod: 20,
+  address: 200,
+};
+
+const sanitizeCurrentFields = raw => {
+  if (!raw || typeof raw !== 'object') return {};
+  const fields = {};
+  Object.entries(CURRENT_FIELD_LIMITS).forEach(([key, limit]) => {
+    const value = typeof raw[key] === 'string' ? raw[key].trim().slice(0, limit) : '';
+    if (value) fields[key] = value;
+  });
+  const price = Number(raw.price);
+  if (Number.isFinite(price) && price > 0 && price < 10000000) fields.price = Math.round(price);
+  return fields;
+};
+
+const CURRENT_FIELD_LABELS = {
+  title: 'Название',
+  description: 'Описание',
+  category: 'Категория (id)',
+  subcategory: 'Подкатегория (id)',
+  deadline: 'Срок',
+  paymentMethod: 'Оплата',
+  address: 'Адрес',
+  price: 'Бюджет, AED',
+};
+
+const currentFieldsSection = fields => {
+  const lines = Object.entries(CURRENT_FIELD_LABELS)
+    .filter(([key]) => fields[key] !== undefined)
+    .map(([key, label]) => `- ${label}: ${fields[key]}`);
+  if (lines.length === 0) return [];
+  return [
+    '',
+    'В форме уже заполнено (человек ввёл сам или остались от прошлого разговора):',
+    ...lines,
+    'Если человек меняет только часть, в prepare_task_draft передай новые значения, а остальные сохрани как есть. Если описывает совсем другое задание — собирай заново. Адрес для prepare_task_draft всё равно проверь через resolve_location, чтобы получить place_id.',
+  ];
+};
+
+const greetingFor = fields =>
+  Object.keys(fields).length === 0
+    ? GREETING_INSTRUCTIONS
+    : [
+        'Поздоровайся сейчас, первым, по-русски, не дожидаясь, пока человек заговорит. Говори спокойно и уверенно, в своём характере.',
+        'Скажи дословно: «Меня зовут Вульф, я голосовой помощник YouDu, и я решаю проблемы. Вижу, часть задания уже заполнена. Расскажите, что нужно сделать или что поменять, — я помогу».',
+        'Затем замолчи и слушай. Если человек заговорит во время приветствия, остановись и слушай его.',
+      ].join(' ');
+
 const FAREWELL_INSTRUCTIONS = [
   'Человек молчит. Коротко попрощайся в своём характере, одним-двумя предложениями:',
   'скажи, что задание готово, осталось проверить поля на экране и нажать «Опубликовать», и закончи словами «Всего доброго!».',
@@ -140,7 +208,7 @@ const DUBAI_PLACES = [
   'Town Square', 'Mudon', 'Meydan', 'Sobha Hartland', 'Al Furjan', 'Discovery Gardens', 'Jebel Ali',
 ];
 
-const backendInstructions = ({ categories, now }) =>
+const backendInstructions = ({ categories, now, currentFields = {} }) =>
   [
     'Ты бэкенд голосового помощника YouDu. Твоя цель — собрать данные для prepare_task_draft и вызвать его.',
     `Сегодня ${dubaiToday(now)} (время Дубая).`,
@@ -161,13 +229,14 @@ const backendInstructions = ({ categories, now }) =>
     '',
     'Категории (id — название: подкатегории):',
     formatCategories(categories),
+    ...currentFieldsSection(currentFields),
   ].join('\n');
 
 /**
  * @param {{categories: Array, now: Date}} params
  * @returns {Object} Поле `session` запроса POST /v1/live/sessions.
  */
-const buildSessionConfig = ({ categories, now }) => ({
+const buildSessionConfig = ({ categories, now, currentFields = {} }) => ({
   model: liveModel(),
   instructions: LIVE_INSTRUCTIONS,
   ...(outputVoice() ? { audio: { output: { voice: outputVoice() } } } : {}),
@@ -175,7 +244,7 @@ const buildSessionConfig = ({ categories, now }) => ({
     type: 'responses',
     responses: {
       model: backendModel(),
-      instructions: backendInstructions({ categories, now }),
+      instructions: backendInstructions({ categories, now, currentFields }),
       tools: TOOL_DEFINITIONS,
       tool_choice: 'auto',
       // Черновик зависит от place_id, который возвращает resolve_location.
@@ -241,6 +310,9 @@ module.exports = {
   buildSessionConfig,
   GREETING_INSTRUCTIONS,
   FAREWELL_INSTRUCTIONS,
+  PHOTO_TIP_INSTRUCTIONS,
+  sanitizeCurrentFields,
+  greetingFor,
   safetyIdentifierFor,
   createLiveSession,
   LiveSessionError,

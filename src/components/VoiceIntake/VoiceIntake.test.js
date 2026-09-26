@@ -131,7 +131,7 @@ describe('VoiceIntake', () => {
     render(<VoiceIntake onDraft={jest.fn()} />);
     await startConversation();
 
-    expect(requestsTo('/api/voice/session')).toEqual([{ sdp: 'v=0 offer' }]);
+    expect(requestsTo('/api/voice/session')).toEqual([{ sdp: 'v=0 offer', currentFields: {} }]);
     expect(fakes.peer.setRemoteDescription).toHaveBeenCalledWith({
       type: 'answer',
       sdp: 'v=0 answer',
@@ -221,6 +221,50 @@ describe('VoiceIntake', () => {
     await waitFor(() => expect(onDraft).toHaveBeenCalledWith(draft, { sessionId: 'sess_1' }));
     expect(screen.getByText('Dubai Marina, Dubai, UAE')).toBeInTheDocument();
     expect(screen.getByText('VoiceIntake.summaryBudget')).toBeInTheDocument();
+  });
+
+  it('tells the server what the form already holds', async () => {
+    render(<VoiceIntake onDraft={jest.fn()} currentFields={{ title: 'Кран', price: '300' }} />);
+    await startConversation();
+
+    expect(requestsTo('/api/voice/session')).toEqual([
+      { sdp: 'v=0 offer', currentFields: { title: 'Кран', price: '300' } },
+    ]);
+  });
+
+  const draftReady = () => {
+    toolResponse = response(200, {
+      output: { ok: true, draft: { title: 'Кран' }, summary: { address: 'JLT' } },
+    });
+    sessionResponse = response(201, { sessionId: 'sess_1', sdp: 'v=0 answer', photoTip: 'Посоветуй фото' });
+  };
+  const photoTips = () =>
+    sentEvents(fakes.channel).filter(
+      event => event.type === 'session.instructions.append' && event.content === 'Посоветуй фото'
+    );
+
+  it('suggests photos once the draft is ready, when none are attached', async () => {
+    draftReady();
+    const onDraft = jest.fn();
+    render(<VoiceIntake onDraft={onDraft} />);
+    await startConversation();
+    fakes.channel.emit(functionCall('call_4', 'prepare_task_draft', {}));
+    fakes.channel.emit(responseCompleted);
+
+    await waitFor(() => expect(onDraft).toHaveBeenCalled());
+    expect(photoTips()).toHaveLength(1);
+  });
+
+  it('does not suggest photos that are already attached', async () => {
+    draftReady();
+    const onDraft = jest.fn();
+    render(<VoiceIntake onDraft={onDraft} hasPhotos />);
+    await startConversation();
+    fakes.channel.emit(functionCall('call_5', 'prepare_task_draft', {}));
+    fakes.channel.emit(responseCompleted);
+
+    await waitFor(() => expect(onDraft).toHaveBeenCalled());
+    expect(photoTips()).toHaveLength(0);
   });
 
   // Silence would leave the person waiting; the assistant should offer the form.
