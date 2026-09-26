@@ -3,6 +3,14 @@ import React, { useEffect, useRef, useState } from 'react';
 import { trackVoiceDraftReady, trackVoiceSessionStarted } from '../../analytics/plausibleEvents';
 import { useIntl } from '../../util/reactIntl';
 import NamedLink from '../NamedLink/NamedLink';
+import {
+  initialWrapUp,
+  nextStep,
+  onAssistantSpeech,
+  onDraftReady,
+  onFarewellRequested,
+  onUserSpeech,
+} from './wrapUp';
 
 import css from './VoiceIntake.module.css';
 
@@ -21,6 +29,7 @@ import css from './VoiceIntake.module.css';
 const MAX_SESSION_MS = 5 * 60 * 1000;
 const CLOSE_TIMEOUT_MS = 15 * 1000;
 const ICE_TIMEOUT_MS = 10 * 1000;
+const WRAP_UP_CHECK_MS = 1000;
 
 const STATUS = {
   IDLE: 'idle',
@@ -104,11 +113,14 @@ const emptyConnection = () => ({
   microphone: null,
   sessionId: null,
   greeting: null,
+  farewell: null,
+  wrapUp: initialWrapUp(),
   // Вызовы функций копятся по delegation_id до завершения ответа backend-модели:
   // результаты нужно отдать все сразу и только потом продолжить.
   pendingCalls: new Map(),
   handledCallIds: new Set(),
   timers: [],
+  intervals: [],
 });
 
 /**
@@ -137,6 +149,7 @@ const VoiceIntake = ({ onDraft }) => {
   const cleanup = () => {
     const current = connection.current;
     current.timers.forEach(clearTimeout);
+    current.intervals.forEach(clearInterval);
     current.microphone?.getTracks().forEach(track => track.stop());
     current.channel?.close();
     current.peer?.close();
@@ -194,6 +207,7 @@ const VoiceIntake = ({ onDraft }) => {
 
       if (call.name === 'prepare_task_draft' && output.ok) {
         setSummary(output.summary);
+        connection.current.wrapUp = onDraftReady(connection.current.wrapUp, Date.now());
         onDraftRef.current(output.draft, { sessionId });
         trackVoiceDraftReady({ category: output.draft.category });
       }
@@ -241,6 +255,16 @@ const VoiceIntake = ({ onDraft }) => {
           });
         }
         break;
+      case 'session.input_transcript.delta':
+        connection.current.wrapUp = onUserSpeech(connection.current.wrapUp, Date.now());
+        break;
+      case 'session.output_transcript.delta':
+        connection.current.wrapUp = onAssistantSpeech(
+          connection.current.wrapUp,
+          event.delta || '',
+          Date.now()
+        );
+        break;
       case 'session.closed':
         cleanup();
         setStatus(STATUS.IDLE);
@@ -253,6 +277,26 @@ const VoiceIntake = ({ onDraft }) => {
         break;
       default:
         break;
+    }
+  };
+
+  const checkWrapUp = () => {
+    const current = connection.current;
+    const now = Date.now();
+    const step = nextStep(current.wrapUp, now);
+    if (step === 'ask-farewell') {
+      current.wrapUp = onFarewellRequested(current.wrapUp, now);
+      if (current.farewell) {
+        send({
+          type: 'session.instructions.append',
+          event_id: `farewell-${now}`,
+          delegation_id: null,
+          content: current.farewell,
+        });
+      }
+    } else if (step === 'close') {
+      current.wrapUp = initialWrapUp();
+      stop();
     }
   };
 
@@ -347,10 +391,12 @@ const VoiceIntake = ({ onDraft }) => {
 
       connection.current.sessionId = data.sessionId;
       connection.current.greeting = data.greeting || null;
+      connection.current.farewell = data.farewell || null;
       await peer.setRemoteDescription({ type: 'answer', sdp: data.sdp });
 
       trackVoiceSessionStarted();
       connection.current.timers.push(setTimeout(stop, MAX_SESSION_MS));
+      connection.current.intervals.push(setInterval(checkWrapUp, WRAP_UP_CHECK_MS));
     } catch (error) {
       cleanup();
       if (error instanceof ConsentRequiredError) {

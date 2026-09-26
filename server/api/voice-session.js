@@ -17,6 +17,7 @@ const {
   dailySessionLimit,
   buildSessionConfig,
   GREETING_INSTRUCTIONS,
+  FAREWELL_INSTRUCTIONS,
   safetyIdentifierFor,
   createLiveSession,
   LiveSessionError,
@@ -75,7 +76,9 @@ module.exports = async (req, res) => {
     await db.recordVoiceSession({ sessionId: created.sessionId, userId });
 
     console.log(`🎙 voice-session: ${created.sessionId} for ${userId} (${used + 1} in 24h)`);
-    return res.status(201).json({ ...created, greeting: GREETING_INSTRUCTIONS });
+    return res
+      .status(201)
+      .json({ ...created, greeting: GREETING_INSTRUCTIONS, farewell: FAREWELL_INSTRUCTIONS });
   } catch (error) {
     if (error instanceof LiveSessionError) {
       console.error('❌ voice-session:', error.message);
