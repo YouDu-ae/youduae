@@ -37,20 +37,24 @@ const LIMITS = {
 };
 
 const MAX_LOCATION_CANDIDATES = 3;
+const CYRILLIC = /[а-яё]/i;
 
 const TOOL_DEFINITIONS = [
   {
     type: 'function',
     name: 'resolve_location',
     description:
-      'Находит адрес в ОАЭ по словам пользователя. Возвращает до трёх вариантов с place_id. ' +
-      'Вызывай всякий раз, когда пользователь называет адрес, район или здание.',
+      'Находит адрес в ОАЭ. Возвращает до трёх вариантов с place_id. ' +
+      'Вызывай всякий раз, когда пользователь называет адрес, район или здание. ' +
+      'Google знает места Дубая только по официальным латинским названиям, поэтому передавай их латиницей.',
     parameters: {
       type: 'object',
       properties: {
         query: {
           type: 'string',
-          description: 'Адрес или район так, как его назвал пользователь, например «Dubai Marina, JBR».',
+          description:
+            'Адрес латиницей, как название пишется по-английски, даже если в расшифровке оно кириллицей: ' +
+            '«Эмаар Бичфронт» → «Emaar Beachfront», «Блю Уотерс» → «Bluewaters», «Порт де ла Мер» → «Port de La Mer».',
         },
       },
       required: ['query'],
@@ -200,6 +204,15 @@ const resolveLocation = async ({ query }) => {
   const predictions = Array.isArray(response?.predictions) ? response.predictions : [];
 
   if (predictions.length === 0) {
+    // Speech comes transcribed in Cyrillic, and Google does not know Dubai
+    // places by their Russian spelling.
+    if (CYRILLIC.test(input)) {
+      return {
+        ok: false,
+        error:
+          'Ничего не найдено по написанию кириллицей. Сразу повтори resolve_location, записав название латиницей, как оно пишется по-английски.',
+      };
+    }
     return { ok: false, error: 'Адрес не найден в ОАЭ. Попроси назвать район или ориентир.' };
   }
 

@@ -93,6 +93,7 @@ const LIVE_INSTRUCTIONS = [
   'Ты не человек: если спросят, прямо скажи, что ты голосовой помощник YouDu.',
   'В этом разговоре ты помогаешь человеку составить задание. Ничем другим не занимаешься: если просят о постороннем, вежливо скажи, что сейчас помогаешь только с заданием.',
   'Говори по-русски, коротко, одним-двумя предложениями. Задавай по одному вопросу за раз.',
+  'Районы и здания Дубая люди называют по-английски с русским акцентом: Emaar Beachfront, Bluewaters, Port de La Mer, JLT, JVC, Dubai Marina. Узнавай такие названия и передавай бэкенду как есть; если не расслышал, переспроси или попроси назвать ближайший ориентир.',
   'Узнай, что нужно сделать, где, когда и какой бюджет в дирхамах. Способ оплаты спроси, только если человек сам заговорит о нём.',
   'Адреса, число мастеров и черновик задания получай от бэкенда. Сам ничего из этого не придумывай и не обещай конкретных мастеров, сроков или цен.',
   'Задание не публикуется в разговоре. Когда черновик готов, кратко перескажи его, попроси проверить на экране и нажать «Опубликовать» и спроси, нужно ли что-то ещё.',
@@ -121,13 +122,28 @@ const FAREWELL_INSTRUCTIONS = [
   'скажи, что задание готово, осталось проверить поля на экране и нажать «Опубликовать», и закончи словами «Всего доброго!».',
 ].join(' ');
 
+// Places people name most often, in the spelling Google knows them by. Helps
+// the backend map an accented, Cyrillic-transcribed name to the right one.
+const DUBAI_PLACES = [
+  'Dubai Marina', 'JBR (Jumeirah Beach Residence)', 'JLT (Jumeirah Lake Towers)', 'Bluewaters Island',
+  'Emaar Beachfront', 'Dubai Harbour', 'Palm Jumeirah', 'Port de La Mer', 'La Mer', 'Jumeirah',
+  'Umm Suqeim', 'Al Barsha', 'Al Sufouh', 'Dubai Internet City', 'Dubai Media City', 'Knowledge Park',
+  'The Greens', 'The Views', 'Emirates Hills', 'The Springs', 'The Meadows', 'The Lakes', 'Jumeirah Islands',
+  'Jumeirah Park', 'Jumeirah Golf Estates', 'JVC (Jumeirah Village Circle)', 'JVT (Jumeirah Village Triangle)',
+  'Dubai Sports City', 'Motor City', 'Arabian Ranches', 'Damac Hills', 'Dubai Hills Estate', 'Al Quoz',
+  'Downtown Dubai', 'Business Bay', 'DIFC', 'City Walk', 'Al Wasl', 'Jumeirah Bay', 'Dubai Creek Harbour',
+  'Dubai Festival City', 'Al Jaddaf', 'Culture Village', 'Mirdif', 'Deira', 'Bur Dubai', 'Al Karama',
+  'Oud Metha', 'Al Qusais', 'Al Nahda', 'International City', 'Silicon Oasis', 'Dubai South',
+  'Town Square', 'Mudon', 'Meydan', 'Sobha Hartland', 'Al Furjan', 'Discovery Gardens', 'Jebel Ali',
+];
+
 const backendInstructions = ({ categories, now }) =>
   [
     'Ты бэкенд голосового помощника YouDu. Твоя цель — собрать данные для prepare_task_draft и вызвать его.',
     `Сегодня ${dubaiToday(now)} (время Дубая).`,
     '',
     'Правила:',
-    '- Адрес: всякий раз вызывай resolve_location со словами пользователя. Если вариантов несколько, перечисли их и спроси, какой верный. place_id бери только из ответа resolve_location.',
+    '- Адрес: всякий раз вызывай resolve_location. Места Дубая люди называют по-английски с русским акцентом, а расшифровка часто пишет их кириллицей и с ошибками. Передавай официальное латинское название: «Эмаар Бичфронт» → Emaar Beachfront, «Блю Уотерс» → Bluewaters, «Порт де ла Мер» → Port de La Mer, «Джей Эл Ти» → JLT. Сверяйся со списком районов ниже. Если вариантов несколько, перечисли их и спроси, какой верный. place_id бери только из ответа resolve_location.',
     `- Срок — одно из значений: ${Object.entries(DEADLINES)
       .map(([id, label]) => `${id} (${label})`)
       .join(', ')}. «На этой неделе», «в ближайшие дни», «в пятницу» — это week. «Не срочно» — long-term.`,
@@ -137,6 +153,8 @@ const backendInstructions = ({ categories, now }) =>
     '- Когда категория ясна, можно вызвать count_specialists и честно сказать, сколько мастеров в категории. Задание видят все специалисты, откликнуться может любой.',
     '- Если prepare_task_draft вернул ошибки, переспроси только о полях с ошибками.',
     '- Никогда не говори, что задание опубликовано: это черновик, публикует человек.',
+    '',
+    `Районы и комплексы Дубая (официальные названия): ${DUBAI_PLACES.join(', ')}.`,
     '',
     'Категории (id — название: подкатегории):',
     formatCategories(categories),

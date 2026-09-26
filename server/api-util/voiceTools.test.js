@@ -160,10 +160,18 @@ describe('executeTool', () => {
     expect(result.candidates[0]).toEqual({ place_id: 'p1', description: 'Вариант 1' });
   });
 
+  it('asks for the Latin spelling when a Cyrillic name finds nothing', async () => {
+    mockFetchAutocomplete.mockResolvedValue({ predictions: [] });
+    const result = await executeTool('resolve_location', { query: 'Эмаар Бичфронт' }, { categories });
+    expect(result.ok).toBe(false);
+    expect(result.error).toMatch(/латиницей/);
+  });
+
   it('says so when nothing matches', async () => {
     mockFetchAutocomplete.mockResolvedValue({ predictions: [] });
-    const result = await executeTool('resolve_location', { query: 'нигде' }, { categories });
+    const result = await executeTool('resolve_location', { query: 'Nowhere Street' }, { categories });
     expect(result.ok).toBe(false);
+    expect(result.error).not.toMatch(/латиницей/);
   });
 
   it('turns a Places outage into something the assistant can say', async () => {
