@@ -1,0 +1,22 @@
+.root {
+  margin-top: 24px;
+}
+
+.label {
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--colorGrey700);
+}
+
+.link {
+  color: var(--marketplaceColor);
+  text-decoration: underline;
+}
+
+.hint {
+  margin: 6px 0 0 30px;
+  padding: 0;
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--colorGrey500);
+}

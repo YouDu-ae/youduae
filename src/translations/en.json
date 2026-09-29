@@ -1,5 +1,8 @@
 {
   "AddressLinkMaybe.viewOnGoogleMaps": "View on Google Maps",
+  "AiRecommendationsConsent.label": "I agree that YouDu may use AI to recommend my profile to clients, based on my completed tasks, reviews and response speed. See the {policyLink}. Optional: without it your profile stays in the general list.",
+  "AiRecommendationsConsent.policyLink": "Privacy Policy (\"Specialist Ranking and Recommendations\")",
+  "AiRecommendationsConsent.profileHint": "You can give or withdraw this consent at any time — untick the box and save your profile.",
   "AuthenticationPage.confirmSignupInfoText": "Please check that your information is correct.",
   "AuthenticationPage.confirmSignupWithIdpTitle": "Sign up with {idp}",
   "AuthenticationPage.fixEmail": "Is there an error in your email? {fixEmailLink}.",

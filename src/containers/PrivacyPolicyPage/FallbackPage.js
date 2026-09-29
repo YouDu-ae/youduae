@@ -10,7 +10,7 @@ const PageBuilder = loadable(() =>
 const fallbackPrivacyPolicyRu = `
 # Политика обработки и защиты информации
 
-**Последнее обновление:** 24 сентября 2026 года
+**Последнее обновление:** 29 сентября 2026 года
 
 **Контролёр:** Aleksandr Gross, действующий как индивидуальный оператор платформы «YouDu.ae» (MVP-версия).
 
@@ -34,6 +34,7 @@ United Arab Emirates.
 - **Регистрация и аутентификация, публикация заданий/откликов, обмен сообщениями** — исполнение договора.
 - **Поддержка, безопасность, предотвращение злоупотреблений** — законные требования PDPL/безопасность.
 - **Верификация (KYC), рассылки, нестрого-необходимые cookies/аналитика** — по вашему согласию, которое можно отозвать в любой момент.
+- **Рейтинг и рекомендации специалистов с помощью ИИ** — по отдельному согласию специалиста (раздел «Рейтинг и рекомендации специалистов»).
 
 ---
 
@@ -56,6 +57,19 @@ United Arab Emirates.
 **История действий.** Платформа Sharetribe, на которой работает YouDu, хранит журнал изменений только 90 дней. Поэтому мы сохраняем его копию и копию заданий и сделок в собственной базе данных YouDu (серверы Heroku в ЕС), чтобы история сделок не пропадала, чтобы разбирать споры и считать показатели специалистов: сколько заданий выполнено, отзывы, скорость ответа, районы и категории работ. Статистику цен и сроков по категориям и районам мы используем только в обобщённом виде. Копия доступна только YouDu. Если мы подключим AI-помощника, ему будут доступны только публичные данные профилей, опубликованные задания и обобщённые показатели — без переписки, контактов и точного адреса; действия от вашего имени — только с вашего подтверждения.
 
 При удалении аккаунта мы удаляем из этой копии все записи, где вы упоминаетесь. В резервных копиях базы они остаются не дольше 14 дней, пока копии не перезапишутся.
+
+---
+
+## Рейтинг и рекомендации специалистов
+
+YouDu может с помощью искусственного интеллекта упорядочивать специалистов и рекомендовать заказчику тех, кто лучше подходит под его задание.
+
+- **На чём основана рекомендация:** только на работе на площадке — категории и районы, выполненные задания и выборы исполнителем, оценки и отзывы, скорость ответа, цены относительно типичных в категории, заполненность профиля и верификация, жалобы и нарушения правил.
+- **Что мы никогда не используем:** национальность, пол, возраст, религию, здоровье и другие чувствительные данные, а также содержание личной переписки.
+- **Решение за человеком:** рекомендация — подсказка заказчику. Исполнителя выбирает заказчик, ИИ никого не назначает сам. Специалист без рекомендации остаётся в общем списке и может откликаться на задания.
+- **Оплата не влияет на рекомендации.** Если появится платное продвижение, такие профили будут помечены как реклама.
+- **Согласие:** профиль специалиста участвует в рекомендациях, только если специалист дал на это отдельное согласие — при регистрации или в настройках профиля. Отозвать его можно там же в любой момент или написав на info@youdu.ae; отклики и сделки после отзыва работают как прежде.
+- **Ваши права:** узнать, какие показатели учитываются, исправить данные профиля, возразить против автоматизированной обработки и попросить, чтобы рекомендацию проверил сотрудник YouDu.
 
 ---
 
@@ -114,7 +128,7 @@ United Arab Emirates.
 const fallbackPrivacyPolicyEn = `
 # Privacy Policy
 
-**Last updated:** 24 September 2026
+**Last updated:** 29 September 2026
 
 **Controller:** Aleksandr Gross, acting as the individual operator of the YouDu.ae platform (MVP version).
 
@@ -138,6 +152,7 @@ United Arab Emirates.
 - **Registration and authentication, posting jobs/offers, messaging** — performance of the contract.
 - **Support, security, abuse prevention** — legal obligations and legitimate interests under PDPL.
 - **Verification (KYC), newsletters, non-essential cookies/analytics** — based on your consent, which you can withdraw at any time.
+- **AI ranking and recommendation of specialists** — based on the specialist's separate consent (see "Specialist Ranking and Recommendations").
 
 ---
 
@@ -160,6 +175,19 @@ We retain data as long as necessary for the service and legal purposes, then del
 **Activity history.** Sharetribe, the platform YouDu runs on, keeps its change log for 90 days only. We therefore keep a copy of it, along with a copy of tasks and deals, in YouDu's own database (Heroku servers in the EU), so that deal history is not lost, disputes can be resolved, and specialist track records can be calculated: tasks completed, reviews, response time, areas and categories of work. Price and timing statistics by category and area are used only in aggregate. Only YouDu has access to this copy. If we connect an AI assistant, it will only see public profile data, published tasks and aggregate figures — never messages, contact details or exact addresses — and it will act on your behalf only after you confirm.
 
 When you delete your account, we remove every record in this copy that mentions you. Database backups may keep them for up to 14 days, until the backups are overwritten.
+
+---
+
+## Specialist Ranking and Recommendations
+
+YouDu may use artificial intelligence to rank specialists and recommend to a client those who best fit their task.
+
+- **What a recommendation is based on:** only work on the platform — categories and areas, tasks completed and times chosen, ratings and reviews, response speed, prices compared with typical prices in the category, profile completeness and verification, complaints and rule violations.
+- **What we never use:** nationality, gender, age, religion, health or other sensitive data, or the content of private messages.
+- **A person decides:** a recommendation is a suggestion to the client. The client chooses the specialist; AI never assigns anyone by itself. A specialist who is not recommended stays in the general list and can still send offers.
+- **Payment does not affect recommendations.** If paid promotion is introduced, such profiles will be clearly marked as advertising.
+- **Consent:** a specialist's profile takes part in recommendations only with the specialist's separate consent, given at sign-up or in profile settings. It can be withdrawn there at any time or by writing to info@youdu.ae; offers and deals keep working as before.
+- **Your rights:** to learn which figures are taken into account, correct profile data, object to automated processing and ask for a recommendation to be reviewed by a member of the YouDu team.
 
 ---
 

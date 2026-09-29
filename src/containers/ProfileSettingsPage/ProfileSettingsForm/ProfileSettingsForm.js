@@ -27,6 +27,7 @@ import {
 
 import { PortfolioUploader } from '../PortfolioUploader';
 import { CONTEXT_FIELD_NAMES } from '../../../components/SpecialistContextFields/SpecialistContextFields';
+import AiRecommendationsConsentField from '../../../components/AiRecommendationsConsentField/AiRecommendationsConsentField';
 
 import css from './ProfileSettingsForm.module.css';
 
@@ -482,6 +483,12 @@ class ProfileSettingsFormComponent extends Component {
                           : configs,
                       {}
                     )}
+                  />
+                )}
+                {userTypeConfig?.userType === 'customer' && (
+                  <AiRecommendationsConsentField
+                    formId={formId}
+                    hintId="AiRecommendationsConsent.profileHint"
                   />
                 )}
               </div>

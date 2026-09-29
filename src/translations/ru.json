@@ -1,5 +1,8 @@
 {
   "AddressLinkMaybe.viewOnGoogleMaps": "Открыть в Google Картах",
+  "AiRecommendationsConsent.label": "Согласен(на), чтобы YouDu с помощью ИИ рекомендовал мой профиль заказчикам, учитывая мои выполненные задания, отзывы и скорость ответа. Подробнее — в {policyLink}. Необязательно: без согласия профиль остаётся в общем списке.",
+  "AiRecommendationsConsent.policyLink": "Политике конфиденциальности (раздел «Рейтинг и рекомендации специалистов»)",
+  "AiRecommendationsConsent.profileHint": "Согласие можно дать или отозвать в любой момент — снимите галочку и сохраните профиль.",
   "AuthenticationPage.confirmSignupInfoText": "Пожалуйста, проверьте правильность введенной информации.",
   "AuthenticationPage.confirmSignupWithIdpTitle": "Регистрация через {idp}",
   "AuthenticationPage.fixEmail": "Есть ошибка в вашем email? {fixEmailLink}.",

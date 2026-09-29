@@ -23,6 +23,13 @@ import FooterContainer from '../../containers/FooterContainer/FooterContainer';
 import ProfileSettingsForm from './ProfileSettingsForm/ProfileSettingsForm';
 
 import { updateProfile, uploadImage, uploadPortfolioImage, removePortfolioImage } from './ProfileSettingsPage.duck';
+import {
+  AI_RECOMMENDATIONS_CONSENT_KEY,
+  consentFormValue,
+  consentRecord,
+  isConsentChecked,
+  isConsentGranted,
+} from '../../util/aiRecommendationsConsent';
 import css from './ProfileSettingsPage.module.css';
 
 const onImageUploadHandler = (values, fn) => {
@@ -134,7 +141,23 @@ export const ProfileSettingsPageComponent = props => {
     // DEBUG: Проверяем ВСЕ значения формы
     console.log('🔍 [ProfileSettings SAVE] ALL values:', values);
     
-    const { firstName, lastName, displayName, bio: rawBio, ...rest } = values;
+    const {
+      firstName,
+      lastName,
+      displayName,
+      bio: rawBio,
+      aiRecommendationsConsent,
+      ...rest
+    } = values;
+
+    // A new record only when the choice changes, so the date stays the day
+    // the specialist actually agreed or withdrew.
+    const currentPrivateData = currentUser?.attributes?.profile?.privateData;
+    const wantsConsent = isConsentChecked(aiRecommendationsConsent);
+    const consentChangeMaybe =
+      userType === 'customer' && wantsConsent !== isConsentGranted(currentPrivateData)
+        ? { [AI_RECOMMENDATIONS_CONSENT_KEY]: consentRecord(wantsConsent) }
+        : {};
 
     const displayNameMaybe = displayName
       ? { displayName: displayName.trim() }
@@ -200,6 +223,7 @@ export const ProfileSettingsPageComponent = props => {
       },
       privateData: {
         ...privateDataFields,
+        ...consentChangeMaybe,
       },
     };
     const uploadedImage = props.image;
@@ -266,6 +290,7 @@ export const ProfileSettingsPageComponent = props => {
         // Добавляем serviceCategories и subcategories БЕЗ префикса для ServiceCategorySelector
         serviceCategories: publicData?.serviceCategories || [],
         subcategories: subcategoriesForForm || {},
+        aiRecommendationsConsent: consentFormValue(privateData),
       }}
       profileImage={profileImage}
       onImageUpload={e => onImageUploadHandler(e, onImageUpload)}

@@ -19,6 +19,11 @@ import {
   isTooManyEmailVerificationRequestsError,
 } from '../../util/errors';
 import { pickUserFieldsData, addScopePrefix } from '../../util/userHelpers';
+import {
+  AI_RECOMMENDATIONS_CONSENT_KEY,
+  consentRecord,
+  isConsentChecked,
+} from '../../util/aiRecommendationsConsent';
 import * as log from '../../util/log';
 
 import { login, authenticationInProgress, signup, signupWithIdp } from '../../ducks/auth.duck';
@@ -241,8 +246,20 @@ export const AuthenticationForms = props => {
   ];
 
   const handleSubmitSignup = async values => {
-    const { userType, email, password, fname, lname, displayName, verifiedToken, phoneNumber, ...rest } =
-      values;
+    // Taken out here: every other field not in the user field config ends up in
+    // protectedData, and this record belongs in privateData.
+    const {
+      userType,
+      email,
+      password,
+      fname,
+      lname,
+      displayName,
+      verifiedToken,
+      phoneNumber,
+      aiRecommendationsConsent,
+      ...rest
+    } = values;
 
     setEmailVerificationError(null);
 
@@ -347,6 +364,13 @@ export const AuthenticationForms = props => {
       },
       privateData: {
         ...pickUserFieldsData(restWithSerializedSubcategories, 'private', userType, userFields),
+        ...(userType === 'customer'
+          ? {
+              [AI_RECOMMENDATIONS_CONSENT_KEY]: consentRecord(
+                isConsentChecked(aiRecommendationsConsent)
+              ),
+            }
+          : {}),
       },
       protectedData: {
         ...(phoneNumber ? { phoneNumber } : {}),

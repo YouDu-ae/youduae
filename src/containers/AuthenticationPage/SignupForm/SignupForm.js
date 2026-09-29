@@ -21,6 +21,7 @@ import {
 } from '../../../components';
 
 import FieldSelectUserType from '../FieldSelectUserType';
+import AiRecommendationsConsentField from '../../../components/AiRecommendationsConsentField/AiRecommendationsConsentField';
 import UserFieldDisplayName from '../UserFieldDisplayName';
 import UserFieldPhoneNumber from '../UserFieldPhoneNumber';
 
@@ -533,6 +534,7 @@ const SignupFormFields = props => {
               values={values}
             />
           )}
+          {userType === 'customer' && <AiRecommendationsConsentField formId={formId} />}
           
           {/* Остальные кастомные поля */}
           {userFieldProps.map(({ key, ...fieldProps}) => {
