@@ -1,10 +1,11 @@
 .root {
-  margin-top: 24px;
+  margin: 24px 0;
 }
 
 .label {
-  font-size: 14px;
-  line-height: 20px;
+  font-size: 13px;
+  font-weight: var(--fontWeightRegular);
+  line-height: 18px;
   color: var(--colorGrey700);
 }
 

@@ -26,7 +26,7 @@ const SectionBuilder = loadable(
 
 // This "content-only" component can be used in modals etc.
 const PrivacyPolicyContent = props => {
-  const { inProgress, error, data } = props;
+  const { inProgress } = props;
   const intl = useIntl();
 
   // We don't want to add h1 heading twice to the HTML (SEO issue).
@@ -42,9 +42,9 @@ const PrivacyPolicyContent = props => {
 
   const CustomHeading1 = props => <H1 as="h2" {...props} />;
 
-  const hasData = error === null && data;
-  const fallbackSections = getFallbackSections(intl.locale);
-  const sectionsData = hasData ? data : fallbackSections;
+  // Our own text, as on the page itself: the Console asset still holds
+  // Sharetribe's placeholder, which the sign-up modal used to show.
+  const sectionsData = getFallbackSections(intl.locale);
 
   return (
     <SectionBuilder
