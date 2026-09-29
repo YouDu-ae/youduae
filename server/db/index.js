@@ -214,6 +214,29 @@ const initDatabase = async () => {
         withdrawn_at TIMESTAMPTZ
       );
 
+      -- Reports about users and who blocked whom (App Store rule 1.2). A
+      -- report goes to the admin in Telegram at once; the row keeps the
+      -- history. Blocking hides the blocked person's chats, offers and
+      -- notifications from the person who blocked them.
+      CREATE TABLE IF NOT EXISTS user_reports (
+        id SERIAL PRIMARY KEY,
+        reporter_id VARCHAR(100) NOT NULL,
+        reported_id VARCHAR(100) NOT NULL,
+        reason VARCHAR(30) NOT NULL,
+        comment TEXT,
+        transaction_id VARCHAR(100),
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        resolved_at TIMESTAMPTZ
+      );
+      CREATE INDEX IF NOT EXISTS idx_user_reports_reported ON user_reports (reported_id);
+
+      CREATE TABLE IF NOT EXISTS user_blocks (
+        blocker_id VARCHAR(100) NOT NULL,
+        blocked_id VARCHAR(100) NOT NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        PRIMARY KEY (blocker_id, blocked_id)
+      );
+
       -- Every Sharetribe event, kept past Sharetribe's 90-day retention.
       -- Append-only: rows are never updated, only removed with the user they
       -- mention when that user deletes their account. user_ids lists every
@@ -917,6 +940,45 @@ const countRecentVoiceSessions = async userId => {
 };
 
 /** True when the user accepted this version of the consent text and kept it. */
+const createUserReport = async ({ reporterId, reportedId, reason, comment, transactionId }) => {
+  const result = await pool.query(
+    `INSERT INTO user_reports (reporter_id, reported_id, reason, comment, transaction_id)
+     VALUES ($1, $2, $3, $4, $5) RETURNING id`,
+    [reporterId, reportedId, reason, comment || null, transactionId || null]
+  );
+  return result.rows[0].id;
+};
+
+const setUserBlocked = async (blockerId, blockedId, blocked) => {
+  if (blocked) {
+    await pool.query(
+      `INSERT INTO user_blocks (blocker_id, blocked_id) VALUES ($1, $2)
+       ON CONFLICT (blocker_id, blocked_id) DO NOTHING`,
+      [blockerId, blockedId]
+    );
+  } else {
+    await pool.query('DELETE FROM user_blocks WHERE blocker_id = $1 AND blocked_id = $2', [
+      blockerId,
+      blockedId,
+    ]);
+  }
+};
+
+const getBlockedUserIds = async blockerId => {
+  const result = await pool.query('SELECT blocked_id FROM user_blocks WHERE blocker_id = $1', [
+    blockerId,
+  ]);
+  return result.rows.map(row => row.blocked_id);
+};
+
+const hasBlocked = async (blockerId, blockedId) => {
+  const result = await pool.query(
+    'SELECT 1 FROM user_blocks WHERE blocker_id = $1 AND blocked_id = $2',
+    [blockerId, blockedId]
+  );
+  return result.rowCount > 0;
+};
+
 const hasVoiceConsent = async (userId, version) => {
   const result = await pool.query(
     `SELECT 1 FROM voice_consents
@@ -1143,6 +1205,10 @@ const deleteUserLocalData = async userId => {
     await client.query('DELETE FROM telegram_subscribers WHERE user_id = $1', [userId]);
     await client.query('DELETE FROM voice_sessions WHERE user_id = $1', [userId]);
     await client.query('DELETE FROM voice_consents WHERE user_id = $1', [userId]);
+    await client.query('DELETE FROM user_blocks WHERE blocker_id = $1 OR blocked_id = $1', [userId]);
+    await client.query('DELETE FROM user_reports WHERE reporter_id = $1 OR reported_id = $1', [
+      userId,
+    ]);
     await client.query('DELETE FROM reminder_log WHERE recipient_user_id = $1', [userId]);
     await client.query(
       `DELETE FROM marketplace_events WHERE $1 = ANY(user_ids) AND event_type <> 'user/deleted'`,
@@ -1248,6 +1314,10 @@ module.exports = {
   getTelegramSubscriberStats,
   // Voice intake pilot functions
   recordVoiceSession,
+  createUserReport,
+  setUserBlocked,
+  getBlockedUserIds,
+  hasBlocked,
   hasVoiceConsent,
   grantVoiceConsent,
   withdrawVoiceConsent,

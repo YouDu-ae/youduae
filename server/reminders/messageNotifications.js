@@ -77,7 +77,7 @@ const recipientOf = (deal, senderId) => {
   return null;
 };
 
-const handleMessage = async ({ integrationSdk, message, rootUrl }) => {
+const handleMessage = async ({ integrationSdk, message, rootUrl, db }) => {
   const transactionId = idOf(message?.relationships?.transaction);
   const senderId = idOf(message?.relationships?.sender);
   if (!transactionId || !senderId) return 'incomplete';
@@ -85,6 +85,7 @@ const handleMessage = async ({ integrationSdk, message, rootUrl }) => {
   const deal = await loadDeal(integrationSdk, transactionId);
   const recipient = recipientOf(deal, senderId);
   if (!recipient) return 'no-recipient';
+  if (db && (await db.hasBlocked(recipient.id, senderId))) return 'blocked';
 
   const sentAt = new Date(message.attributes.createdAt).getTime();
   const dealCreatedAt = new Date(deal.transaction.attributes.createdAt).getTime();
@@ -118,12 +119,13 @@ const handleMessage = async ({ integrationSdk, message, rootUrl }) => {
   return 'notified';
 };
 
-const handleOffer = async ({ integrationSdk, transactionRef, rootUrl }) => {
+const handleOffer = async ({ integrationSdk, transactionRef, rootUrl, db }) => {
   if (transactionRef?.attributes?.lastTransition !== 'transition/inquire') return 'not-offer';
 
   const deal = await loadDeal(integrationSdk, transactionRef.id?.uuid || transactionRef.id);
   const author = deal.provider;
   if (!author || !needsOwnEmail(author.user) || !deal.listing) return 'sharetribe-mails';
+  if (db && deal.customer && (await db.hasBlocked(author.id, deal.customer.id))) return 'blocked';
 
   const offer = deal.transaction.attributes.protectedData?.offer || {};
   await sendDealEmail('offer', author.user.attributes.email, {
@@ -159,12 +161,14 @@ const handleTransition = async ({ integrationSdk, transactionRef, rootUrl }) => 
   return 'notified';
 };
 
-const handleEvent = ({ integrationSdk, event, rootUrl, now }) => {
+const handleEvent = ({ integrationSdk, event, rootUrl, now, db }) => {
   const { eventType, resource, createdAt } = event.attributes;
   if (now - new Date(createdAt).getTime() > MAX_AGE_MS) return 'stale';
-  if (eventType === 'message/created') return handleMessage({ integrationSdk, message: resource, rootUrl });
+  if (eventType === 'message/created') {
+    return handleMessage({ integrationSdk, message: resource, rootUrl, db });
+  }
   if (eventType === 'transaction/initiated') {
-    return handleOffer({ integrationSdk, transactionRef: resource, rootUrl });
+    return handleOffer({ integrationSdk, transactionRef: resource, rootUrl, db });
   }
   if (eventType === 'transaction/transitioned') {
     return handleTransition({ integrationSdk, transactionRef: resource, rootUrl });
@@ -189,7 +193,7 @@ const processMessageEvents = async ({ integrationSdk, db, log = console.log, now
 
   for (const event of events) {
     try {
-      const outcome = await handleEvent({ integrationSdk, event, rootUrl, now });
+      const outcome = await handleEvent({ integrationSdk, event, rootUrl, now, db });
       if (outcome === 'notified') result.notified += 1;
     } catch (error) {
       // One deal that cannot be read must not hold up the others.

@@ -11,6 +11,7 @@ const {
   fetchReviewStats,
   fetchCompletedCount,
 } = require('../api-util/reputation');
+const db = require('../db');
 
 module.exports = async (req, res) => {
   const { listingId } = req.query;
@@ -229,7 +230,13 @@ module.exports = async (req, res) => {
       };
     });
 
-    const responses = (await Promise.all(responsePromises)).filter(r => r !== null);
+    // Offers from people the viewer blocked are hidden (App Store rule 1.2).
+    const blockedIds = req.authUserId
+      ? await db.getBlockedUserIds(req.authUserId).catch(() => [])
+      : [];
+    const responses = (await Promise.all(responsePromises)).filter(
+      r => r !== null && !blockedIds.includes(r.customerId)
+    );
 
     /** Newest chat activity first (last message time), else transaction createdAt */
     const dialogFreshnessMs = (r) => {

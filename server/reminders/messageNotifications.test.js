@@ -50,10 +50,11 @@ const user = (id, displayName, emailVerified) => ({
   attributes: { email: `${id}@example.com`, emailVerified, profile: { displayName } },
 });
 
-const setup = (events, { authorVerified = true, masterVerified = true } = {}) => {
+const setup = (events, { authorVerified = true, masterVerified = true, blocked = false } = {}) => {
   const db = {
     getOrStartEventCursor: jest.fn(async () => ({ sequenceId: 5, updatedAt: new Date() })),
     saveEventCursor: jest.fn(async () => {}),
+    hasBlocked: jest.fn(async () => blocked),
   };
   const integrationSdk = {
     events: { query: jest.fn(async () => ({ data: { data: events, meta: { perPage: 100 } } })) },
@@ -101,6 +102,17 @@ describe('processMessageEvents', () => {
     expect(mockPush).toHaveBeenCalledWith(AUTHOR, 'Ahmad Said', 'Правильно ли я понял?', 'tx-1');
     expect(result.notified).toBe(1);
     expect(db.saveEventCursor).toHaveBeenCalledWith(CURSOR_NAME, 6);
+  });
+
+  it('stays silent about messages from someone the recipient blocked', async () => {
+    const { run, db } = setup([messageEvent(6, MASTER)], { authorVerified: false, blocked: true });
+    const result = await run();
+
+    expect(db.hasBlocked).toHaveBeenCalledWith(AUTHOR, MASTER);
+    expect(mockTelegram).not.toHaveBeenCalled();
+    expect(mockPush).not.toHaveBeenCalled();
+    expect(mockEmail).not.toHaveBeenCalled();
+    expect(result.notified).toBe(0);
   });
 
   it("tells the specialist about the author's message, linking to their order page", async () => {

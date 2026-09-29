@@ -1142,6 +1142,42 @@ async function notifyAdminAccountDeletionRequest({ userId, email, source }) {
   return await sendTelegramMessage(TELEGRAM_ADMIN_CHAT_ID, message);
 }
 
+const REPORT_REASON_LABELS = {
+  spam: 'Спам',
+  abuse: 'Оскорбления или угрозы',
+  fraud: 'Мошенничество',
+  inappropriate: 'Недопустимый контент',
+  other: 'Другое',
+};
+
+/**
+ * A user reported another one from the app. Apple expects reports to be acted
+ * on promptly, so the admin hears at once, with links to both accounts.
+ */
+async function notifyAdminUserReport({ reportId, reporterId, reportedId, reason, comment, transactionId }) {
+  if (!TELEGRAM_ADMIN_CHAT_ID) {
+    console.log('⚠️ TELEGRAM_ADMIN_CHAT_ID not set, skipping user report alert');
+    return false;
+  }
+
+  const lines = [
+    `🚩 <b>Жалоба на пользователя</b> #${reportId}`,
+    '',
+    `Причина: <b>${escapeHtml(REPORT_REASON_LABELS[reason] || reason)}</b>`,
+    comment ? `Комментарий: «${escapeHtml(comment)}»` : null,
+    '',
+    `<a href="https://console.sharetribe.com/a/users/${reportedId}">На кого жалуются →</a>`,
+    `<a href="https://console.sharetribe.com/a/users/${reporterId}">Кто пожаловался →</a>`,
+    transactionId
+      ? `<a href="https://console.sharetribe.com/a/transactions/${transactionId}">Переписка →</a>`
+      : null,
+    '',
+    'Рассмотрите в течение 24 часов: удалите контент или заблокируйте аккаунт в Console, если жалоба обоснована.',
+  ].filter(line => line !== null);
+
+  return await sendTelegramMessage(TELEGRAM_ADMIN_CHAT_ID, lines.join('\n'));
+}
+
 /**
  * Setup Telegram webhook
  */
@@ -1168,6 +1204,7 @@ async function setupWebhook(webhookUrl) {
 }
 
 module.exports = {
+  notifyAdminUserReport,
   handleWebhook,
   generateCode,
   checkTelegramStatus,

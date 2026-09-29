@@ -59,6 +59,7 @@ const telegramBot = require('./api/telegram-bot');
 const syncTelegramCategories = require('./api/sync-telegram-categories');
 const telegramBlogWebhook = require('./api/telegram-blog-webhook');
 const { requireTelegramSecret } = require('./api-util/telegramWebhookAuth');
+const userSafety = require('./api/user-safety');
 const blogArticles = require('./api/blog-articles');
 const viewedTransactions = require('./api/viewed-transactions');
 const listingId = require('./api/listing-id');
@@ -150,7 +151,7 @@ router.get('/platform-stats', expensiveLimiter, platformStats);
 // minutes, so it relies on the router-wide apiLimiter rather than the stricter
 // expensiveLimiter: UAE carrier NAT puts many visitors on one address.
 router.get('/landing-reviews', landingReviews);
-router.get('/listing-responses', expensiveLimiter, listingResponses);
+router.get('/listing-responses', expensiveLimiter, attachUser, listingResponses);
 router.post('/accept-offer', acceptOffer);
 router.post('/decline-offer', declineOffer);
 router.post('/complete-transaction', completeTransaction);
@@ -207,6 +208,11 @@ router.post(
 );
 
 // Viewed transactions (for syncing read/unread state across devices)
+// Reporting and blocking users (App Store rule 1.2).
+router.post('/moderation/report', writeLimiter, requireUser, userSafety.reportUser);
+router.get('/moderation/blocks', requireUser, userSafety.getBlocks);
+router.post('/moderation/blocks', writeLimiter, requireUser, userSafety.setBlock);
+
 router.get('/viewed-transactions', requireUser, viewedTransactions.getViewedTransactions);
 router.post('/viewed-transactions', requireUser, viewedTransactions.markTransactionViewed);
 router.post(
