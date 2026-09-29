@@ -8,12 +8,18 @@ const { processApprovalEvents, isApproval, CURSOR_NAME } = require('./listingApp
 
 let nextSequence = 100;
 
-const listingEvent = ({ listingId, state, previousState, eventType = 'listing/updated' }) => ({
+const listingEvent = ({
+  listingId,
+  state,
+  previousState,
+  eventType = 'listing/updated',
+  publicData = {},
+}) => ({
   attributes: {
     eventType,
     sequenceId: nextSequence++,
     resourceId: { uuid: listingId },
-    resource: { attributes: { state } },
+    resource: { attributes: { state, publicData } },
     previousValues: previousState ? { attributes: { state: previousState } } : {},
   },
 });
@@ -28,6 +34,7 @@ const fakeDb = cursor => ({
 
 const fakeSdk = (events, perPage = 100) => ({
   events: { query: jest.fn(async () => ({ data: { data: events, meta: { perPage } } })) },
+  listings: { close: jest.fn(async () => ({})) },
 });
 
 const run = ({ events = [], cursor = { sequenceId: 50, updatedAt: new Date() }, notify, perPage }) => {
@@ -79,6 +86,21 @@ describe('processApprovalEvents', () => {
 
     expect(result).toMatchObject({ events: 3, approvals: 2, failed: 0 });
     expect(notify.mock.calls).toEqual([['listing-1'], ['listing-3']]);
+  });
+
+  // The author cancelled it while it waited; approving it must not revive it.
+  it('closes a task approved after its author cancelled it, without announcing', async () => {
+    const cancelled = listingEvent({
+      listingId: 'listing-9',
+      state: 'published',
+      previousState: 'pendingApproval',
+      publicData: { status: 'cancelled', cancelled: true },
+    });
+    const { promise, notify, integrationSdk } = run({ events: [cancelled, approval('listing-1')] });
+    await promise;
+
+    expect(integrationSdk.listings.close).toHaveBeenCalledWith({ id: 'listing-9' });
+    expect(notify.mock.calls).toEqual([['listing-1']]);
   });
 
   it('resumes after the last event it stored', async () => {

@@ -25,6 +25,12 @@ const isApproval = event => {
   );
 };
 
+// Cancelled by its author while waiting for moderation, then approved anyway.
+const isCancelledListing = event => {
+  const publicData = event.attributes?.resource?.attributes?.publicData || {};
+  return publicData.cancelled === true || publicData.status === 'cancelled';
+};
+
 const listingIdOf = event => {
   const id = event.attributes?.resourceId;
   return id?.uuid || id || null;
@@ -57,6 +63,11 @@ const processApprovalEvents = async ({ integrationSdk, db, notify, log = console
 
     const listingId = listingIdOf(event);
     try {
+      if (isCancelledListing(event)) {
+        await integrationSdk.listings.close({ id: listingId });
+        log(`[approvals] ${listingId}: отменено автором — закрыто без рассылки`);
+        continue;
+      }
       const outcome = await notify(listingId);
       log(`[approvals] ${listingId}: ${JSON.stringify(outcome)}`);
     } catch (error) {

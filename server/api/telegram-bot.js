@@ -386,7 +386,11 @@ async function handleWebhook(req, res) {
           states: ['pendingApproval'],
           perPage: 50,
         });
-        const pending = pendingResponse.data.data;
+        // Cancelled by the author while waiting: nothing to approve.
+        const pending = pendingResponse.data.data.filter(listing => {
+          const publicData = listing.attributes.publicData || {};
+          return publicData.cancelled !== true && publicData.status !== 'cancelled';
+        });
 
         if (pending.length === 0) {
           await sendTelegramMessage(chatId, '✅ Заданий на модерации нет');

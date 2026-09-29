@@ -110,11 +110,22 @@ module.exports = async (req, res) => {
   }
 
   // Сначала обновляем publicData
+  // expand: the listing's state decides below whether it can be closed.
   return sdk.ownListings
-    .update(updateParams)
+    .update(updateParams, { expand: true })
     .then(apiResponse => {
       console.log('✅ update-listing-status: publicData updated');
-      
+
+      // Only a published listing can be closed. A task cancelled while
+      // pendingApproval is already invisible to specialists; it stays in the
+      // moderation queue marked cancelled, and approving it closes it
+      // (reminders/listingApprovals).
+      const state = apiResponse?.data?.data?.attributes?.state;
+      if (status === 'cancelled' && state !== 'published') {
+        console.log(`  → Not closing: listing is ${state}`);
+        return apiResponse;
+      }
+
       // Закрыть листинг (скрыть из поиска)
       if (status === 'in-progress' || status === 'cancelled') {
         console.log('  → Closing listing...');
