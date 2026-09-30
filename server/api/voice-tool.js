@@ -36,6 +36,18 @@ const parseArguments = raw => {
   }
 };
 
+// Names of the form fields the call filled; their values stay out of the summary.
+const filledFields = output => {
+  const filled = output.fields || (output.ok ? output.draft : null) || {};
+  return Object.keys(filled).filter(key => filled[key] !== '' && filled[key] != null);
+};
+
+// The summary is for us; a failure to write it must not end the conversation.
+const recordToolCall = (sessionId, outcome) =>
+  db.recordVoiceToolCall(sessionId, outcome).catch(error => {
+    console.error('❌ voice-tool: summary not saved:', error.message);
+  });
+
 module.exports = async (req, res) => {
   if (!isVoicePilotEnabled()) {
     return res.status(404).json({ error: 'Not found' });
@@ -53,6 +65,7 @@ module.exports = async (req, res) => {
     return res.status(400).json({ error: 'Unknown tool' });
   }
 
+  let ownSession = false;
   try {
     // Без этой проверки эндпоинт стал бы бесплатным прокси к Google Places для
     // любого вошедшего: сессию нужно было открыть самому и недавно.
@@ -64,9 +77,11 @@ module.exports = async (req, res) => {
     if (Date.now() - startedAt > SESSION_MAX_AGE_MS) {
       return res.status(403).json({ error: 'Session has expired' });
     }
+    ownSession = true;
 
     const args = parseArguments(req.body.arguments);
     if (!args) {
+      await recordToolCall(sessionId, { ok: false });
       return res.status(200).json({ output: { ok: false, error: 'Аргументы вызова не разобраны.' } });
     }
 
@@ -83,6 +98,7 @@ module.exports = async (req, res) => {
     if (draftReady) {
       await db.markVoiceDraftReady(sessionId);
     }
+    await recordToolCall(sessionId, { ok: output.ok === true, fields: filledFields(output) });
 
     // Enough to follow a conversation without logging what the person said.
     const filled = output.fields ? `filled ${Object.keys(output.fields).join(', ') || 'nothing'}` : null;
@@ -98,6 +114,7 @@ module.exports = async (req, res) => {
     return res.status(200).json({ output });
   } catch (error) {
     console.error(`❌ voice-tool ${name} failed:`, error.message);
+    if (ownSession) await recordToolCall(sessionId, { ok: false });
     return res.status(500).json({ error: 'Tool failed' });
   }
 };

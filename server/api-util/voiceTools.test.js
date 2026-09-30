@@ -243,6 +243,20 @@ describe('executeTool', () => {
     });
   });
 
+  // Responses turns a tool without `strict` into a strict one where every field
+  // is required, and the backend then made up a budget of 1 AED to fill it.
+  it('lets fill_task_fields leave unknown fields as null', () => {
+    const tool = STEP_TOOL_DEFINITIONS.find(t => t.name === 'fill_task_fields');
+    const properties = Object.entries(tool.parameters.properties);
+
+    expect(tool.strict).toBe(true);
+    expect(tool.parameters.required).toEqual(properties.map(([name]) => name));
+    properties.forEach(([, property]) => {
+      expect(property.type).toContain('null');
+      if (property.enum) expect(property.enum).toContain(null);
+    });
+  });
+
   // The iOS app waits for a whole draft; only the site fills its wizard step by step.
   it('keeps the app on the whole-draft tools', () => {
     expect(TOOL_DEFINITIONS.map(tool => tool.name)).toEqual([

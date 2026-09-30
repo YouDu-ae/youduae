@@ -87,7 +87,11 @@ module.exports = async (req, res) => {
 
     // Без записи инструменты не признают сессию своей, и разговор всё равно
     // сломается на первом вызове — лучше отказать сразу.
-    await db.recordVoiceSession({ sessionId: created.sessionId, userId });
+    await db.recordVoiceSession({
+      sessionId: created.sessionId,
+      userId,
+      mode: stepMode ? 'steps' : 'draft',
+    });
 
     console.log(
       `🎙 voice-session: ${created.sessionId} for ${userId} (${used + 1} in 24h${

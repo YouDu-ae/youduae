@@ -107,29 +107,43 @@ const PREPARE_TASK_DRAFT_TOOL = {
   },
 };
 
+const FILL_TASK_FIELD_PROPERTIES = {
+  ...TASK_FIELD_PROPERTIES,
+  description: {
+    type: 'string',
+    description:
+      'Подробное описание, 20–5000 символов. Включи всё, что сказал пользователь: время суток, ' +
+      'доступ в здание, материалы, пожелания. Когда дополняешь описание, передай его целиком.',
+  },
+  subcategory: {
+    type: 'string',
+    description: 'id подкатегории из списка, если подходит. Передавай вместе с category.',
+  },
+};
+
+// Responses makes a tool without `strict` strict, and strict mode requires
+// every field. Unknown fields have to come as null, or the model makes them up;
+// an enum needs null among its values too.
+const nullable = property => ({
+  ...property,
+  type: [property.type, 'null'],
+  ...(property.enum ? { enum: [...property.enum, null] } : {}),
+});
+
 const FILL_TASK_FIELDS_TOOL = {
   type: 'function',
   name: 'fill_task_fields',
   description:
     'Сразу вписывает в форму задания на экране поля, которые уже известны. Ничего не публикует. ' +
-    'Передавай только новые или изменённые поля. В ответе — какой шаг мастера открыт и чего на нём не хватает; ' +
-    'если вернулись ошибки, переспроси только об этих полях.',
+    'Передавай только новые или изменённые поля, остальные — null: не придумывай того, чего человек не говорил. ' +
+    'В ответе — какой шаг мастера открыт и чего на нём не хватает; если вернулись ошибки, переспроси только об этих полях.',
+  strict: true,
   parameters: {
     type: 'object',
-    properties: {
-      ...TASK_FIELD_PROPERTIES,
-      description: {
-        type: 'string',
-        description:
-          'Подробное описание, 20–5000 символов. Включи всё, что сказал пользователь: время суток, ' +
-          'доступ в здание, материалы, пожелания. Когда дополняешь описание, передай его целиком.',
-      },
-      subcategory: {
-        type: 'string',
-        description: 'id подкатегории из списка, если подходит. Передавай вместе с category.',
-      },
-    },
-    required: [],
+    properties: Object.fromEntries(
+      Object.entries(FILL_TASK_FIELD_PROPERTIES).map(([name, property]) => [name, nullable(property)])
+    ),
+    required: Object.keys(FILL_TASK_FIELD_PROPERTIES),
     additionalProperties: false,
   },
 };

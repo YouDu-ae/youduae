@@ -100,6 +100,23 @@ describe('buildSessionConfig', () => {
       expect(session.instructions).not.toContain('Когда черновик готов');
     });
 
+    // GPT-Live hands work to the backend only when its prompt says when to;
+    // without this section the wizard stayed empty for the whole conversation.
+    it('tells GPT-Live when to hand the work to the backend', () => {
+      const { instructions } = stepSession('title');
+
+      expect(instructions).toContain('Delegation policy:');
+      expect(instructions).toContain('Delegate to the backend when:');
+      expect(instructions).toContain('Do not delegate to the backend when:');
+    });
+
+    it('keeps the backend from filling what the person never said', () => {
+      const { instructions } = stepSession('title').delegation.responses;
+
+      expect(instructions).toContain('Остальные поля — null');
+      expect(instructions).toContain('Способ оплаты не спрашивай');
+    });
+
     it('tells the backend which step is open', () => {
       const { instructions } = stepSession('location').delegation.responses;
 

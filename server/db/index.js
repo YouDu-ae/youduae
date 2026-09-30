@@ -181,6 +181,16 @@ const initDatabase = async () => {
       CREATE INDEX IF NOT EXISTS idx_voice_sessions_user_started
         ON voice_sessions (user_id, started_at);
 
+      -- What a conversation did, without a word of what was said: how often
+      -- the backend ran a tool, how many runs failed and which form fields
+      -- it filled. mode is 'steps' for the site's wizard, 'draft' for the app.
+      ALTER TABLE voice_sessions
+        ADD COLUMN IF NOT EXISTS mode VARCHAR(10),
+        ADD COLUMN IF NOT EXISTS tool_calls INTEGER NOT NULL DEFAULT 0,
+        ADD COLUMN IF NOT EXISTS tool_errors INTEGER NOT NULL DEFAULT 0,
+        ADD COLUMN IF NOT EXISTS filled_fields TEXT[] NOT NULL DEFAULT '{}',
+        ADD COLUMN IF NOT EXISTS last_tool_at TIMESTAMP;
+
       -- Where each consumer of Sharetribe events stopped reading. Events are
       -- strictly ordered by sequence_id, so resuming after the stored value
       -- neither skips nor repeats one across restarts. A NULL sequence_id means
@@ -918,11 +928,29 @@ const getReminderStats = async () => {
   return result.rows;
 };
 
-const recordVoiceSession = async ({ sessionId, userId }) => {
+const recordVoiceSession = async ({ sessionId, userId, mode = null }) => {
   await pool.query(
-    `INSERT INTO voice_sessions (session_id, user_id) VALUES ($1, $2)
+    `INSERT INTO voice_sessions (session_id, user_id, mode) VALUES ($1, $2, $3)
      ON CONFLICT (session_id) DO NOTHING`,
-    [sessionId, userId]
+    [sessionId, userId, mode]
+  );
+};
+
+/**
+ * Adds one tool run to the conversation's summary. Only the names of the
+ * filled fields are kept, never their values.
+ */
+const recordVoiceToolCall = async (sessionId, { ok, fields = [] }) => {
+  await pool.query(
+    `UPDATE voice_sessions
+     SET tool_calls = tool_calls + 1,
+         tool_errors = tool_errors + CASE WHEN $2::boolean THEN 0 ELSE 1 END,
+         filled_fields = ARRAY(
+           SELECT DISTINCT field FROM unnest(filled_fields || $3::text[]) AS field ORDER BY field
+         ),
+         last_tool_at = NOW()
+     WHERE session_id = $1`,
+    [sessionId, ok, fields]
   );
 };
 
@@ -1324,6 +1352,7 @@ module.exports = {
   countRecentVoiceSessions,
   getVoiceSession,
   markVoiceDraftReady,
+  recordVoiceToolCall,
   // Sharetribe event consumers
   getOrStartEventCursor,
   saveEventCursor,
