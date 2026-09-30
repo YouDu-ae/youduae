@@ -39,7 +39,7 @@ const fetchStaleOffers = async integrationSdk => {
       lastTransitions: [PENDING_TRANSITION],
       createdAtStart,
       createdAtEnd,
-      include: ['listing', 'provider'],
+      include: ['listing', 'provider', 'customer'],
       page,
       perPage: 100,
     });
@@ -58,6 +58,29 @@ const fetchStaleOffers = async integrationSdk => {
     }),
     { transactions: [], included: [] }
   );
+};
+
+/**
+ * Offers from someone the author blocked are hidden from the author, so they
+ * are not waiting for an answer either.
+ */
+const dropBlockedOffers = async ({ transactions, included }) => {
+  const blockedBy = new Map();
+  const kept = [];
+
+  for (const transaction of transactions) {
+    const authorId = transaction.relationships?.provider?.data?.id?.uuid;
+    const specialistId = transaction.relationships?.customer?.data?.id?.uuid;
+    if (authorId && specialistId) {
+      if (!blockedBy.has(authorId)) {
+        blockedBy.set(authorId, new Set(await db.getBlockedUserIds(authorId)));
+      }
+      if (blockedBy.get(authorId).has(specialistId)) continue;
+    }
+    kept.push(transaction);
+  }
+
+  return { transactions: kept, included };
 };
 
 /**
@@ -124,7 +147,7 @@ const runUnansweredOffers = async ({ dryRun = false, log = console.log } = {}) =
     return { skipped: 'missing-integration-credentials' };
   }
 
-  const raw = await fetchStaleOffers(integrationSdk);
+  const raw = await dropBlockedOffers(await fetchStaleOffers(integrationSdk));
   const candidates = groupByListing(raw);
   const authorGroups = groupByAuthor(candidates);
 

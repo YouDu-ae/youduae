@@ -1,8 +1,12 @@
 const mockTelegram = jest.fn();
+const mockOfferTelegram = jest.fn();
 const mockPush = jest.fn();
 const mockEmail = jest.fn();
 
-jest.mock('../api/telegram-bot', () => ({ notifyNewMessage: (...args) => mockTelegram(...args) }));
+jest.mock('../api/telegram-bot', () => ({
+  notifyNewMessage: (...args) => mockTelegram(...args),
+  notifyNewOffer: (...args) => mockOfferTelegram(...args),
+}));
 jest.mock('../api/send-notification', () => ({
   sendNewMessageNotification: (...args) => mockPush(...args),
 }));
@@ -86,7 +90,9 @@ const setup = (events, { authorVerified = true, masterVerified = true, blocked =
 
 describe('processMessageEvents', () => {
   beforeEach(() => {
-    [mockTelegram, mockPush, mockEmail].forEach(mock => mock.mockReset().mockResolvedValue(true));
+    [mockTelegram, mockOfferTelegram, mockPush, mockEmail].forEach(mock =>
+      mock.mockReset().mockResolvedValue(true)
+    );
   });
 
   it("tells the task author about the specialist's reply, and only the author", async () => {
@@ -160,7 +166,23 @@ describe('processMessageEvents', () => {
     expect(mockEmail).not.toHaveBeenCalled();
   });
 
-  it('e-mails a new offer to an unverified task author', async () => {
+  it('tells the task author about a new offer in Telegram', async () => {
+    const { run } = setup([offerEvent(7)]);
+    const result = await run();
+
+    expect(mockOfferTelegram).toHaveBeenCalledTimes(1);
+    expect(mockOfferTelegram).toHaveBeenCalledWith(AUTHOR, {
+      listingTitle: 'Установить выключатель',
+      executorName: 'Ahmad Said',
+      offerPrice: '150 AED',
+      listingUrl: 'https://youdu.ae/l/listing-1',
+    });
+    expect(mockTelegram).not.toHaveBeenCalled();
+    expect(mockEmail).not.toHaveBeenCalled();
+    expect(result.notified).toBe(1);
+  });
+
+  it('e-mails a new offer to an unverified task author as well', async () => {
     const { run } = setup([offerEvent(7)], { authorVerified: false });
     const result = await run();
 
@@ -173,8 +195,29 @@ describe('processMessageEvents', () => {
       comment: 'Сделаю сегодня',
       listingUrl: 'https://youdu.ae/l/listing-1',
     });
-    expect(mockTelegram).not.toHaveBeenCalled();
+    expect(mockOfferTelegram).toHaveBeenCalledTimes(1);
     expect(result.notified).toBe(1);
+  });
+
+  it('stays silent about an offer from someone the author blocked', async () => {
+    const { run, db } = setup([offerEvent(7)], { authorVerified: false, blocked: true });
+    const result = await run();
+
+    expect(db.hasBlocked).toHaveBeenCalledWith(AUTHOR, MASTER);
+    expect(mockOfferTelegram).not.toHaveBeenCalled();
+    expect(mockEmail).not.toHaveBeenCalled();
+    expect(result.notified).toBe(0);
+  });
+
+  it('still e-mails the author when the Telegram delivery fails', async () => {
+    mockOfferTelegram.mockRejectedValueOnce(new Error('Telegram down'));
+    const { run } = setup([offerEvent(7)], { authorVerified: false });
+    const error = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const result = await run();
+    error.mockRestore();
+
+    expect(mockEmail).toHaveBeenCalledWith('offer', `${AUTHOR}@example.com`, expect.anything());
+    expect(result).toMatchObject({ notified: 1, failed: 0 });
   });
 
   const transitioned = (sequenceId, lastTransition) => ({

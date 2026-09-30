@@ -14,13 +14,13 @@
  *
  * An offer is a new transaction plus, usually, the specialist's opening
  * message written in the same second. That message is part of the offer, not
- * a chat reply, and the offer already has its own Telegram (initiate-privileged).
+ * a chat reply: the author hears about the offer once, from handleOffer.
  *
  * Roles are inverted in YouDu: the task author is the Sharetribe provider and
  * sees the deal under /sale/:id, the specialist is the customer (/order/:id).
  */
 
-const { notifyNewMessage } = require('../api/telegram-bot');
+const { notifyNewMessage, notifyNewOffer } = require('../api/telegram-bot');
 const { sendNewMessageNotification } = require('../api/send-notification');
 const { sendDealEmail, TRANSITION_LETTERS } = require('../api-util/dealEmails');
 
@@ -77,6 +77,13 @@ const recipientOf = (deal, senderId) => {
   return null;
 };
 
+const deliver = async (transactionId, deliveries) => {
+  const results = await Promise.allSettled(deliveries);
+  results
+    .filter(r => r.status === 'rejected')
+    .forEach(r => console.error(`[messages] ${transactionId}: доставка не удалась — ${r.reason?.message}`));
+};
+
 const handleMessage = async ({ integrationSdk, message, rootUrl, db }) => {
   const transactionId = idOf(message?.relationships?.transaction);
   const senderId = idOf(message?.relationships?.sender);
@@ -112,31 +119,50 @@ const handleMessage = async ({ integrationSdk, message, rootUrl, db }) => {
       })
     );
   }
-  const results = await Promise.allSettled(deliveries);
-  results
-    .filter(r => r.status === 'rejected')
-    .forEach(r => console.error(`[messages] ${transactionId}: доставка не удалась — ${r.reason?.message}`));
+  await deliver(transactionId, deliveries);
   return 'notified';
 };
 
+/**
+ * The app creates offers straight through the Marketplace API, bypassing our
+ * server, so this is the one place that sees every offer.
+ */
 const handleOffer = async ({ integrationSdk, transactionRef, rootUrl, db }) => {
   if (transactionRef?.attributes?.lastTransition !== 'transition/inquire') return 'not-offer';
 
-  const deal = await loadDeal(integrationSdk, transactionRef.id?.uuid || transactionRef.id);
+  const transactionId = transactionRef.id?.uuid || transactionRef.id;
+  const deal = await loadDeal(integrationSdk, transactionId);
   const author = deal.provider;
-  if (!author || !needsOwnEmail(author.user) || !deal.listing) return 'sharetribe-mails';
+  if (!author || !deal.listing) return 'incomplete';
   if (db && deal.customer && (await db.hasBlocked(author.id, deal.customer.id))) return 'blocked';
 
   const offer = deal.transaction.attributes.protectedData?.offer || {};
-  await sendDealEmail('offer', author.user.attributes.email, {
-    recipientName: displayName(author.user),
-    listingTitle: deal.listing.attributes.title,
-    executorName: displayName(deal.customer?.user),
-    price: offer.price,
-    currency: offer.currency,
-    comment: offer.comment,
-    listingUrl: `${rootUrl}/l/${deal.listing.id?.uuid || deal.listing.id}`,
-  });
+  const listingTitle = deal.listing.attributes.title;
+  const executorName = displayName(deal.customer?.user);
+  const listingUrl = `${rootUrl}/l/${deal.listing.id?.uuid || deal.listing.id}`;
+
+  const deliveries = [
+    notifyNewOffer(author.id, {
+      listingTitle,
+      executorName,
+      offerPrice: offer.price ? `${offer.price} ${offer.currency || 'AED'}` : null,
+      listingUrl,
+    }),
+  ];
+  if (needsOwnEmail(author.user)) {
+    deliveries.push(
+      sendDealEmail('offer', author.user.attributes.email, {
+        recipientName: displayName(author.user),
+        listingTitle,
+        executorName,
+        price: offer.price,
+        currency: offer.currency,
+        comment: offer.comment,
+        listingUrl,
+      })
+    );
+  }
+  await deliver(transactionId, deliveries);
   return 'notified';
 };
 
