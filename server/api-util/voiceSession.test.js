@@ -1,15 +1,18 @@
 const {
   isVoiceAllowedFor,
   buildSessionConfig,
+  wizardStepIdOf,
   sanitizeCurrentFields,
   greetingFor,
+  farewellFor,
+  FAREWELL_INSTRUCTIONS,
   GREETING_INSTRUCTIONS,
   safetyIdentifierFor,
   createLiveSession,
   dailySessionLimit,
   LiveSessionError,
 } = require('./voiceSession');
-const { TOOL_DEFINITIONS } = require('./voiceTools');
+const { TOOL_DEFINITIONS, STEP_TOOL_DEFINITIONS } = require('./voiceTools');
 
 const categories = [
   {
@@ -81,6 +84,56 @@ describe('buildSessionConfig', () => {
   it('greets differently when part of the task is already filled', () => {
     expect(greetingFor({})).toBe(GREETING_INSTRUCTIONS);
     expect(greetingFor({ title: 'Кран' })).toContain('часть задания уже заполнена');
+  });
+
+  describe('on the site wizard, step by step', () => {
+    const stepSession = (currentStep, currentFields = {}) =>
+      buildSessionConfig({ categories, now: lateEveningUtc, currentFields, currentStep });
+
+    it('fills the form as it goes instead of preparing a whole draft', () => {
+      const session = stepSession('title');
+
+      expect(session.delegation.responses.tools).toBe(STEP_TOOL_DEFINITIONS);
+      expect(session.delegation.responses.instructions).toContain('fill_task_fields');
+      expect(session.delegation.responses.instructions).not.toContain('prepare_task_draft');
+      expect(session.instructions).toContain('«Фото»');
+      expect(session.instructions).not.toContain('Когда черновик готов');
+    });
+
+    it('tells the backend which step is open', () => {
+      const { instructions } = stepSession('location').delegation.responses;
+
+      expect(instructions).toContain('3. «Локация» — адрес.');
+      expect(instructions).toContain('Сейчас открыт шаг 3 «Локация».');
+    });
+
+    it('asks for changes through fill_task_fields when the form is partly filled', () => {
+      const { instructions } = stepSession('details', { title: 'Кран' }).delegation.responses;
+
+      expect(instructions).toContain('В форме уже заполнено');
+      expect(instructions).toContain('передай в fill_task_fields только новые значения');
+    });
+
+    it('starts from the first step when the step is unknown', () => {
+      expect(wizardStepIdOf('pricing')).toBe('pricing');
+      expect(wizardStepIdOf('evil')).toBe('title');
+      expect(wizardStepIdOf(undefined)).toBe('title');
+    });
+
+    it('says goodbye with photos and the publish button in mind', () => {
+      expect(farewellFor(false)).toBe(FAREWELL_INSTRUCTIONS);
+      expect(farewellFor(true)).toContain('добавить фото');
+      expect(farewellFor(true)).toContain('Всего доброго!');
+    });
+  });
+
+  it('keeps the app on the whole draft', () => {
+    const session = buildSessionConfig({ categories, now: lateEveningUtc });
+
+    expect(session.delegation.responses.tools).toBe(TOOL_DEFINITIONS);
+    expect(session.delegation.responses.instructions).toContain('prepare_task_draft');
+    expect(session.delegation.responses.instructions).not.toContain('fill_task_fields');
+    expect(session.instructions).toContain('Когда черновик готов');
   });
 
   it('uses the configured voice, or leaves the default', () => {

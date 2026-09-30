@@ -2,10 +2,21 @@ import React from 'react';
 import '@testing-library/jest-dom';
 
 import { renderWithProviders as render, testingLibrary } from '../../util/testHelpers';
+import { trackVoiceDraftReady } from '../../analytics/plausibleEvents';
 
 import VoiceIntake from './VoiceIntake';
 
+jest.mock('../../analytics/plausibleEvents', () => ({
+  trackVoiceDraftReady: jest.fn(),
+  trackVoiceSessionStarted: jest.fn(),
+}));
+
 const { screen, fireEvent, waitFor, act } = testingLibrary;
+
+const wizardScreen = (step, number, missing = []) => ({ step, number, total: 5, missing });
+const titleScreen = wizardScreen('title', 1, ['title', 'description']);
+
+const intake = (props = {}) => <VoiceIntake onFields={jest.fn()} screen={titleScreen} {...props} />;
 
 // jsdom has no WebRTC, so the peer and its data channel are stand-ins that
 // record what the component sends and let a test play OpenAI's side.
@@ -121,17 +132,19 @@ describe('VoiceIntake', () => {
   it('stays out of sight for people outside the pilot', async () => {
     accessResponse = response(200, { allowed: false });
 
-    const { container } = render(<VoiceIntake onDraft={jest.fn()} />);
+    const { container } = render(intake());
 
     await waitFor(() => expect(global.fetch).toHaveBeenCalledWith('/api/voice/access', expect.anything()));
     expect(container).toBeEmptyDOMElement();
   });
 
   it('connects with the answer the server returns', async () => {
-    render(<VoiceIntake onDraft={jest.fn()} />);
+    render(intake());
     await startConversation();
 
-    expect(requestsTo('/api/voice/session')).toEqual([{ sdp: 'v=0 offer', currentFields: {} }]);
+    expect(requestsTo('/api/voice/session')).toEqual([
+      { sdp: 'v=0 offer', currentFields: {}, mode: 'steps', currentStep: 'title' },
+    ]);
     expect(fakes.peer.setRemoteDescription).toHaveBeenCalledWith({
       type: 'answer',
       sdp: 'v=0 answer',
@@ -145,7 +158,7 @@ describe('VoiceIntake', () => {
       sdp: 'v=0 answer',
       greeting: 'Поздоровайся сейчас',
     });
-    render(<VoiceIntake onDraft={jest.fn()} />);
+    render(intake());
     await startConversation();
 
     expect(sentEvents(fakes.channel)).toContainEqual({
@@ -158,7 +171,7 @@ describe('VoiceIntake', () => {
 
   // Results have to go back together, and only then may the backend continue.
   it('runs a call once the backend response completes, then continues it', async () => {
-    render(<VoiceIntake onDraft={jest.fn()} />);
+    render(intake());
     await startConversation();
 
     fakes.channel.emit(functionCall('call_1', 'resolve_location', { query: 'Marina' }));
@@ -184,7 +197,7 @@ describe('VoiceIntake', () => {
   });
 
   it('runs each call once even if the event repeats', async () => {
-    render(<VoiceIntake onDraft={jest.fn()} />);
+    render(intake());
     await startConversation();
 
     fakes.channel.emit(functionCall('call_1', 'resolve_location', { query: 'Marina' }));
@@ -195,83 +208,143 @@ describe('VoiceIntake', () => {
     expect(toolRequests()).toHaveLength(1);
   });
 
-  it('hands a ready draft to the wizard and shows what was filled', async () => {
-    const onDraft = jest.fn();
-    const draft = { title: 'Нужен электрик', category: 'repairs_main' };
-    toolResponse = response(200, {
-      output: {
-        ok: true,
-        draft,
-        summary: {
-          category: 'Ремонт и строительство',
-          subcategory: 'Электромонтажные работы',
-          deadline: 'завтра',
-          price_aed: 400,
-          address: 'Dubai Marina, Dubai, UAE',
-        },
-      },
+  describe('filling the wizard step by step', () => {
+    const fields = {
+      title: 'Нужен электрик',
+      description: 'Не работают розетки на кухне, приходить после 18:00.',
+    };
+
+    const fillOutput = () => JSON.parse(sentEvents(fakes.channel)[0].item.output);
+    const stepUpdates = () =>
+      sentEvents(fakes.channel).filter(event => String(event.event_id || '').startsWith('step-'));
+
+    beforeEach(() => {
+      trackVoiceDraftReady.mockClear();
+      toolResponse = response(200, { output: { ok: true, fields, complete: false } });
     });
 
-    render(<VoiceIntake onDraft={onDraft} />);
-    await startConversation();
+    it('puts what the assistant filled into the wizard and says what the screen shows', async () => {
+      const onFields = jest.fn(() => wizardScreen('details', 2, ['category', 'deadline']));
+      const currentFields = { title: '', price: '' };
+      render(intake({ onFields, currentFields }));
+      await startConversation();
 
-    fakes.channel.emit(functionCall('call_2', 'prepare_task_draft', {}));
-    fakes.channel.emit(responseCompleted);
+      fakes.channel.emit(functionCall('call_2', 'fill_task_fields', fields));
+      fakes.channel.emit(responseCompleted);
 
-    await waitFor(() => expect(onDraft).toHaveBeenCalledWith(draft, { sessionId: 'sess_1' }));
-    expect(screen.getByText('Dubai Marina, Dubai, UAE')).toBeInTheDocument();
-    expect(screen.getByText('VoiceIntake.summaryBudget')).toBeInTheDocument();
+      await waitFor(() => expect(sentEvents(fakes.channel)).toHaveLength(2));
+      expect(onFields).toHaveBeenCalledWith(fields, { sessionId: 'sess_1' });
+      expect(toolRequests()).toEqual([
+        {
+          sessionId: 'sess_1',
+          name: 'fill_task_fields',
+          arguments: JSON.stringify(fields),
+          form: currentFields,
+        },
+      ]);
+      expect(fillOutput()).toEqual({
+        ok: true,
+        fields,
+        complete: false,
+        screen: 'Открыт шаг 2 из 5 «Детали». Не хватает: категория, срок.',
+      });
+      expect(trackVoiceDraftReady).not.toHaveBeenCalled();
+    });
+
+    // A misheard budget fills nothing, but the assistant still needs to know
+    // where the person is.
+    it('reports the open step when nothing could be filled', async () => {
+      toolResponse = response(200, { output: { ok: false, fields: {}, errors: { price: 'нет' } } });
+      const onFields = jest.fn();
+      render(intake({ onFields, screen: wizardScreen('pricing', 4, ['price']) }));
+      await startConversation();
+
+      fakes.channel.emit(functionCall('call_3', 'fill_task_fields', { price: -1 }));
+      fakes.channel.emit(responseCompleted);
+
+      await waitFor(() => expect(sentEvents(fakes.channel)).toHaveLength(2));
+      expect(onFields).not.toHaveBeenCalled();
+      expect(fillOutput().screen).toBe('Открыт шаг 4 из 5 «Цена». Не хватает: бюджет.');
+    });
+
+    it('winds down once the wizard reaches the photos', async () => {
+      const onFields = jest.fn(() => wizardScreen('photos', 5));
+      render(intake({ onFields }));
+      await startConversation();
+
+      fakes.channel.emit(functionCall('call_4', 'fill_task_fields', { price: 400 }));
+      fakes.channel.emit(responseCompleted);
+
+      await waitFor(() => expect(trackVoiceDraftReady).toHaveBeenCalledTimes(1));
+      expect(fillOutput().screen).toBe('Открыт шаг 5 из 5 «Фото». Все поля заполнены, фото пока нет.');
+    });
+
+    it('starts on the step that is open', async () => {
+      render(intake({ screen: wizardScreen('location', 3, ['location']) }));
+      await startConversation();
+
+      expect(requestsTo('/api/voice/session')[0].currentStep).toBe('location');
+    });
+
+    it('asks about a step the person opened with «Далее»', async () => {
+      const { rerender } = render(intake());
+      await startConversation();
+
+      rerender(intake({ screen: wizardScreen('location', 3, ['location']) }));
+
+      await waitFor(() => expect(stepUpdates()).toHaveLength(1), { timeout: 3000 });
+      expect(stepUpdates()[0]).toMatchObject({
+        type: 'session.instructions.append',
+        delegation_id: null,
+        content: expect.stringContaining('шаг 3 из 5 «Локация». На нём не хватает: адрес.'),
+      });
+    });
+
+    it('only notes a filled step the person went back to look at', async () => {
+      const { rerender } = render(intake({ screen: wizardScreen('pricing', 4, ['price']) }));
+      await startConversation();
+
+      rerender(intake({ screen: wizardScreen('details', 2) }));
+
+      await waitFor(() => expect(stepUpdates()).toHaveLength(1), { timeout: 3000 });
+      expect(stepUpdates()[0].type).toBe('session.thinking.append');
+    });
+
+    it('stays quiet about a step the assistant moved to itself', async () => {
+      const details = wizardScreen('details', 2, ['category', 'deadline']);
+      const onFields = jest.fn(() => details);
+      const { rerender } = render(intake({ onFields }));
+      await startConversation();
+
+      fakes.channel.emit(functionCall('call_5', 'fill_task_fields', fields));
+      fakes.channel.emit(responseCompleted);
+      await waitFor(() => expect(onFields).toHaveBeenCalled());
+      rerender(intake({ onFields, screen: details }));
+
+      await new Promise(resolve => setTimeout(resolve, 1700));
+      expect(stepUpdates()).toEqual([]);
+    });
   });
 
   it('tells the server what the form already holds', async () => {
-    render(<VoiceIntake onDraft={jest.fn()} currentFields={{ title: 'Кран', price: '300' }} />);
+    render(intake({ currentFields: { title: 'Кран', price: '300' } }));
     await startConversation();
 
     expect(requestsTo('/api/voice/session')).toEqual([
-      { sdp: 'v=0 offer', currentFields: { title: 'Кран', price: '300' } },
+      {
+        sdp: 'v=0 offer',
+        currentFields: { title: 'Кран', price: '300' },
+        mode: 'steps',
+        currentStep: 'title',
+      },
     ]);
-  });
-
-  const draftReady = () => {
-    toolResponse = response(200, {
-      output: { ok: true, draft: { title: 'Кран' }, summary: { address: 'JLT' } },
-    });
-    sessionResponse = response(201, { sessionId: 'sess_1', sdp: 'v=0 answer', photoTip: 'Посоветуй фото' });
-  };
-  const photoTips = () =>
-    sentEvents(fakes.channel).filter(
-      event => event.type === 'session.instructions.append' && event.content === 'Посоветуй фото'
-    );
-
-  it('suggests photos once the draft is ready, when none are attached', async () => {
-    draftReady();
-    const onDraft = jest.fn();
-    render(<VoiceIntake onDraft={onDraft} />);
-    await startConversation();
-    fakes.channel.emit(functionCall('call_4', 'prepare_task_draft', {}));
-    fakes.channel.emit(responseCompleted);
-
-    await waitFor(() => expect(onDraft).toHaveBeenCalled());
-    expect(photoTips()).toHaveLength(1);
-  });
-
-  it('does not suggest photos that are already attached', async () => {
-    draftReady();
-    const onDraft = jest.fn();
-    render(<VoiceIntake onDraft={onDraft} hasPhotos />);
-    await startConversation();
-    fakes.channel.emit(functionCall('call_5', 'prepare_task_draft', {}));
-    fakes.channel.emit(responseCompleted);
-
-    await waitFor(() => expect(onDraft).toHaveBeenCalled());
-    expect(photoTips()).toHaveLength(0);
   });
 
   // Silence would leave the person waiting; the assistant should offer the form.
   it('tells the assistant when the tool server fails', async () => {
     toolResponse = response(500, { error: 'Tool failed' });
 
-    render(<VoiceIntake onDraft={jest.fn()} />);
+    render(intake());
     await startConversation();
 
     fakes.channel.emit(functionCall('call_3', 'resolve_location', { query: 'Marina' }));
@@ -288,7 +361,7 @@ describe('VoiceIntake', () => {
       message: 'На сегодня голосовые разговоры закончились.',
     });
 
-    render(<VoiceIntake onDraft={jest.fn()} />);
+    render(intake());
     await clickStart();
 
     expect(await screen.findByText('На сегодня голосовые разговоры закончились.')).toBeInTheDocument();
@@ -302,7 +375,7 @@ describe('VoiceIntake', () => {
       throw error;
     });
 
-    render(<VoiceIntake onDraft={jest.fn()} />);
+    render(intake());
     await clickStart();
 
     expect(await screen.findByText('VoiceIntake.microphoneDenied')).toBeInTheDocument();
@@ -310,7 +383,7 @@ describe('VoiceIntake', () => {
   });
 
   it('asks the session to close when the person is done', async () => {
-    render(<VoiceIntake onDraft={jest.fn()} />);
+    render(intake());
     await startConversation();
 
     fireEvent.click(screen.getByRole('button', { name: 'VoiceIntake.stop' }));
@@ -324,7 +397,7 @@ describe('VoiceIntake', () => {
     });
 
     it('asks before the first conversation and sends nothing until allowed', async () => {
-      render(<VoiceIntake onDraft={jest.fn()} />);
+      render(intake());
       await clickStart();
 
       expect(await screen.findByText('VoiceIntake.consentTitle')).toBeInTheDocument();
@@ -333,7 +406,7 @@ describe('VoiceIntake', () => {
     });
 
     it('records consent, then opens the conversation from the same click', async () => {
-      render(<VoiceIntake onDraft={jest.fn()} />);
+      render(intake());
       await clickStart();
       fireEvent.click(await screen.findByRole('button', { name: 'VoiceIntake.consentAccept' }));
 
@@ -346,7 +419,7 @@ describe('VoiceIntake', () => {
 
     it('does not start when consent could not be saved', async () => {
       consentResponse = response(500, { error: 'consent_not_saved' });
-      render(<VoiceIntake onDraft={jest.fn()} />);
+      render(intake());
       await clickStart();
       fireEvent.click(await screen.findByRole('button', { name: 'VoiceIntake.consentAccept' }));
 
@@ -355,7 +428,7 @@ describe('VoiceIntake', () => {
     });
 
     it('goes back to the form when the person declines', async () => {
-      render(<VoiceIntake onDraft={jest.fn()} />);
+      render(intake());
       await clickStart();
       fireEvent.click(await screen.findByRole('button', { name: 'VoiceIntake.consentDecline' }));
 
@@ -366,7 +439,7 @@ describe('VoiceIntake', () => {
     it('asks again when the server says consent is missing', async () => {
       accessResponse = response(200, { allowed: true, consented: true });
       sessionResponse = response(403, { error: 'consent_required' });
-      render(<VoiceIntake onDraft={jest.fn()} />);
+      render(intake());
       await clickStart();
 
       expect(await screen.findByText('VoiceIntake.consentTitle')).toBeInTheDocument();
@@ -374,7 +447,7 @@ describe('VoiceIntake', () => {
 
     it('lets the person withdraw consent', async () => {
       accessResponse = response(200, { allowed: true, consented: true });
-      render(<VoiceIntake onDraft={jest.fn()} />);
+      render(intake());
       fireEvent.click(await screen.findByRole('button', { name: 'VoiceIntake.consentWithdraw' }));
 
       expect(await screen.findByText('VoiceIntake.consentWithdrawn')).toBeInTheDocument();

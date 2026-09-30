@@ -25,9 +25,12 @@ jest.mock('./specialistsSummary', () => ({
 const { PlacesError } = require('../api/places-proxy');
 const {
   validateDraftFields,
+  validateTaskFields,
+  isTaskComplete,
   toWizardLocation,
   executeTool,
   TOOL_DEFINITIONS,
+  STEP_TOOL_DEFINITIONS,
   TOOL_NAMES,
 } = require('./voiceTools');
 
@@ -123,6 +126,93 @@ describe('validateDraftFields', () => {
   });
 });
 
+describe('validateTaskFields', () => {
+  it('checks only the fields it was given', () => {
+    const { fields, errors, placeId } = validateTaskFields(
+      { title: 'Нужен электрик', description: 'Не работают розетки на кухне, приходить после 18:00.' },
+      categories
+    );
+
+    expect(errors).toEqual({});
+    expect(fields).toEqual({
+      title: 'Нужен электрик',
+      description: 'Не работают розетки на кухне, приходить после 18:00.',
+    });
+    expect(placeId).toBeUndefined();
+  });
+
+  it('puts values in the shape the wizard stores', () => {
+    const { fields, placeId } = validateTaskFields(
+      {
+        category: 'repairs_main',
+        subcategory: 'electric_work',
+        deadline: 'today',
+        price: 399.6,
+        payment_method: 'cash',
+        place_id: 'place-marina',
+      },
+      categories
+    );
+
+    expect(fields).toEqual({
+      category: 'repairs_main',
+      subcategory: 'electric_work',
+      deadline: 'today',
+      price: 400,
+      paymentMethod: 'cash',
+    });
+    expect(placeId).toBe('place-marina');
+  });
+
+  // A good title should reach the screen even when the budget was misheard.
+  it('keeps the good fields next to a wrong one', () => {
+    const { fields, errors } = validateTaskFields({ title: 'Нужен электрик', price: -5 }, categories);
+
+    expect(fields).toEqual({ title: 'Нужен электрик' });
+    expect(errors.price).toBeDefined();
+  });
+
+  it('checks a subcategory only together with its category', () => {
+    const alone = validateTaskFields({ subcategory: 'electric_work' }, categories);
+    expect(alone.fields).toEqual({});
+    expect(alone.errors.subcategory).toMatch(/вместе с категорией/);
+
+    const wrongParent = validateTaskFields({ category: 'nope', subcategory: 'electric_work' }, categories);
+    expect(wrongParent.fields).toEqual({});
+    expect(wrongParent.errors.category).toBeDefined();
+  });
+
+  it('holds the same limits as the full draft', () => {
+    const { errors } = validateTaskFields(
+      { title: 'Эл', description: 'Коротко', deadline: '2026-09-24', price: '400' },
+      categories
+    );
+    expect(Object.keys(errors).sort()).toEqual(['deadline', 'description', 'price', 'title']);
+  });
+});
+
+describe('isTaskComplete', () => {
+  const complete = {
+    title: 'Нужен электрик',
+    description: 'Не работают розетки на кухне, приходить после 18:00.',
+    category: 'repairs_main',
+    deadline: 'tomorrow',
+    address: 'Dubai Marina',
+    price: 400,
+  };
+
+  it('wants everything the wizard requires before publishing', () => {
+    expect(isTaskComplete(complete, categories)).toBe(true);
+    ['title', 'description', 'category', 'deadline', 'address', 'price'].forEach(field => {
+      expect(isTaskComplete({ ...complete, [field]: '' }, categories)).toBe(false);
+    });
+  });
+
+  it('does not need the optional fields', () => {
+    expect(isTaskComplete({ ...complete, subcategory: '', paymentMethod: '' }, categories)).toBe(true);
+  });
+});
+
 describe('toWizardLocation', () => {
   it('matches what LocationAutocompleteInput stores', () => {
     expect(toWizardLocation({ address: 'Dubai Marina', lat: 25.08, lng: 55.14 })).toEqual({
@@ -141,11 +231,30 @@ describe('executeTool', () => {
   });
 
   it('declares every tool it can execute', () => {
-    expect(TOOL_NAMES).toEqual(['resolve_location', 'count_specialists', 'prepare_task_draft']);
-    TOOL_DEFINITIONS.forEach(tool => {
+    expect(TOOL_NAMES).toEqual([
+      'resolve_location',
+      'count_specialists',
+      'prepare_task_draft',
+      'fill_task_fields',
+    ]);
+    [...TOOL_DEFINITIONS, ...STEP_TOOL_DEFINITIONS].forEach(tool => {
       expect(tool.type).toBe('function');
       expect(tool.parameters.additionalProperties).toBe(false);
     });
+  });
+
+  // The iOS app waits for a whole draft; only the site fills its wizard step by step.
+  it('keeps the app on the whole-draft tools', () => {
+    expect(TOOL_DEFINITIONS.map(tool => tool.name)).toEqual([
+      'resolve_location',
+      'count_specialists',
+      'prepare_task_draft',
+    ]);
+    expect(STEP_TOOL_DEFINITIONS.map(tool => tool.name)).toEqual([
+      'resolve_location',
+      'count_specialists',
+      'fill_task_fields',
+    ]);
   });
 
   it('offers at most three address candidates', async () => {
@@ -237,6 +346,64 @@ describe('executeTool', () => {
     mockFetchPlaceDetails.mockResolvedValue({ status: 'NOT_FOUND' });
     const result = await executeTool('prepare_task_draft', validArgs, { categories });
     expect(result.errors.place_id).toBeDefined();
+  });
+
+  describe('fill_task_fields', () => {
+    const titleStep = {
+      title: 'Нужен электрик',
+      description: 'Не работают розетки на кухне, приходить после 18:00.',
+    };
+
+    it('fills one step without asking for the rest', async () => {
+      const result = await executeTool('fill_task_fields', titleStep, { categories });
+
+      expect(result).toEqual({ ok: true, fields: titleStep, complete: false });
+      expect(mockFetchPlaceDetails).not.toHaveBeenCalled();
+    });
+
+    it('turns a confirmed place into the address field', async () => {
+      mockFetchPlaceDetails.mockResolvedValue(marinaDetails);
+
+      const result = await executeTool('fill_task_fields', { place_id: 'place-marina' }, { categories });
+
+      expect(mockFetchPlaceDetails).toHaveBeenCalledWith({ placeId: 'place-marina' });
+      expect(result.fields).toEqual({
+        location: toWizardLocation({ address: 'Dubai Marina, Dubai, UAE', lat: 25.08, lng: 55.14 }),
+      });
+    });
+
+    it('says when a place cannot be resolved and keeps the rest', async () => {
+      mockFetchPlaceDetails.mockResolvedValue({ status: 'NOT_FOUND' });
+
+      const result = await executeTool(
+        'fill_task_fields',
+        { place_id: 'place-x', price: 300 },
+        { categories }
+      );
+
+      expect(result.ok).toBe(false);
+      expect(result.fields).toEqual({ price: 300 });
+      expect(result.errors.place_id).toBeDefined();
+    });
+
+    // The server records a finished draft for the pilot funnel from this flag.
+    it('tells when the new fields complete what the form already holds', async () => {
+      const form = {
+        ...titleStep,
+        category: 'repairs_main',
+        deadline: 'tomorrow',
+        address: 'Dubai Marina, Dubai, UAE',
+      };
+
+      const result = await executeTool('fill_task_fields', { price: 400 }, { categories, form });
+
+      expect(result.complete).toBe(true);
+    });
+
+    it('asks for something to fill', async () => {
+      const result = await executeTool('fill_task_fields', {}, { categories });
+      expect(result).toEqual({ ok: false, error: expect.any(String) });
+    });
   });
 
   it('rejects a tool that was never declared', async () => {

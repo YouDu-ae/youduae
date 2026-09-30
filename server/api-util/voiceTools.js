@@ -39,78 +39,184 @@ const LIMITS = {
 const MAX_LOCATION_CANDIDATES = 3;
 const CYRILLIC = /[а-яё]/i;
 
-const TOOL_DEFINITIONS = [
-  {
-    type: 'function',
-    name: 'resolve_location',
-    description:
-      'Находит адрес в ОАЭ. Возвращает до трёх вариантов с place_id. ' +
-      'Вызывай всякий раз, когда пользователь называет адрес, район или здание. ' +
-      'Google знает места Дубая только по официальным латинским названиям, поэтому передавай их латиницей.',
-    parameters: {
-      type: 'object',
-      properties: {
-        query: {
-          type: 'string',
-          description:
-            'Адрес латиницей, как название пишется по-английски, даже если в расшифровке оно кириллицей: ' +
-            '«Эмаар Бичфронт» → «Emaar Beachfront», «Блю Уотерс» → «Bluewaters», «Порт де ла Мер» → «Port de La Mer».',
-        },
+const RESOLVE_LOCATION_TOOL = {
+  type: 'function',
+  name: 'resolve_location',
+  description:
+    'Находит адрес в ОАЭ. Возвращает до трёх вариантов с place_id. ' +
+    'Вызывай всякий раз, когда пользователь называет адрес, район или здание. ' +
+    'Google знает места Дубая только по официальным латинским названиям, поэтому передавай их латиницей.',
+  parameters: {
+    type: 'object',
+    properties: {
+      query: {
+        type: 'string',
+        description:
+          'Адрес латиницей, как название пишется по-английски, даже если в расшифровке оно кириллицей: ' +
+          '«Эмаар Бичфронт» → «Emaar Beachfront», «Блю Уотерс» → «Bluewaters», «Порт де ла Мер» → «Port de La Mer».',
       },
-      required: ['query'],
-      additionalProperties: false,
     },
+    required: ['query'],
+    additionalProperties: false,
   },
-  {
-    type: 'function',
-    name: 'count_specialists',
-    description:
-      'Сколько специалистов на YouDu работает в категории и сколько их всего. ' +
-      'Задание видят все специалисты, откликнуться может любой.',
-    parameters: {
-      type: 'object',
-      properties: {
-        category: { type: 'string', description: 'id категории из списка категорий.' },
-      },
-      required: ['category'],
-      additionalProperties: false,
-    },
-  },
-  {
-    type: 'function',
-    name: 'prepare_task_draft',
-    description:
-      'Проверяет собранные данные и готовит черновик задания для экрана. Ничего не публикует. ' +
-      'Если вернулись ошибки, переспроси пользователя только о полях с ошибками.',
-    parameters: {
-      type: 'object',
-      properties: {
-        title: { type: 'string', description: 'Короткое название задания, 5–100 символов.' },
-        description: {
-          type: 'string',
-          description:
-            'Подробное описание, 20–5000 символов. Включи всё, что сказал пользователь: время суток, ' +
-            'доступ в здание, материалы, пожелания.',
-        },
-        category: { type: 'string', description: 'id категории из списка.' },
-        subcategory: { type: 'string', description: 'id подкатегории из списка, если подходит.' },
-        deadline: { type: 'string', enum: Object.keys(DEADLINES) },
-        price: { type: 'number', description: 'Бюджет в дирхамах (AED), целое число больше нуля.' },
-        payment_method: { type: 'string', enum: Object.keys(PAYMENT_METHODS) },
-        place_id: { type: 'string', description: 'place_id варианта, который подтвердил пользователь.' },
-      },
-      required: ['title', 'description', 'category', 'deadline', 'price', 'place_id'],
-      additionalProperties: false,
-    },
-  },
-];
+};
 
-const TOOL_NAMES = TOOL_DEFINITIONS.map(tool => tool.name);
+const COUNT_SPECIALISTS_TOOL = {
+  type: 'function',
+  name: 'count_specialists',
+  description:
+    'Сколько специалистов на YouDu работает в категории и сколько их всего. ' +
+    'Задание видят все специалисты, откликнуться может любой.',
+  parameters: {
+    type: 'object',
+    properties: {
+      category: { type: 'string', description: 'id категории из списка категорий.' },
+    },
+    required: ['category'],
+    additionalProperties: false,
+  },
+};
+
+const TASK_FIELD_PROPERTIES = {
+  title: { type: 'string', description: 'Короткое название задания, 5–100 символов.' },
+  description: {
+    type: 'string',
+    description:
+      'Подробное описание, 20–5000 символов. Включи всё, что сказал пользователь: время суток, ' +
+      'доступ в здание, материалы, пожелания.',
+  },
+  category: { type: 'string', description: 'id категории из списка.' },
+  subcategory: { type: 'string', description: 'id подкатегории из списка, если подходит.' },
+  deadline: { type: 'string', enum: Object.keys(DEADLINES) },
+  price: { type: 'number', description: 'Бюджет в дирхамах (AED), целое число больше нуля.' },
+  payment_method: { type: 'string', enum: Object.keys(PAYMENT_METHODS) },
+  place_id: { type: 'string', description: 'place_id варианта, который подтвердил пользователь.' },
+};
+
+const PREPARE_TASK_DRAFT_TOOL = {
+  type: 'function',
+  name: 'prepare_task_draft',
+  description:
+    'Проверяет собранные данные и готовит черновик задания для экрана. Ничего не публикует. ' +
+    'Если вернулись ошибки, переспроси пользователя только о полях с ошибками.',
+  parameters: {
+    type: 'object',
+    properties: TASK_FIELD_PROPERTIES,
+    required: ['title', 'description', 'category', 'deadline', 'price', 'place_id'],
+    additionalProperties: false,
+  },
+};
+
+const FILL_TASK_FIELDS_TOOL = {
+  type: 'function',
+  name: 'fill_task_fields',
+  description:
+    'Сразу вписывает в форму задания на экране поля, которые уже известны. Ничего не публикует. ' +
+    'Передавай только новые или изменённые поля. В ответе — какой шаг мастера открыт и чего на нём не хватает; ' +
+    'если вернулись ошибки, переспроси только об этих полях.',
+  parameters: {
+    type: 'object',
+    properties: {
+      ...TASK_FIELD_PROPERTIES,
+      description: {
+        type: 'string',
+        description:
+          'Подробное описание, 20–5000 символов. Включи всё, что сказал пользователь: время суток, ' +
+          'доступ в здание, материалы, пожелания. Когда дополняешь описание, передай его целиком.',
+      },
+      subcategory: {
+        type: 'string',
+        description: 'id подкатегории из списка, если подходит. Передавай вместе с category.',
+      },
+    },
+    required: [],
+    additionalProperties: false,
+  },
+};
+
+// Приложение заполняет форму один раз, готовым черновиком.
+const TOOL_DEFINITIONS = [RESOLVE_LOCATION_TOOL, COUNT_SPECIALISTS_TOOL, PREPARE_TASK_DRAFT_TOOL];
+
+// Мастер на сайте заполняется по шагам прямо во время разговора.
+const STEP_TOOL_DEFINITIONS = [RESOLVE_LOCATION_TOOL, COUNT_SPECIALISTS_TOOL, FILL_TASK_FIELDS_TOOL];
+
+const TOOL_NAMES = [
+  ...new Set([...TOOL_DEFINITIONS, ...STEP_TOOL_DEFINITIONS].map(tool => tool.name)),
+];
 
 const text = value => (typeof value === 'string' ? value.trim() : '');
 
+const has = (object, key) => Object.prototype.hasOwnProperty.call(object, key);
+
 const findCategory = (categories, categoryId) =>
   categories.find(category => category.id === categoryId) || null;
+
+// Each check reads the tool arguments and returns { value } or { error }.
+const FIELD_CHECKS = {
+  title: ({ title }) => {
+    const value = text(title);
+    return value.length < LIMITS.titleMin || value.length > LIMITS.titleMax
+      ? { error: `Название должно быть от ${LIMITS.titleMin} до ${LIMITS.titleMax} символов.` }
+      : { value };
+  },
+  description: ({ description }) => {
+    const value = text(description);
+    return value.length < LIMITS.descriptionMin || value.length > LIMITS.descriptionMax
+      ? {
+          error: `Описание должно быть от ${LIMITS.descriptionMin} до ${LIMITS.descriptionMax} символов.`,
+        }
+      : { value };
+  },
+  category: ({ category }, categories) => {
+    const value = findCategory(categories, text(category));
+    return value ? { value } : { error: 'Такой категории нет в списке.' };
+  },
+  subcategory: ({ category, subcategory }, categories) => {
+    const parent = findCategory(categories, text(category));
+    const subcategoryId = text(subcategory);
+    if (!parent || !subcategoryId) return { value: null };
+    const value = parent.subcategories.find(sub => sub.id === subcategoryId);
+    return value ? { value } : { error: 'Эта подкатегория не относится к выбранной категории.' };
+  },
+  deadline: ({ deadline }) => {
+    const value = text(deadline);
+    return has(DEADLINES, value)
+      ? { value }
+      : { error: 'Срок должен быть одним из: сегодня, завтра, в течение недели, долгосрочно.' };
+  },
+  price: ({ price }) => {
+    const value = typeof price === 'number' ? Math.round(price) : NaN;
+    return Number.isFinite(value) && value > 0 && value <= LIMITS.priceMax
+      ? { value }
+      : { error: 'Бюджет нужен целым числом дирхамов больше нуля.' };
+  },
+  payment_method: ({ payment_method: paymentMethod }) => {
+    const value = text(paymentMethod);
+    return !value || has(PAYMENT_METHODS, value)
+      ? { value }
+      : { error: 'Способ оплаты — наличными или банковским переводом.' };
+  },
+  place_id: ({ place_id: placeId }) => {
+    const value = text(placeId);
+    return value ? { value } : { error: 'Нужен адрес, подтверждённый пользователем.' };
+  },
+};
+
+const TASK_FIELDS = Object.keys(FIELD_CHECKS);
+
+const checkFields = (names, args, categories) => {
+  const values = {};
+  const errors = {};
+  names.forEach(name => {
+    const { value, error } = FIELD_CHECKS[name](args, categories);
+    if (error) {
+      errors[name] = error;
+    } else {
+      values[name] = value;
+    }
+  });
+  return { values, errors };
+};
 
 /**
  * Проверяет поля черновика, кроме адреса: адрес требует запроса к Google и
@@ -119,50 +225,7 @@ const findCategory = (categories, categoryId) =>
  * @returns {{errors: Object<string, string>, fields: Object|null}}
  */
 const validateDraftFields = (args, categories) => {
-  const errors = {};
-
-  const title = text(args.title);
-  if (title.length < LIMITS.titleMin || title.length > LIMITS.titleMax) {
-    errors.title = `Название должно быть от ${LIMITS.titleMin} до ${LIMITS.titleMax} символов.`;
-  }
-
-  const description = text(args.description);
-  if (description.length < LIMITS.descriptionMin || description.length > LIMITS.descriptionMax) {
-    errors.description = `Описание должно быть от ${LIMITS.descriptionMin} до ${LIMITS.descriptionMax} символов.`;
-  }
-
-  const category = findCategory(categories, text(args.category));
-  if (!category) {
-    errors.category = 'Такой категории нет в списке.';
-  }
-
-  const subcategoryId = text(args.subcategory);
-  const subcategory =
-    category && subcategoryId
-      ? category.subcategories.find(sub => sub.id === subcategoryId) || null
-      : null;
-  if (category && subcategoryId && !subcategory) {
-    errors.subcategory = 'Эта подкатегория не относится к выбранной категории.';
-  }
-
-  const deadline = text(args.deadline);
-  if (!DEADLINES[deadline]) {
-    errors.deadline = 'Срок должен быть одним из: сегодня, завтра, в течение недели, долгосрочно.';
-  }
-
-  const price = typeof args.price === 'number' ? Math.round(args.price) : NaN;
-  if (!Number.isFinite(price) || price <= 0 || price > LIMITS.priceMax) {
-    errors.price = 'Бюджет нужен целым числом дирхамов больше нуля.';
-  }
-
-  const paymentMethod = text(args.payment_method);
-  if (paymentMethod && !PAYMENT_METHODS[paymentMethod]) {
-    errors.payment_method = 'Способ оплаты — наличными или банковским переводом.';
-  }
-
-  if (!text(args.place_id)) {
-    errors.place_id = 'Нужен адрес, подтверждённый пользователем.';
-  }
+  const { values, errors } = checkFields(TASK_FIELDS, args, categories);
 
   if (Object.keys(errors).length > 0) {
     return { errors, fields: null };
@@ -171,17 +234,70 @@ const validateDraftFields = (args, categories) => {
   return {
     errors,
     fields: {
-      title,
-      description,
-      category,
-      subcategory,
-      deadline,
-      price,
-      paymentMethod: paymentMethod || '',
-      placeId: text(args.place_id),
+      title: values.title,
+      description: values.description,
+      category: values.category,
+      subcategory: values.subcategory,
+      deadline: values.deadline,
+      price: values.price,
+      paymentMethod: values.payment_method,
+      placeId: values.place_id,
     },
   };
 };
+
+// Where a checked value goes in the wizard's form.
+const WIZARD_FIELDS = {
+  title: ['title', value => value],
+  description: ['description', value => value],
+  category: ['category', value => value.id],
+  subcategory: ['subcategory', value => value?.id || ''],
+  deadline: ['deadline', value => value],
+  price: ['price', value => value],
+  payment_method: ['paymentMethod', value => value],
+};
+
+const isGiven = value => value !== undefined && value !== null && text(String(value)) !== '';
+
+/**
+ * Проверяет только переданные поля: на сайте помощник заполняет форму по шагам.
+ * Годные поля возвращаются в виде мастера, даже если соседнее поле с ошибкой.
+ *
+ * @returns {{fields: Object, placeId: string|undefined, errors: Object<string, string>}}
+ */
+const validateTaskFields = (args, categories) => {
+  const given = TASK_FIELDS.filter(name => isGiven(args[name]));
+  const { values, errors } = checkFields(given, args, categories);
+
+  // A subcategory is only checked against the category from the same call.
+  if (given.includes('subcategory') && !given.includes('category')) {
+    delete values.subcategory;
+    errors.subcategory = 'Подкатегорию передавай вместе с категорией.';
+  }
+  if (errors.category) {
+    delete values.subcategory;
+  }
+
+  const fields = {};
+  Object.entries(values).forEach(([name, value]) => {
+    if (!WIZARD_FIELDS[name]) return;
+    const [field, toWizard] = WIZARD_FIELDS[name];
+    fields[field] = toWizard(value);
+  });
+
+  return { fields, placeId: values.place_id, errors };
+};
+
+/**
+ * Хватает ли в форме всего, без чего мастер не пустит к публикации.
+ *
+ * @param {Object} form поля в виде мастера: category — id, address — строка.
+ */
+const isTaskComplete = (form, categories) =>
+  !!text(form.address) &&
+  ['title', 'description', 'category', 'deadline', 'price'].every(
+    name => !FIELD_CHECKS[name](form, categories).error
+  );
 
 /**
  * Значение поля адреса в том виде, в каком его сохраняет LocationAutocompleteInput:
@@ -288,16 +404,48 @@ const prepareTaskDraft = async (args, { categories }) => {
   };
 };
 
+/**
+ * @param {Object} args поля, которые помощник уже узнал; любое подмножество.
+ * @param {{categories: Array, form?: Object}} context form — что в форме сейчас,
+ *   чтобы сказать, заполнено ли задание целиком вместе с новыми полями.
+ */
+const fillTaskFields = async (args, { categories, form = {} }) => {
+  const { fields, placeId, errors } = validateTaskFields(args, categories);
+
+  if (placeId) {
+    const place = await lookupPlace(placeId);
+    if (place) {
+      fields.location = toWizardLocation(place);
+    } else {
+      errors.place_id = 'Не удалось определить этот адрес. Попроси назвать его ещё раз.';
+    }
+  }
+
+  const failed = Object.keys(errors).length > 0;
+  if (Object.keys(fields).length === 0 && !failed) {
+    return { ok: false, error: 'Не передано ни одного поля.' };
+  }
+
+  const address = fields.location?.selectedPlace?.address || form.address;
+  return {
+    ok: !failed,
+    fields,
+    ...(failed ? { errors } : {}),
+    complete: isTaskComplete({ ...form, ...fields, address }, categories),
+  };
+};
+
 const EXECUTORS = {
   resolve_location: resolveLocation,
   count_specialists: countSpecialists,
   prepare_task_draft: prepareTaskDraft,
+  fill_task_fields: fillTaskFields,
 };
 
 /**
  * @param {string} name Имя инструмента из TOOL_NAMES.
  * @param {Object} args Разобранные аргументы вызова.
- * @param {{categories: Array}} context
+ * @param {{categories: Array, form?: Object}} context
  * @returns {Promise<Object>} Результат для function_call_output. Ошибки данных
  *   возвращаются как { ok: false }, чтобы модель могла переспросить; исключения
  *   летят только при сбое инфраструктуры.
@@ -320,10 +468,13 @@ const executeTool = async (name, args, context) => {
 
 module.exports = {
   TOOL_DEFINITIONS,
+  STEP_TOOL_DEFINITIONS,
   TOOL_NAMES,
   DEADLINES,
   PAYMENT_METHODS,
   validateDraftFields,
+  validateTaskFields,
+  isTaskComplete,
   toWizardLocation,
   executeTool,
 };

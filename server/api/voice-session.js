@@ -1,8 +1,11 @@
 /**
  * POST /api/voice/session — открывает голосовой разговор пилота.
  *
- * Тело: { sdp } — SDP-предложение браузера. Ответ: { sessionId, sdp } — SDP-ответ
- * OpenAI, который браузер применяет как remote description.
+ * Тело: { sdp, currentFields?, mode?, currentStep? } — SDP-предложение браузера
+ * и что уже в форме. mode: 'steps' присылает мастер на сайте: помощник заполняет
+ * его по шагам, начиная с currentStep. Без mode (приложение) помощник собирает
+ * черновик целиком. Ответ: { sessionId, sdp, ... } — SDP-ответ OpenAI, который
+ * браузер применяет как remote description.
  *
  * Только для вошедших пользователей: создание сессии сразу списывает деньги,
  * а у гостя нет ничего, к чему можно привязать дневной лимит.
@@ -16,7 +19,8 @@ const {
   isVoiceAllowedFor,
   dailySessionLimit,
   buildSessionConfig,
-  FAREWELL_INSTRUCTIONS,
+  wizardStepIdOf,
+  farewellFor,
   PHOTO_TIP_INSTRUCTIONS,
   sanitizeCurrentFields,
   greetingFor,
@@ -66,7 +70,14 @@ module.exports = async (req, res) => {
 
     const categories = await fetchListingCategories(getSdk(req, res));
     const currentFields = sanitizeCurrentFields(req.body?.currentFields);
-    const session = buildSessionConfig({ categories, now: new Date(), currentFields });
+    const stepMode = req.body?.mode === 'steps';
+    const currentStep = stepMode ? wizardStepIdOf(req.body?.currentStep) : null;
+    const session = buildSessionConfig({
+      categories,
+      now: new Date(),
+      currentFields,
+      currentStep,
+    });
 
     const created = await createLiveSession({
       sdp,
@@ -78,15 +89,18 @@ module.exports = async (req, res) => {
     // сломается на первом вызове — лучше отказать сразу.
     await db.recordVoiceSession({ sessionId: created.sessionId, userId });
 
-    console.log(`🎙 voice-session: ${created.sessionId} for ${userId} (${used + 1} in 24h)`);
-    return res
-      .status(201)
-      .json({
-        ...created,
-        greeting: greetingFor(currentFields),
-        farewell: FAREWELL_INSTRUCTIONS,
-        photoTip: PHOTO_TIP_INSTRUCTIONS,
-      });
+    console.log(
+      `🎙 voice-session: ${created.sessionId} for ${userId} (${used + 1} in 24h${
+        stepMode ? `, steps from ${currentStep}` : ''
+      })`
+    );
+    return res.status(201).json({
+      ...created,
+      greeting: greetingFor(currentFields),
+      farewell: farewellFor(stepMode),
+      // В пошаговом режиме про фото говорит сам бэкенд, когда открывается шаг «Фото».
+      ...(stepMode ? {} : { photoTip: PHOTO_TIP_INSTRUCTIONS }),
+    });
   } catch (error) {
     if (error instanceof LiveSessionError) {
       console.error('❌ voice-session:', error.message);

@@ -1,9 +1,10 @@
 /**
  * POST /api/voice/tool — исполняет инструмент, который выбрала backend-модель.
  *
- * Тело: { sessionId, name, arguments } — поля вызова функции, как их прислал
- * GPT-Live по data channel; arguments — JSON-строка. Ответ: { output } — объект,
- * который браузер возвращает в сессию как function_call_output.
+ * Тело: { sessionId, name, arguments, form? } — поля вызова функции, как их прислал
+ * GPT-Live по data channel; arguments — JSON-строка. form — что сейчас в мастере,
+ * для fill_task_fields. Ответ: { output } — объект, который браузер возвращает
+ * в сессию как function_call_output.
  *
  * Ошибки данных (неверная категория, адрес не найден) уходят в output как
  * { ok: false }, чтобы помощник мог переспросить. HTTP-ошибки — только когда
@@ -17,6 +18,7 @@ const { executeTool, TOOL_NAMES } = require('../api-util/voiceTools');
 const {
   isVoicePilotEnabled,
   isVoiceAllowedFor,
+  sanitizeCurrentFields,
   SESSION_MAX_AGE_MS,
 } = require('../api-util/voiceSession');
 
@@ -69,17 +71,27 @@ module.exports = async (req, res) => {
     }
 
     const categories = await fetchListingCategories(getSdk(req, res));
-    const output = await executeTool(name, args, { categories });
+    const context =
+      name === 'fill_task_fields'
+        ? { categories, form: sanitizeCurrentFields(req.body.form) }
+        : { categories };
+    const output = await executeTool(name, args, context);
 
-    if (name === 'prepare_task_draft' && output.ok) {
+    const draftReady =
+      (name === 'prepare_task_draft' && output.ok) ||
+      (name === 'fill_task_fields' && output.complete === true);
+    if (draftReady) {
       await db.markVoiceDraftReady(sessionId);
     }
 
     // Enough to follow a conversation without logging what the person said.
+    const filled = output.fields ? `filled ${Object.keys(output.fields).join(', ') || 'nothing'}` : null;
     const detail = output.ok
       ? output.candidates
         ? `${output.candidates.length} candidates`
-        : 'ok'
+        : filled || 'ok'
+      : output.errors
+      ? [filled, `errors in ${Object.keys(output.errors).join(', ')}`].filter(Boolean).join('; ')
       : `error: ${String(output.error || '').slice(0, 120)}`;
     console.log(`🎙 voice-tool: ${sessionId} ${name} → ${detail}`);
 

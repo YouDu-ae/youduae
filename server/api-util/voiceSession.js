@@ -11,7 +11,7 @@
  */
 
 const crypto = require('crypto');
-const { TOOL_DEFINITIONS, DEADLINES } = require('./voiceTools');
+const { TOOL_DEFINITIONS, STEP_TOOL_DEFINITIONS, DEADLINES } = require('./voiceTools');
 
 const LIVE_SESSIONS_URL = 'https://api.openai.com/v1/live/sessions';
 
@@ -90,18 +90,52 @@ const formatCategories = categories =>
     })
     .join('\n');
 
-const LIVE_INSTRUCTIONS = [
+/**
+ * Шаги мастера на сайте — в том порядке и под теми названиями, что видит человек.
+ * На сайте помощник заполняет форму по шагам, пока идёт разговор; приложение
+ * по-прежнему получает готовый черновик в конце.
+ */
+const WIZARD_STEPS = [
+  { id: 'title', name: 'Название', holds: 'название и описание' },
+  {
+    id: 'details',
+    name: 'Детали',
+    holds: 'категория и срок; подкатегория и способ оплаты — если подходят',
+  },
+  { id: 'location', name: 'Локация', holds: 'адрес' },
+  { id: 'pricing', name: 'Цена', holds: 'бюджет в дирхамах' },
+  { id: 'photos', name: 'Фото', holds: 'фото добавляет и задание публикует сам человек' },
+];
+
+const wizardStepIdOf = raw =>
+  (WIZARD_STEPS.find(step => step.id === raw) || WIZARD_STEPS[0]).id;
+
+const LIVE_PERSONA = [
   'Тебя зовут Вульф. Ты голосовой помощник YouDu — сервиса, где жители Дубая находят мастеров для любых задач.',
   'Характер: спокойный, уверенный профессионал, который решает проблемы. Говоришь по делу, без суеты и лишних слов, вежливо и с лёгкой невозмутимостью. Не шутишь без повода и не переигрываешь.',
   'Ты не человек: если спросят, прямо скажи, что ты голосовой помощник YouDu.',
   'В этом разговоре ты помогаешь человеку составить задание. Ничем другим не занимаешься: если просят о постороннем, вежливо скажи, что сейчас помогаешь только с заданием.',
   'Говори по-русски, коротко, одним-двумя предложениями. Задавай по одному вопросу за раз.',
   'Районы и здания Дубая люди называют по-английски с русским акцентом: Emaar Beachfront, Bluewaters, Port de La Mer, JLT, JVC, Dubai Marina. Узнавай такие названия и передавай бэкенду как есть; если не расслышал, переспроси или попроси назвать ближайший ориентир.',
+];
+
+const LIVE_DRAFT_FLOW = [
   'Узнай, что нужно сделать, где, когда и какой бюджет в дирхамах. Способ оплаты спроси, только если человек сам заговорит о нём.',
   'Адреса, число мастеров и черновик задания получай от бэкенда. Сам ничего из этого не придумывай и не обещай конкретных мастеров, сроков или цен.',
   'Задание не публикуется в разговоре. Когда черновик готов, кратко перескажи его, попроси проверить на экране и нажать «Опубликовать» и спроси, нужно ли что-то ещё.',
-  'Если человеку больше ничего не нужно, коротко попрощайся и закончи словами «Всего доброго!». Говори «Всего доброго» только в самом конце разговора: по этим словам приложение закрывает разговор.',
-].join('\n');
+];
+
+const LIVE_STEP_FLOW = [
+  `На экране мастер задания из пяти шагов: ${WIZARD_STEPS.map(step => `«${step.name}»`).join(', ')}. Иди по шагам по порядку и спрашивай о том шаге, который открыт: что нужно сделать, когда, где, какой бюджет в дирхамах. Способ оплаты спроси, только если человек сам заговорит о нём.`,
+  'Поля вписывает в форму бэкенд прямо во время разговора, и мастер сам переходит к следующему шагу. Адреса и число мастеров тоже получай от бэкенда. Сам ничего не придумывай, не говори, что поле заполнено, пока бэкенд этого не подтвердил, и не обещай конкретных мастеров, сроков или цен.',
+  'Не пересказывай всё задание в конце: человек видит его на экране. Задание не публикуется в разговоре: когда откроется шаг «Фото», предложи добавить фото и нажать «Опубликовать задание» и спроси, нужно ли что-то ещё.',
+];
+
+const LIVE_CLOSING =
+  'Если человеку больше ничего не нужно, коротко попрощайся и закончи словами «Всего доброго!». Говори «Всего доброго» только в самом конце разговора: по этим словам приложение закрывает разговор.';
+
+const liveInstructions = stepMode =>
+  [...LIVE_PERSONA, ...(stepMode ? LIVE_STEP_FLOW : LIVE_DRAFT_FLOW), LIVE_CLOSING].join('\n');
 
 /**
  * GPT-Live waits for the caller to speak first, so after allowing the
@@ -166,7 +200,7 @@ const CURRENT_FIELD_LABELS = {
   price: 'Бюджет, AED',
 };
 
-const currentFieldsSection = fields => {
+const currentFieldsSection = (fields, stepMode) => {
   const lines = Object.entries(CURRENT_FIELD_LABELS)
     .filter(([key]) => fields[key] !== undefined)
     .map(([key, label]) => `- ${label}: ${fields[key]}`);
@@ -175,7 +209,9 @@ const currentFieldsSection = fields => {
     '',
     'В форме уже заполнено (человек ввёл сам или остались от прошлого разговора):',
     ...lines,
-    'Если человек меняет только часть, в prepare_task_draft передай новые значения, а остальные сохрани как есть. Если описывает совсем другое задание — собирай заново. Адрес для prepare_task_draft всё равно проверь через resolve_location, чтобы получить place_id.',
+    stepMode
+      ? 'Если человек меняет только часть, передай в fill_task_fields только новые значения. Если описывает совсем другое задание — передай все поля заново. Новый адрес всё равно проверь через resolve_location, чтобы получить place_id.'
+      : 'Если человек меняет только часть, в prepare_task_draft передай новые значения, а остальные сохрани как есть. Если описывает совсем другое задание — собирай заново. Адрес для prepare_task_draft всё равно проверь через resolve_location, чтобы получить place_id.',
   ];
 };
 
@@ -193,6 +229,13 @@ const FAREWELL_INSTRUCTIONS = [
   'скажи, что задание готово, осталось проверить поля на экране и нажать «Опубликовать», и закончи словами «Всего доброго!».',
 ].join(' ');
 
+const STEP_FAREWELL_INSTRUCTIONS = [
+  'Человек молчит. Коротко попрощайся в своём характере, одним-двумя предложениями:',
+  'скажи, что задание заполнено, осталось добавить фото, если они есть, и нажать «Опубликовать задание», и закончи словами «Всего доброго!».',
+].join(' ');
+
+const farewellFor = stepMode => (stepMode ? STEP_FAREWELL_INSTRUCTIONS : FAREWELL_INSTRUCTIONS);
+
 // Places people name most often, in the spelling Google knows them by. Helps
 // the backend map an accented, Cyrillic-transcribed name to the right one.
 const DUBAI_PLACES = [
@@ -208,12 +251,43 @@ const DUBAI_PLACES = [
   'Town Square', 'Mudon', 'Meydan', 'Sobha Hartland', 'Al Furjan', 'Discovery Gardens', 'Jebel Ali',
 ];
 
-const backendInstructions = ({ categories, now, currentFields = {} }) =>
-  [
-    'Ты бэкенд голосового помощника YouDu. Твоя цель — собрать данные для prepare_task_draft и вызвать его.',
+const stepIntro = currentStep => {
+  const index = WIZARD_STEPS.findIndex(step => step.id === currentStep);
+  return [
+    'Ты бэкенд голосового помощника YouDu. Человек заполняет задание в мастере на экране, а ты прямо во время разговора вписываешь в форму то, что он рассказал, через fill_task_fields.',
+    'Шаги мастера:',
+    ...WIZARD_STEPS.map((step, i) => `${i + 1}. «${step.name}» — ${step.holds}.`),
+    `Сейчас открыт шаг ${index + 1} «${WIZARD_STEPS[index].name}».`,
+  ];
+};
+
+const STEP_RULES = [
+  '- Иди по шагам по порядку. Как только данные открытого шага ясны, сразу вызывай fill_task_fields с полями этого шага: они появятся на экране, и мастер сам перейдёт к следующему шагу. Не жди, пока соберёшь всё задание.',
+  '- Если человек заранее назвал данные следующих шагов, передай и их — переспрашивать не нужно.',
+  '- Ответ fill_task_fields говорит, какой шаг открыт и чего на нём не хватает: спрашивай об этом. Человек может и сам переключать шаги и вводить данные руками — ориентируйся на последнее, что известно об экране.',
+  '- Название и описание составь сам по рассказу человека. Категорию и подкатегорию тоже выбери сам по смыслу задания; спрашивай, только если по рассказу непонятно.',
+  '- Когда человек подтвердил вариант адреса, сразу передай его place_id в fill_task_fields.',
+  '- Если человек просит изменить уже заполненное, передай в fill_task_fields только изменённые поля.',
+  '- Когда открыт шаг «Фото», все поля заполнены: предложи добавить фото, если их нет, — по фото мастерам проще оценить работу и назвать цену, — и нажать «Опубликовать задание». Не настаивай на фото.',
+];
+
+/**
+ * @param {Object} params
+ * @param {string|null} [params.currentStep] шаг мастера на сайте. Без него
+ *   разговор идёт как в приложении: черновик целиком в конце.
+ */
+const backendInstructions = ({ categories, now, currentFields = {}, currentStep = null }) => {
+  const stepMode = !!currentStep;
+  return [
+    ...(stepMode
+      ? stepIntro(currentStep)
+      : [
+          'Ты бэкенд голосового помощника YouDu. Твоя цель — собрать данные для prepare_task_draft и вызвать его.',
+        ]),
     `Сегодня ${dubaiToday(now)} (время Дубая).`,
     '',
     'Правила:',
+    ...(stepMode ? STEP_RULES : []),
     '- Адрес: всякий раз вызывай resolve_location. Места Дубая люди называют по-английски с русским акцентом, а расшифровка часто пишет их кириллицей и с ошибками. Передавай официальное латинское название: «Эмаар Бичфронт» → Emaar Beachfront, «Блю Уотерс» → Bluewaters, «Порт де ла Мер» → Port de La Mer, «Джей Эл Ти» → JLT. Сверяйся со списком районов ниже. Если вариантов несколько, перечисли их и спроси, какой верный. place_id бери только из ответа resolve_location.',
     `- Срок — одно из значений: ${Object.entries(DEADLINES)
       .map(([id, label]) => `${id} (${label})`)
@@ -222,30 +296,35 @@ const backendInstructions = ({ categories, now, currentFields = {} }) =>
     '- Бюджет — целое число дирхамов. «До 400» — это 400. Если бюджет не назван, спроси его.',
     '- Категорию и подкатегорию выбирай строго из списка ниже по id. Если ничего не подходит точно, выбери ближайшую категорию без подкатегории.',
     '- Когда категория ясна, можно вызвать count_specialists и честно сказать, сколько мастеров в категории. Задание видят все специалисты, откликнуться может любой.',
-    '- Если prepare_task_draft вернул ошибки, переспроси только о полях с ошибками.',
+    stepMode
+      ? '- Если fill_task_fields вернул ошибки, переспроси только об этих полях.'
+      : '- Если prepare_task_draft вернул ошибки, переспроси только о полях с ошибками.',
     '- Никогда не говори, что задание опубликовано: это черновик, публикует человек.',
     '',
     `Районы и комплексы Дубая (официальные названия): ${DUBAI_PLACES.join(', ')}.`,
     '',
     'Категории (id — название: подкатегории):',
     formatCategories(categories),
-    ...currentFieldsSection(currentFields),
+    ...currentFieldsSection(currentFields, stepMode),
   ].join('\n');
+};
 
 /**
- * @param {{categories: Array, now: Date}} params
+ * @param {{categories: Array, now: Date, currentFields?: Object, currentStep?: string|null}} params
+ *   currentStep — открытый шаг мастера на сайте (id из WIZARD_STEPS); без него
+ *   помощник собирает черновик целиком, как ждёт приложение.
  * @returns {Object} Поле `session` запроса POST /v1/live/sessions.
  */
-const buildSessionConfig = ({ categories, now, currentFields = {} }) => ({
+const buildSessionConfig = ({ categories, now, currentFields = {}, currentStep = null }) => ({
   model: liveModel(),
-  instructions: LIVE_INSTRUCTIONS,
+  instructions: liveInstructions(!!currentStep),
   ...(outputVoice() ? { audio: { output: { voice: outputVoice() } } } : {}),
   delegation: {
     type: 'responses',
     responses: {
       model: backendModel(),
-      instructions: backendInstructions({ categories, now, currentFields }),
-      tools: TOOL_DEFINITIONS,
+      instructions: backendInstructions({ categories, now, currentFields, currentStep }),
+      tools: currentStep ? STEP_TOOL_DEFINITIONS : TOOL_DEFINITIONS,
       tool_choice: 'auto',
       // Черновик зависит от place_id, который возвращает resolve_location.
       parallel_tool_calls: false,
@@ -308,8 +387,10 @@ module.exports = {
   isVoiceAllowedFor,
   dailySessionLimit,
   buildSessionConfig,
+  wizardStepIdOf,
   GREETING_INSTRUCTIONS,
   FAREWELL_INSTRUCTIONS,
+  farewellFor,
   PHOTO_TIP_INSTRUCTIONS,
   sanitizeCurrentFields,
   greetingFor,

@@ -14,7 +14,7 @@ jest.mock('../api-util/listingCategories', () => ({
 }));
 
 jest.mock('../api-util/voiceTools', () => ({
-  TOOL_NAMES: ['resolve_location', 'prepare_task_draft'],
+  TOOL_NAMES: ['resolve_location', 'prepare_task_draft', 'fill_task_fields'],
   executeTool: (...args) => mockExecuteTool(...args),
 }));
 
@@ -148,5 +148,36 @@ describe('POST /api/voice/tool', () => {
     await call({ sessionId: 'sess_1', name: 'prepare_task_draft', arguments: '{}' });
 
     expect(mockMarkVoiceDraftReady).not.toHaveBeenCalled();
+  });
+
+  describe('filling the wizard step by step', () => {
+    beforeEach(() => {
+      mockGetVoiceSession.mockResolvedValue(ownSession);
+    });
+
+    it('passes what the form holds, cleaned, to the tool', async () => {
+      mockExecuteTool.mockResolvedValue({ ok: true, fields: { price: 400 }, complete: false });
+
+      await call({
+        sessionId: 'sess_1',
+        name: 'fill_task_fields',
+        arguments: '{"price":400}',
+        form: { title: 'Кран', price: '300', evil: 'x' },
+      });
+
+      expect(mockExecuteTool).toHaveBeenCalledWith('fill_task_fields', { price: 400 }, {
+        categories: [],
+        form: { title: 'Кран', price: 300 },
+      });
+      expect(mockMarkVoiceDraftReady).not.toHaveBeenCalled();
+    });
+
+    it('records a finished draft once the form is complete', async () => {
+      mockExecuteTool.mockResolvedValue({ ok: true, fields: { price: 400 }, complete: true });
+
+      await call({ sessionId: 'sess_1', name: 'fill_task_fields', arguments: '{"price":400}' });
+
+      expect(mockMarkVoiceDraftReady).toHaveBeenCalledWith('sess_1');
+    });
   });
 });

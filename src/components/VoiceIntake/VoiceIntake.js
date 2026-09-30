@@ -11,6 +11,7 @@ import {
   onFarewellRequested,
   onUserSpeech,
 } from './wrapUp';
+import { describeScreen, stepOpenedUpdate } from './wizardScreen';
 
 import css from './VoiceIntake.module.css';
 
@@ -20,8 +21,9 @@ import css from './VoiceIntake.module.css';
  * Звук идёт по WebRTC напрямую между браузером и OpenAI. Сервер только открывает
  * сессию и исполняет инструменты: когда backend-модель вызывает функцию, событие
  * приходит сюда по data channel, отсюда уходит на /api/voice/tool, а результат
- * возвращается в сессию. Когда черновик готов, компонент отдаёт его мастеру —
- * публикует задание человек, а не помощник.
+ * возвращается в сессию. Поля, которые помощник вписал через fill_task_fields,
+ * компонент сразу отдаёт мастеру, и тот переходит к следующему шагу. Разговор
+ * заканчивается на шаге «Фото» — фото добавляет и публикует задание человек.
  */
 
 // Разговор о задании занимает пару минут; дольше — значит, что-то пошло не так,
@@ -30,6 +32,9 @@ const MAX_SESSION_MS = 5 * 60 * 1000;
 const CLOSE_TIMEOUT_MS = 15 * 1000;
 const ICE_TIMEOUT_MS = 10 * 1000;
 const WRAP_UP_CHECK_MS = 1000;
+// Someone clicking «Назад» twice to look at a step should not get a question
+// about every step on the way.
+const STEP_SETTLE_MS = 1500;
 
 const STATUS = {
   IDLE: 'idle',
@@ -114,7 +119,8 @@ const emptyConnection = () => ({
   sessionId: null,
   greeting: null,
   farewell: null,
-  photoTip: null,
+  // The wizard step the assistant last heard about.
+  lastStep: null,
   wrapUp: initialWrapUp(),
   // Вызовы функций копятся по delegation_id до завершения ответа backend-модели:
   // результаты нужно отдать все сразу и только потом продолжить.
@@ -126,15 +132,18 @@ const emptyConnection = () => ({
 
 /**
  * @param {Object} props
- * @param {(draft: Object, meta: {sessionId: string}) => void} props.onDraft
- *   Черновик в формате guestListingStorage, без фотографий.
+ * @param {(fields: Object, meta: {sessionId: string}) => import('./wizardScreen').WizardScreen} props.onFields
+ *   Puts the fields the assistant filled (in guestListingStorage shape, never
+ *   photos) into the wizard and returns the screen after that, including any
+ *   step the wizard moved on to.
+ * @param {import('./wizardScreen').WizardScreen} props.screen the step open now.
  * @param {Object} [props.currentFields] what the form holds now (title,
  *   description, category, subcategory, deadline, paymentMethod, address,
  *   price), so the assistant can change part of it instead of starting over.
  * @param {boolean} [props.hasPhotos] whether photos are attached; without them
- *   the assistant suggests adding some once the draft is ready.
+ *   the assistant suggests adding some on the last step.
  */
-const VoiceIntake = ({ onDraft, currentFields, hasPhotos = false }) => {
+const VoiceIntake = ({ onFields, screen, currentFields, hasPhotos = false }) => {
   const intl = useIntl();
   // Открыт ли пилот этому пользователю, решает сервер; до ответа блок не виден,
   // чтобы кнопка не мелькала у тех, кому пилот закрыт.
@@ -143,14 +152,15 @@ const VoiceIntake = ({ onDraft, currentFields, hasPhotos = false }) => {
   const [askingConsent, setAskingConsent] = useState(false);
   const [status, setStatus] = useState(STATUS.IDLE);
   const [message, setMessage] = useState(null);
-  const [summary, setSummary] = useState(null);
 
   // Обработчики data channel переживают рендеры, поэтому всё соединение
   // держится в ref: state в их замыканиях был бы уже устаревшим.
   const connection = useRef(emptyConnection());
   const audioRef = useRef(null);
-  const onDraftRef = useRef(onDraft);
-  onDraftRef.current = onDraft;
+  const onFieldsRef = useRef(onFields);
+  onFieldsRef.current = onFields;
+  const screenRef = useRef(screen);
+  screenRef.current = screen;
   const currentFieldsRef = useRef(currentFields);
   currentFieldsRef.current = currentFields;
   const hasPhotosRef = useRef(hasPhotos);
@@ -199,12 +209,58 @@ const VoiceIntake = ({ onDraft, currentFields, hasPhotos = false }) => {
         sessionId: connection.current.sessionId,
         name: call.name,
         arguments: call.arguments,
+        // Lets the server tell whether the new fields complete the task.
+        ...(call.name === 'fill_task_fields' ? { form: currentFieldsRef.current || {} } : {}),
       });
       return ok && data.output ? data.output : TOOL_UNAVAILABLE;
     } catch (error) {
       return TOOL_UNAVAILABLE;
     }
   };
+
+  // The last step means every field is filled: from here the conversation
+  // winds down on its own once both sides fall silent.
+  const onLastStep = category => {
+    const current = connection.current;
+    if (current.wrapUp.draftReady) return;
+    current.wrapUp = onDraftReady(current.wrapUp, Date.now());
+    trackVoiceDraftReady({ category: category || currentFieldsRef.current?.category });
+  };
+
+  const applyFields = (output, sessionId) => {
+    const hasFields = !!output.fields && Object.keys(output.fields).length > 0;
+    const shown = hasFields
+      ? onFieldsRef.current(output.fields, { sessionId })
+      : screenRef.current;
+    if (!shown) return output;
+
+    connection.current.lastStep = shown.step;
+    if (shown.step === 'photos') onLastStep(output.fields?.category);
+    return { ...output, screen: describeScreen(shown, hasPhotosRef.current) };
+  };
+
+  // The person moved between steps themselves, with «Далее» or «Назад».
+  const openStep = screen?.step;
+  useEffect(() => {
+    if (status !== STATUS.LISTENING || !openStep || openStep === connection.current.lastStep) {
+      return undefined;
+    }
+    const timer = setTimeout(() => {
+      const shown = screenRef.current;
+      if (!shown || shown.step === connection.current.lastStep) return;
+      connection.current.lastStep = shown.step;
+      if (shown.step === 'photos') onLastStep();
+
+      const { spoken, content } = stepOpenedUpdate(shown, hasPhotosRef.current);
+      send({
+        type: spoken ? 'session.instructions.append' : 'session.thinking.append',
+        event_id: `step-${shown.step}-${Date.now()}`,
+        delegation_id: null,
+        content,
+      });
+    }, STEP_SETTLE_MS);
+    return () => clearTimeout(timer);
+  }, [openStep, status]);
 
   const submitPendingCalls = async delegationId => {
     const { pendingCalls, sessionId } = connection.current;
@@ -213,22 +269,8 @@ const VoiceIntake = ({ onDraft, currentFields, hasPhotos = false }) => {
     if (calls.length === 0) return;
 
     for (const call of calls) {
-      const output = await runTool(call);
-
-      if (call.name === 'prepare_task_draft' && output.ok) {
-        setSummary(output.summary);
-        connection.current.wrapUp = onDraftReady(connection.current.wrapUp, Date.now());
-        onDraftRef.current(output.draft, { sessionId });
-        if (connection.current.photoTip && !hasPhotosRef.current) {
-          send({
-            type: 'session.instructions.append',
-            event_id: `photo-tip-${Date.now()}`,
-            delegation_id: null,
-            content: connection.current.photoTip,
-          });
-        }
-        trackVoiceDraftReady({ category: output.draft.category });
-      }
+      const result = await runTool(call);
+      const output = call.name === 'fill_task_fields' ? applyFields(result, sessionId) : result;
 
       send({
         type: 'response.item.create',
@@ -350,9 +392,9 @@ const VoiceIntake = ({ onDraft, currentFields, hasPhotos = false }) => {
     }
 
     cleanup();
+    connection.current.lastStep = screenRef.current?.step || null;
     setStatus(STATUS.CONNECTING);
     setMessage(null);
-    setSummary(null);
 
     try {
       const peer = new RTCPeerConnection();
@@ -400,6 +442,8 @@ const VoiceIntake = ({ onDraft, currentFields, hasPhotos = false }) => {
       const { ok, status: httpStatus, data } = await postJson('/api/voice/session', {
         sdp: peer.localDescription.sdp,
         currentFields: currentFieldsRef.current || {},
+        mode: 'steps',
+        currentStep: connection.current.lastStep,
       });
       if (httpStatus === 403 && data?.error === 'consent_required') {
         throw new ConsentRequiredError();
@@ -411,7 +455,6 @@ const VoiceIntake = ({ onDraft, currentFields, hasPhotos = false }) => {
       connection.current.sessionId = data.sessionId;
       connection.current.greeting = data.greeting || null;
       connection.current.farewell = data.farewell || null;
-      connection.current.photoTip = data.photoTip || null;
       await peer.setRemoteDescription({ type: 'answer', sdp: data.sdp });
 
       trackVoiceSessionStarted();
@@ -524,23 +567,6 @@ const VoiceIntake = ({ onDraft, currentFields, hasPhotos = false }) => {
       </div>
 
       {message ? <div className={css.error}>{message}</div> : null}
-
-      {summary ? (
-        <div className={css.summary}>
-          <div className={css.summaryTitle}>
-            {intl.formatMessage({ id: 'VoiceIntake.summaryTitle' })}
-          </div>
-          <ul className={css.summaryList}>
-            <li>
-              {summary.category}
-              {summary.subcategory ? ` → ${summary.subcategory}` : ''}
-            </li>
-            <li>{summary.address}</li>
-            <li>{intl.formatMessage({ id: 'VoiceIntake.summaryDeadline' }, { deadline: summary.deadline })}</li>
-            <li>{intl.formatMessage({ id: 'VoiceIntake.summaryBudget' }, { price: summary.price_aed })}</li>
-          </ul>
-        </div>
-      ) : null}
 
       <div className={css.privacy}>
         {intl.formatMessage({ id: 'VoiceIntake.privacy' })}

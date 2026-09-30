@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useHistory, useLocation } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { FormattedMessage, useIntl } from '../../util/reactIntl';
@@ -38,6 +38,74 @@ const MAX_PHOTOS = 8;
 
 // Столько символов названия влезает в строку статуса, не переводя её на вторую строку
 const MAX_TITLE_IN_STATUS = 30;
+
+/**
+ * Что мешает уйти с шага дальше: { поле: ключ сообщения GuestListingWizard.* }.
+ * Те же правила для «Далее» и для голосового помощника, который сам переводит
+ * мастер на следующий шаг.
+ */
+const stepErrorKeys = (step, data) => {
+  const errors = {};
+
+  switch (step) {
+    case STEPS.TITLE: {
+      const title = (data.title || '').trim();
+      if (title.length < 5) {
+        errors.title = 'titleTooShort';
+      } else if (title.length > 100) {
+        errors.title = 'titleTooLong';
+      }
+      const description = (data.description || '').trim();
+      if (description.length < 20) {
+        errors.description = 'descriptionTooShort';
+      } else if (description.length > 5000) {
+        errors.description = 'descriptionTooLong';
+      }
+      break;
+    }
+
+    case STEPS.DETAILS:
+      if (!data.category) {
+        errors.category = 'categoryRequired';
+      }
+      // subcategory and paymentMethod are optional
+      if (!data.deadline) {
+        errors.deadline = 'deadlineRequired';
+      }
+      break;
+
+    case STEPS.LOCATION:
+      if (!data.location?.selectedPlace?.address) {
+        errors.location = 'locationRequired';
+      }
+      break;
+
+    case STEPS.PRICING: {
+      const priceNum = parseFloat(data.price);
+      if (!data.price || isNaN(priceNum) || priceNum <= 0) {
+        errors.price = 'priceInvalid';
+      } else if (priceNum > 1000000) {
+        errors.price = 'priceTooHigh';
+      }
+      break;
+    }
+
+    default:
+      break;
+  }
+
+  return errors;
+};
+
+const isStepComplete = (step, data) => Object.keys(stepErrorKeys(step, data)).length === 0;
+
+const voiceScreenFor = (step, data) => ({
+  step,
+  number: STEP_ORDER.indexOf(step) + 1,
+  total: STEP_ORDER.length,
+  missing: Object.keys(stepErrorKeys(step, data)),
+});
+
 const GuestListingWizard = () => {
   const history = useHistory();
   const location = useLocation();
@@ -71,6 +139,13 @@ const GuestListingWizard = () => {
   const [isUploadingImages, setIsUploadingImages] = useState(false);
   const [draftSaveError, setDraftSaveError] = useState(null);
   const [draftLoaded, setDraftLoaded] = useState(false);
+
+  // The voice assistant fills fields from async callbacks, sometimes twice
+  // before a re-render; it has to build on the latest form, not a stale one.
+  const formDataRef = useRef(formData);
+  formDataRef.current = formData;
+  const currentStepRef = useRef(currentStep);
+  currentStepRef.current = currentStep;
 
   // Загружаем сохраненные данные при монтировании
   useEffect(() => {
@@ -169,65 +244,14 @@ const GuestListingWizard = () => {
 
   const validateCurrentStep = () => {
     const newErrors = {};
-
-    switch (currentStep) {
-      case STEPS.TITLE:
-        if (!formData.title || formData.title.trim().length < 5) {
-          newErrors.title = t('titleTooShort');
-        } else if (formData.title.trim().length > 100) {
-          newErrors.title = t('titleTooLong');
-        }
-        if (!formData.description || formData.description.trim().length < 20) {
-          newErrors.description = t('descriptionTooShort');
-        } else if (formData.description.trim().length > 5000) {
-          newErrors.description = t('descriptionTooLong');
-        }
-        break;
-
-      case STEPS.DETAILS:
-        if (!formData.category) {
-          newErrors.category = t('categoryRequired');
-        }
-        // subcategory is optional
-        if (!formData.deadline) {
-          newErrors.deadline = t('deadlineRequired');
-        }
-        // paymentMethod is now optional
-        break;
-
-      case STEPS.LOCATION:
-        if (!formData.location || !formData.location.selectedPlace || !formData.location.selectedPlace.address) {
-          newErrors.location = t('locationRequired');
-        }
-        break;
-
-      case STEPS.PRICING:
-        const priceNum = parseFloat(formData.price);
-        if (!formData.price || isNaN(priceNum) || priceNum <= 0) {
-          newErrors.price = t('priceInvalid');
-        } else if (priceNum > 1000000) {
-          newErrors.price = t('priceTooHigh');
-        }
-        break;
-
-      case STEPS.PHOTOS:
-        // Photos are optional, but we encourage adding them
-        if (!formData.images || formData.images.length === 0) {
-          // Don't block, just warn
-          console.warn('⚠️ No images provided, but continuing...');
-        }
-        break;
-
-      default:
-        break;
-    }
+    Object.entries(stepErrorKeys(currentStep, formData)).forEach(([field, messageKey]) => {
+      newErrors[field] = t(messageKey);
+    });
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  // Помощник заполняет поля, но фотографии не трогает: их голосом не добавить,
-  // а уже выбранные снимки терять нельзя. Автосохранение запишет черновик само.
   // What the voice assistant should know is already filled in.
   const voiceCurrentFields = {
     title: formData.title,
@@ -240,11 +264,37 @@ const GuestListingWizard = () => {
     price: formData.price,
   };
 
-  const applyVoiceDraft = (draft, { sessionId }) => {
-    setFormData(prev => ({ ...prev, ...draft, images: prev.images, voiceSessionId: sessionId }));
-    const selectedCategory = categories.find(cat => cat.id === draft.category);
+  // Помощник вписывает поля прямо во время разговора. Фотографии он не трогает:
+  // их голосом не добавить, а уже выбранные снимки терять нельзя. Автосохранение
+  // запишет черновик само. Шаг, который стал заполненным, мастер пролистывает
+  // вперёд, как по «Далее», но назад сам не уходит: правку раннего шага человек
+  // увидит, когда к нему вернётся.
+  const applyVoiceFields = (fields, { sessionId }) => {
+    const prev = formDataRef.current;
+    const next = { ...prev, ...fields, images: prev.images, voiceSessionId: sessionId };
+    if (fields.category !== undefined && fields.category !== prev.category) {
+      next.subcategory = fields.subcategory || '';
+    }
+    formDataRef.current = next;
+    setFormData(next);
+
+    const selectedCategory = categories.find(cat => cat.id === next.category);
     setAvailableSubcategories(selectedCategory?.subcategories || []);
-    setErrors({});
+    setErrors(prevErrors => {
+      const remaining = { ...prevErrors };
+      Object.keys(fields).forEach(field => delete remaining[field]);
+      return remaining;
+    });
+
+    let index = STEP_ORDER.indexOf(currentStepRef.current);
+    while (index < STEP_ORDER.length - 1 && isStepComplete(STEP_ORDER[index], next)) {
+      index += 1;
+    }
+    const step = STEP_ORDER[index];
+    currentStepRef.current = step;
+    setCurrentStep(step);
+
+    return voiceScreenFor(step, next);
   };
 
   const handleFieldChange = (field, value) => {
@@ -398,17 +448,6 @@ const GuestListingWizard = () => {
             <div className={css.stepHeader}>
               <h2 className={css.stepTitle}>{t('titleStepTitle')}</h2>
             </div>
-
-            {/* Голос только для вошедших: у гостя не к чему привязать дневной
-                лимит, а каждая сессия оплачивается. Открыт ли пилот этому
-                пользователю, VoiceIntake спрашивает у сервера сам. */}
-            {isAuthenticated ? (
-              <VoiceIntake
-                onDraft={applyVoiceDraft}
-                currentFields={voiceCurrentFields}
-                hasPhotos={(formData.images || []).length > 0}
-              />
-            ) : null}
 
             <div className={css.field}>
               <label className={css.label}>
@@ -821,6 +860,19 @@ const GuestListingWizard = () => {
               <div className={css.progressFill} style={{ width: `${progressPercent}%` }} />
             </div>
           </div>
+
+          {/* Голос только для вошедших: у гостя не к чему привязать дневной
+              лимит, а каждая сессия оплачивается. Открыт ли пилот этому
+              пользователю, VoiceIntake спрашивает у сервера сам. Стоит вне
+              шагов: смена шага не должна обрывать разговор. */}
+          {isAuthenticated ? (
+            <VoiceIntake
+              onFields={applyVoiceFields}
+              screen={voiceScreenFor(currentStep, formData)}
+              currentFields={voiceCurrentFields}
+              hasPhotos={(formData.images || []).length > 0}
+            />
+          ) : null}
 
           {/* Пока категория не выбрана, показываем число специалистов площадки */}
           <CategorySpecialistsCard

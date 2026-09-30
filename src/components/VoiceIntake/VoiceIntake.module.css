@@ -71,26 +71,6 @@
   color: var(--colorFail);
 }
 
-.summary {
-  margin-top: 12px;
-  padding-top: 12px;
-  border-top: 1px solid #e6eaf0;
-}
-
-.summaryTitle {
-  font-weight: 600;
-  font-size: 14px;
-  color: var(--colorGrey800);
-}
-
-.summaryList {
-  margin: 6px 0 0;
-  padding-left: 18px;
-  font-size: 14px;
-  line-height: 1.6;
-  color: var(--colorGrey700);
-}
-
 .privacy {
   margin-top: 12px;
   font-size: 12px;
