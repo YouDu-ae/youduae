@@ -150,6 +150,7 @@ describe('buildSessionConfig', () => {
     expect(session.delegation.responses.tools).toBe(TOOL_DEFINITIONS);
     expect(session.delegation.responses.instructions).toContain('prepare_task_draft');
     expect(session.delegation.responses.instructions).not.toContain('fill_task_fields');
+    expect(session.delegation.responses.instructions).toContain('Способ оплаты не спрашивай');
     expect(session.instructions).toContain('Когда черновик готов');
   });
 

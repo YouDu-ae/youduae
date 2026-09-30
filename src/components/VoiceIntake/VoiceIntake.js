@@ -35,6 +35,10 @@ const WRAP_UP_CHECK_MS = 1000;
 // Someone clicking «Назад» twice to look at a step should not get a question
 // about every step on the way.
 const STEP_SETTLE_MS = 1500;
+// GPT-Live now and then accepts the greeting and still waits in silence for the
+// person to speak first. It normally starts talking within 2.5 s of accepting
+// it, so a repeat after this long does not talk over the first greeting.
+const GREETING_REPEAT_MS = 5000;
 
 const STATUS = {
   IDLE: 'idle',
@@ -301,6 +305,22 @@ const VoiceIntake = ({ onFields, screen, currentFields, hasPhotos = false }) => 
     }
   };
 
+  // Once only: if the repeat is ignored too, the person can still start by speaking.
+  const repeatGreetingIfSilent = () => {
+    const current = connection.current;
+    current.timers.push(
+      setTimeout(() => {
+        if (current.wrapUp.lastSpeechAt) return;
+        send({
+          type: 'session.instructions.append',
+          event_id: 'greeting-repeat',
+          delegation_id: null,
+          content: current.greeting,
+        });
+      }, GREETING_REPEAT_MS)
+    );
+  };
+
   const handleEvent = event => {
     switch (event.type) {
       case 'session.started':
@@ -314,6 +334,9 @@ const VoiceIntake = ({ onFields, screen, currentFields, hasPhotos = false }) => 
             content: connection.current.greeting,
           });
         }
+        break;
+      case 'session.instructions.appended':
+        if (event.client_event_id === 'greeting') repeatGreetingIfSilent();
         break;
       case 'session.input_transcript.delta':
         connection.current.wrapUp = onUserSpeech(connection.current.wrapUp, Date.now());

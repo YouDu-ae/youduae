@@ -93,16 +93,31 @@ const TASK_FIELD_PROPERTIES = {
   place_id: { type: 'string', description: 'place_id варианта, который подтвердил пользователь.' },
 };
 
+// Responses makes a tool without `strict` strict, and strict mode requires
+// every field. Unknown fields have to come as null, or the model makes them up;
+// an enum needs null among its values too.
+const nullable = property => ({
+  ...property,
+  type: [property.type, 'null'],
+  ...(property.enum ? { enum: [...property.enum, null] } : {}),
+});
+
 const PREPARE_TASK_DRAFT_TOOL = {
   type: 'function',
   name: 'prepare_task_draft',
   description:
     'Проверяет собранные данные и готовит черновик задания для экрана. Ничего не публикует. ' +
+    'Подкатегория и способ оплаты — null, если не подходит ни одна или человек их не назвал. ' +
     'Если вернулись ошибки, переспроси пользователя только о полях с ошибками.',
+  strict: true,
   parameters: {
     type: 'object',
-    properties: TASK_FIELD_PROPERTIES,
-    required: ['title', 'description', 'category', 'deadline', 'price', 'place_id'],
+    properties: {
+      ...TASK_FIELD_PROPERTIES,
+      subcategory: nullable(TASK_FIELD_PROPERTIES.subcategory),
+      payment_method: nullable(TASK_FIELD_PROPERTIES.payment_method),
+    },
+    required: Object.keys(TASK_FIELD_PROPERTIES),
     additionalProperties: false,
   },
 };
@@ -120,15 +135,6 @@ const FILL_TASK_FIELD_PROPERTIES = {
     description: 'id подкатегории из списка, если подходит. Передавай вместе с category.',
   },
 };
-
-// Responses makes a tool without `strict` strict, and strict mode requires
-// every field. Unknown fields have to come as null, or the model makes them up;
-// an enum needs null among its values too.
-const nullable = property => ({
-  ...property,
-  type: [property.type, 'null'],
-  ...(property.enum ? { enum: [...property.enum, null] } : {}),
-});
 
 const FILL_TASK_FIELDS_TOOL = {
   type: 'function',

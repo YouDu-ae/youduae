@@ -105,6 +105,16 @@ describe('validateDraftFields', () => {
     expect(fields.subcategory).toBeNull();
   });
 
+  it('takes null for the subcategory and payment method nobody named', () => {
+    const { errors, fields } = validateDraftFields(
+      { ...validArgs, subcategory: null, payment_method: null },
+      categories
+    );
+    expect(errors).toEqual({});
+    expect(fields.subcategory).toBeNull();
+    expect(fields.paymentMethod).toBe('');
+  });
+
   // The wizard's deadline is an enum, not a date.
   it('accepts only the wizard deadline values', () => {
     expect(validateDraftFields({ ...validArgs, deadline: '2026-09-24' }, categories).errors.deadline)
@@ -255,6 +265,19 @@ describe('executeTool', () => {
       expect(property.type).toContain('null');
       if (property.enum) expect(property.enum).toContain(null);
     });
+  });
+
+  it('lets prepare_task_draft leave only the optional fields as null', () => {
+    const tool = TOOL_DEFINITIONS.find(t => t.name === 'prepare_task_draft');
+    const { properties, required } = tool.parameters;
+    const nullableFields = Object.keys(properties).filter(name =>
+      [].concat(properties[name].type).includes('null')
+    );
+
+    expect(tool.strict).toBe(true);
+    expect(required).toEqual(Object.keys(properties));
+    expect(nullableFields).toEqual(['subcategory', 'payment_method']);
+    expect(properties.payment_method.enum).toContain(null);
   });
 
   // The iOS app waits for a whole draft; only the site fills its wizard step by step.

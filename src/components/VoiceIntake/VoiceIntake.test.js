@@ -169,6 +169,70 @@ describe('VoiceIntake', () => {
     });
   });
 
+  // GPT-Live now and then accepts the greeting and still says nothing.
+  describe('when the assistant stays silent after the greeting', () => {
+    const greetings = () =>
+      sentEvents(fakes.channel).filter(event => String(event.event_id || '').startsWith('greeting'));
+    const acceptGreeting = eventId =>
+      fakes.channel.emit({ type: 'session.instructions.appended', client_event_id: eventId });
+    const waitSeconds = seconds => act(() => jest.advanceTimersByTime(seconds * 1000));
+
+    beforeEach(async () => {
+      sessionResponse = response(201, {
+        sessionId: 'sess_1',
+        sdp: 'v=0 answer',
+        greeting: 'Поздоровайся сейчас',
+      });
+      render(intake());
+      await startConversation();
+      jest.useFakeTimers();
+    });
+
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    it('greets once more', () => {
+      acceptGreeting('greeting');
+      waitSeconds(5);
+
+      expect(greetings()).toEqual([
+        expect.objectContaining({ event_id: 'greeting' }),
+        {
+          type: 'session.instructions.append',
+          event_id: 'greeting-repeat',
+          delegation_id: null,
+          content: 'Поздоровайся сейчас',
+        },
+      ]);
+    });
+
+    it('greets only once more', () => {
+      acceptGreeting('greeting');
+      waitSeconds(5);
+      acceptGreeting('greeting-repeat');
+      waitSeconds(10);
+
+      expect(greetings()).toHaveLength(2);
+    });
+
+    it('does not repeat once the assistant has started talking', () => {
+      acceptGreeting('greeting');
+      fakes.channel.emit({ type: 'session.output_transcript.delta', delta: 'Меня зовут' });
+      waitSeconds(5);
+
+      expect(greetings()).toHaveLength(1);
+    });
+
+    it('does not repeat when the person spoke first', () => {
+      acceptGreeting('greeting');
+      fakes.channel.emit({ type: 'session.input_transcript.delta', delta: 'Здравствуйте' });
+      waitSeconds(5);
+
+      expect(greetings()).toHaveLength(1);
+    });
+  });
+
   // Results have to go back together, and only then may the backend continue.
   it('runs a call once the backend response completes, then continues it', async () => {
     render(intake());
