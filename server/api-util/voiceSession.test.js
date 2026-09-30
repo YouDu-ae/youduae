@@ -151,7 +151,18 @@ describe('buildSessionConfig', () => {
     expect(session.delegation.responses.instructions).toContain('prepare_task_draft');
     expect(session.delegation.responses.instructions).not.toContain('fill_task_fields');
     expect(session.delegation.responses.instructions).toContain('Способ оплаты не спрашивай');
-    expect(session.instructions).toContain('Когда черновик готов');
+    expect(session.instructions).toContain('Когда бэкенд сообщит, что черновик готов');
+  });
+
+  // Without it the app's Wulf asked a question from the backend, got the answer
+  // and then told the person to check a draft that was never made.
+  it('tells GPT-Live in the app when to hand the work to the backend too', () => {
+    const { instructions } = buildSessionConfig({ categories, now: lateEveningUtc });
+
+    expect(instructions).toContain('Delegation policy:');
+    expect(instructions).toContain('Delegate to the backend when:');
+    expect(instructions).toContain('Do not delegate to the backend when:');
+    expect(instructions).toContain('ответил на вопрос, который задал бэкенд');
   });
 
   it('uses the configured voice, or leaves the default', () => {
