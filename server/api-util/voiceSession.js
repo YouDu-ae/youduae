@@ -11,7 +11,13 @@
  */
 
 const crypto = require('crypto');
-const { TOOL_DEFINITIONS, STEP_TOOL_DEFINITIONS, DEADLINES } = require('./voiceTools');
+const {
+  TOOL_DEFINITIONS,
+  STEP_TOOL_DEFINITIONS,
+  APP_STEP_TOOL_DEFINITIONS,
+  DEADLINES,
+  dubaiDate,
+} = require('./voiceTools');
 
 const LIVE_SESSIONS_URL = 'https://api.openai.com/v1/live/sessions';
 
@@ -91,24 +97,43 @@ const formatCategories = categories =>
     .join('\n');
 
 /**
- * Шаги мастера на сайте — в том порядке и под теми названиями, что видит человек.
- * На сайте помощник заполняет форму по шагам, пока идёт разговор; приложение
- * по-прежнему получает готовый черновик в конце.
+ * Шаги мастеров на сайте и в приложении — в том порядке и под теми названиями,
+ * что видит человек. Помощник заполняет их по шагам, пока идёт разговор; сборки
+ * приложения, которые не называют своих шагов, получают готовый черновик в конце.
  */
-const WIZARD_STEPS = [
-  { id: 'title', name: 'Название', holds: 'название и описание' },
-  {
-    id: 'details',
-    name: 'Детали',
-    holds: 'категория и срок; подкатегория и способ оплаты — если подходят',
-  },
-  { id: 'location', name: 'Локация', holds: 'адрес' },
-  { id: 'pricing', name: 'Цена', holds: 'бюджет в дирхамах' },
-  { id: 'photos', name: 'Фото', holds: 'фото добавляет и задание публикует сам человек' },
-];
+const WIZARD_STEPS = {
+  site: [
+    { id: 'title', name: 'Название', holds: 'название и описание' },
+    {
+      id: 'details',
+      name: 'Детали',
+      holds: 'категория и срок; подкатегория и способ оплаты — если подходят',
+    },
+    { id: 'location', name: 'Локация', holds: 'адрес' },
+    { id: 'pricing', name: 'Цена', holds: 'бюджет в дирхамах' },
+    { id: 'photos', name: 'Фото', holds: 'фото добавляет и задание публикует сам человек' },
+  ],
+  app: [
+    {
+      id: 'task',
+      name: 'Задание',
+      holds: 'название, описание и категория; фото человек добавляет сам, если хочет',
+    },
+    { id: 'details', name: 'Детали', holds: 'адрес, бюджет в дирхамах и дата' },
+    {
+      id: 'review',
+      name: 'Проверка',
+      holds: 'человек проверяет задание и сам нажимает «Опубликовать»',
+    },
+  ],
+};
 
-const wizardStepIdOf = raw =>
-  (WIZARD_STEPS.find(step => step.id === raw) || WIZARD_STEPS[0]).id;
+const wizardOf = raw => (raw === 'app' ? 'app' : 'site');
+
+const wizardStepIdOf = (raw, wizard = 'site') => {
+  const steps = WIZARD_STEPS[wizardOf(wizard)];
+  return (steps.find(step => step.id === raw) || steps[0]).id;
+};
 
 const LIVE_PERSONA = [
   'Тебя зовут Вульф. Ты голосовой помощник YouDu — сервиса, где жители Дубая находят мастеров для любых задач.',
@@ -149,7 +174,7 @@ const LIVE_DRAFT_FLOW = [
 ];
 
 const LIVE_STEP_FLOW = [
-  `На экране мастер задания из пяти шагов: ${WIZARD_STEPS.map(step => `«${step.name}»`).join(', ')}. Иди по шагам по порядку и спрашивай о том шаге, который открыт: что нужно сделать, когда, где, какой бюджет в дирхамах. Способ оплаты спроси, только если человек сам заговорит о нём.`,
+  `На экране мастер задания из пяти шагов: ${WIZARD_STEPS.site.map(step => `«${step.name}»`).join(', ')}. Иди по шагам по порядку и спрашивай о том шаге, который открыт: что нужно сделать, когда, где, какой бюджет в дирхамах. Способ оплаты спроси, только если человек сам заговорит о нём.`,
   'Сам ты в форму ничего не вписываешь. Поля вписывает бэкенд, и только то, что ты ему передал; мастер переходит к следующему шагу, когда бэкенд заполнил открытый. Адреса и число мастеров тоже получай от бэкенда. Сам ничего не придумывай и не обещай конкретных мастеров, сроков или цен.',
   'Не пересказывай всё задание в конце: человек видит его на экране. Задание не публикуется в разговоре: когда бэкенд сообщит, что открыт шаг «Фото», предложи добавить фото и нажать «Опубликовать задание» и спроси, нужно ли что-то ещё.',
   '',
@@ -171,11 +196,41 @@ const LIVE_STEP_FLOW = [
   'Передавай бэкенду сразу после ответа человека, до следующего вопроса: о чём спросить дальше, скажет бэкенд. Пока он работает, можно коротко сказать, что записываешь. Не говори, что поле заполнено или что осталось добавить фото, пока бэкенд этого не подтвердил.',
 ];
 
+// The app animates what the backend filled in and only then opens the next
+// step, so a question about that step must wait for the backend to report it.
+const LIVE_APP_STEP_FLOW = [
+  'На экране приложения мастер задания из трёх шагов: «Задание» — что нужно сделать, «Детали» — адрес, бюджет и дата, «Проверка». Говори только о том шаге, который открыт, и не спрашивай о следующем, пока бэкенд не сообщит, что он открыт.',
+  'Сам ты в форму ничего не вписываешь. Поля вписывает бэкенд, и только то, что ты ему передал; приложение показывает их и само переходит к следующему шагу. Адреса и число мастеров тоже получай от бэкенда. Сам ничего не придумывай и не обещай конкретных мастеров, сроков или цен.',
+  'Задание не публикуется в разговоре: когда бэкенд сообщит, что открыт шаг «Проверка», попроси проверить задание на экране и нажать «Опубликовать» и попрощайся.',
+  '',
+  'Delegation policy:',
+  'Backend tools:',
+  '- Форма задания: составляет из рассказа человека название, описание и категорию, вписывает их, адрес, бюджет и дату в форму на экране и отвечает, какой шаг открыт и чего на нём не хватает.',
+  '- Адреса: находит адрес в Дубае и предлагает варианты.',
+  '- Мастера: говорит, сколько специалистов в категории.',
+  '',
+  'Delegate to the backend when:',
+  '- Человек рассказал что-то о задании: что сделать, где, когда, какой бюджет — даже одной фразой и даже если ответил не на тот вопрос, который ты задал.',
+  '- Человек назвал адрес, район или здание или выбрал один из вариантов адреса.',
+  '- Человек поправил или дополнил то, что уже сказал.',
+  '',
+  'Do not delegate to the backend when:',
+  '- Человек только поздоровался, поблагодарил или прощается.',
+  '- Тебе нужно коротко переспросить, чтобы понять ответ.',
+  '',
+  'Передавай бэкенду сразу после ответа человека, до следующего вопроса: о чём спросить дальше, скажет бэкенд. Пока он работает, можно коротко сказать, что записываешь. Не говори, что поле заполнено или задание готово, пока бэкенд этого не подтвердил.',
+];
+
 const LIVE_CLOSING =
   'Если человеку больше ничего не нужно, коротко попрощайся и закончи словами «Всего доброго!». Говори «Всего доброго» только в самом конце разговора: по этим словам приложение закрывает разговор.';
 
-const liveInstructions = stepMode =>
-  [...LIVE_PERSONA, ...(stepMode ? LIVE_STEP_FLOW : LIVE_DRAFT_FLOW), LIVE_CLOSING].join('\n');
+const liveFlow = (stepMode, wizard) => {
+  if (!stepMode) return LIVE_DRAFT_FLOW;
+  return wizard === 'app' ? LIVE_APP_STEP_FLOW : LIVE_STEP_FLOW;
+};
+
+const liveInstructions = (stepMode, wizard) =>
+  [...LIVE_PERSONA, ...liveFlow(stepMode, wizard), LIVE_CLOSING].join('\n');
 
 /**
  * GPT-Live waits for the caller to speak first, so after allowing the
@@ -240,11 +295,15 @@ const CURRENT_FIELD_LABELS = {
   price: 'Бюджет, AED',
 };
 
+// The app's form starts with cash payment already chosen, so a payment method
+// alone does not mean the person has filled anything in.
+const hasTaskContent = fields => Object.keys(fields).some(key => key !== 'paymentMethod');
+
 const currentFieldsSection = (fields, stepMode) => {
+  if (!hasTaskContent(fields)) return [];
   const lines = Object.entries(CURRENT_FIELD_LABELS)
     .filter(([key]) => fields[key] !== undefined)
     .map(([key, label]) => `- ${label}: ${fields[key]}`);
-  if (lines.length === 0) return [];
   return [
     '',
     'В форме уже заполнено (человек ввёл сам или остались от прошлого разговора):',
@@ -256,7 +315,7 @@ const currentFieldsSection = (fields, stepMode) => {
 };
 
 const greetingFor = fields =>
-  Object.keys(fields).length === 0
+  !hasTaskContent(fields)
     ? GREETING_INSTRUCTIONS
     : [
         'Поздоровайся сейчас, первым, по-русски, не дожидаясь, пока человек заговорит. Говори спокойно и уверенно, в своём характере.',
@@ -274,7 +333,15 @@ const STEP_FAREWELL_INSTRUCTIONS = [
   'скажи, что задание заполнено, осталось добавить фото, если они есть, и нажать «Опубликовать задание», и закончи словами «Всего доброго!».',
 ].join(' ');
 
-const farewellFor = stepMode => (stepMode ? STEP_FAREWELL_INSTRUCTIONS : FAREWELL_INSTRUCTIONS);
+const APP_STEP_FAREWELL_INSTRUCTIONS = [
+  'Человек молчит. Коротко попрощайся в своём характере, одним-двумя предложениями:',
+  'скажи, что задание заполнено, осталось проверить его на экране и нажать «Опубликовать», и закончи словами «Всего доброго!».',
+].join(' ');
+
+const farewellFor = (stepMode, wizard = 'site') => {
+  if (!stepMode) return FAREWELL_INSTRUCTIONS;
+  return wizard === 'app' ? APP_STEP_FAREWELL_INSTRUCTIONS : STEP_FAREWELL_INSTRUCTIONS;
+};
 
 // Places people name most often, in the spelling Google knows them by. Helps
 // the backend map an accented, Cyrillic-transcribed name to the right one.
@@ -291,13 +358,16 @@ const DUBAI_PLACES = [
   'Town Square', 'Mudon', 'Meydan', 'Sobha Hartland', 'Al Furjan', 'Discovery Gardens', 'Jebel Ali',
 ];
 
-const stepIntro = currentStep => {
-  const index = WIZARD_STEPS.findIndex(step => step.id === currentStep);
+const stepIntro = (currentStep, wizard) => {
+  const steps = WIZARD_STEPS[wizard];
+  const index = steps.findIndex(step => step.id === currentStep);
   return [
-    'Ты бэкенд голосового помощника YouDu. Человек заполняет задание в мастере на экране, а ты прямо во время разговора вписываешь в форму то, что он рассказал, через fill_task_fields.',
+    `Ты бэкенд голосового помощника YouDu. Человек заполняет задание в мастере на экране ${
+      wizard === 'app' ? 'приложения' : 'сайта'
+    }, а ты прямо во время разговора вписываешь в форму то, что он рассказал, через fill_task_fields.`,
     'Шаги мастера:',
-    ...WIZARD_STEPS.map((step, i) => `${i + 1}. «${step.name}» — ${step.holds}.`),
-    `Сейчас открыт шаг ${index + 1} «${WIZARD_STEPS[index].name}».`,
+    ...steps.map((step, i) => `${i + 1}. «${step.name}» — ${step.holds}.`),
+    `Сейчас открыт шаг ${index + 1} «${steps[index].name}».`,
   ];
 };
 
@@ -312,27 +382,77 @@ const STEP_RULES = [
   '- Когда открыт шаг «Фото», все поля заполнены: предложи добавить фото, если их нет, — по фото мастерам проще оценить работу и назвать цену, — и нажать «Опубликовать задание». Не настаивай на фото.',
 ];
 
+// Asking for the title, description and category one by one would sound like a
+// questionnaire: the backend writes them itself once it knows what the job is.
+const APP_STEP_RULES = [
+  '- Шаг «Задание» заполняй, когда понятно, что именно нужно сделать. Одной общей фразы мало: на «нужен ремонт в ванной» или «нужна уборка» спроси, что именно нужно сделать. Когда понятно, сам составь название, описание и категорию и передай их одним вызовом fill_task_fields. Не спрашивай отдельно ни название, ни описание, ни категорию.',
+  '- Если человек уже назвал бюджет или дату, передай их в том же вызове: приложение покажет их на шаге «Детали», и переспрашивать их не нужно. Адрес, названный заранее, ищи через resolve_location, когда откроется шаг «Детали».',
+  '- Не спрашивай о следующем шаге, пока ответ fill_task_fields не сообщит, что он открыт: приложение переходит к нему, когда заполнен открытый, и человек должен видеть шаг, о котором его спрашивают.',
+  '- Передавай только то, что человек сказал, и то, что ты составил из его слов: название, описание, категорию. Остальные поля — null. Не подставляй дату, бюджет, адрес или способ оплаты, которых человек не называл.',
+  '- Ответ fill_task_fields говорит, какой шаг открыт и чего на нём не хватает: спрашивай только об этом, по одному вопросу. Человек может и сам переключать шаги и вводить данные руками — ориентируйся на последнее, что известно об экране.',
+  '- Если человек просит изменить уже заполненное, передай в fill_task_fields только изменённые поля.',
+  '- Когда открыт шаг «Проверка», все поля заполнены: коротко попроси проверить задание на экране и нажать «Опубликовать». Если фото нет, одной фразой скажи, что их можно добавить на первом шаге: по фото мастерам проще оценить работу. Не настаивай. Затем попрощайся словами «Всего доброго!».',
+];
+
+const ADDRESS_RULE =
+  '- Адрес: всякий раз вызывай resolve_location. Места Дубая люди называют по-английски с русским акцентом, а расшифровка часто пишет их кириллицей и с ошибками. Передавай официальное латинское название: «Эмаар Бичфронт» → Emaar Beachfront, «Блю Уотерс» → Bluewaters, «Порт де ла Мер» → Port de La Mer, «Джей Эл Ти» → JLT. Сверяйся со списком районов ниже.';
+
+const ADDRESS_CHOICE = {
+  site: 'Если вариантов несколько, перечисли их и спроси, какой верный. place_id бери только из ответа resolve_location.',
+  app: 'Если один из вариантов явно совпадает с тем, что назвал человек, сразу передай его place_id в fill_task_fields: адрес появится на экране. Перечисляй варианты, только если непонятно, какой из них нужен. place_id бери только из ответа resolve_location.',
+};
+
+const siteDeadlineRule = () =>
+  `- Срок — одно из значений: ${Object.entries(DEADLINES)
+    .map(([id, label]) => `${id} (${label})`)
+    .join(', ')}. «На этой неделе», «в ближайшие дни», «в пятницу» — это week. «Не срочно» — long-term.`;
+
+const APP_DEADLINE_RULE =
+  '- Дата — день, когда нужно сделать, в виде ГГГГ-ММ-ДД, не раньше сегодняшнего. «Сегодня», «завтра», «в пятницу», «пятого октября» — эти дни: бери дату из списка ближайших дней выше. Если назван не день, а срок, не переспрашивай: «на этой неделе» — ближайшее воскресенье, «в ближайшие дни» — через три дня, «не срочно» — через месяц.';
+
+const DAYS_LISTED = 14;
+
+// The backend reads «в пятницу» off this list instead of counting weekdays.
+const upcomingDays = now =>
+  Array.from({ length: DAYS_LISTED }, (_, i) => {
+    const date = dubaiDate(now, i);
+    const label = new Intl.DateTimeFormat('ru-RU', {
+      timeZone: 'UTC',
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+    }).format(new Date(`${date}T00:00:00Z`));
+    return `${label} — ${date}`;
+  }).join('; ');
+
 /**
  * @param {Object} params
- * @param {string|null} [params.currentStep] шаг мастера на сайте. Без него
- *   разговор идёт как в приложении: черновик целиком в конце.
+ * @param {string|null} [params.currentStep] открытый шаг мастера. Без него
+ *   разговор идёт как в старых сборках приложения: черновик целиком в конце.
+ * @param {'site'|'app'} [params.wizard] чей мастер на экране
  */
-const backendInstructions = ({ categories, now, currentFields = {}, currentStep = null }) => {
+const backendInstructions = ({
+  categories,
+  now,
+  currentFields = {},
+  currentStep = null,
+  wizard = 'site',
+}) => {
   const stepMode = !!currentStep;
+  const appSteps = stepMode && wizard === 'app';
   return [
     ...(stepMode
-      ? stepIntro(currentStep)
+      ? stepIntro(currentStep, wizard)
       : [
           'Ты бэкенд голосового помощника YouDu. Твоя цель — собрать данные для prepare_task_draft и вызвать его.',
         ]),
     `Сегодня ${dubaiToday(now)} (время Дубая).`,
+    ...(appSteps ? [`Ближайшие дни: ${upcomingDays(now)}.`] : []),
     '',
     'Правила:',
-    ...(stepMode ? STEP_RULES : []),
-    '- Адрес: всякий раз вызывай resolve_location. Места Дубая люди называют по-английски с русским акцентом, а расшифровка часто пишет их кириллицей и с ошибками. Передавай официальное латинское название: «Эмаар Бичфронт» → Emaar Beachfront, «Блю Уотерс» → Bluewaters, «Порт де ла Мер» → Port de La Mer, «Джей Эл Ти» → JLT. Сверяйся со списком районов ниже. Если вариантов несколько, перечисли их и спроси, какой верный. place_id бери только из ответа resolve_location.',
-    `- Срок — одно из значений: ${Object.entries(DEADLINES)
-      .map(([id, label]) => `${id} (${label})`)
-      .join(', ')}. «На этой неделе», «в ближайшие дни», «в пятницу» — это week. «Не срочно» — long-term.`,
+    ...(stepMode ? (appSteps ? APP_STEP_RULES : STEP_RULES) : []),
+    `${ADDRESS_RULE} ${ADDRESS_CHOICE[appSteps ? 'app' : 'site']}`,
+    appSteps ? APP_DEADLINE_RULE : siteDeadlineRule(),
     '- Время суток, этаж, доступ в здание, материалы и прочие подробности пиши в описание: отдельных полей для них нет.',
     '- Бюджет — целое число дирхамов. «До 400» — это 400. Если бюджет не назван, спроси его.',
     '- Способ оплаты не спрашивай: передай его, только если человек назвал его сам, иначе null.',
@@ -351,22 +471,33 @@ const backendInstructions = ({ categories, now, currentFields = {}, currentStep 
   ].join('\n');
 };
 
+const backendTools = (stepMode, wizard) => {
+  if (!stepMode) return TOOL_DEFINITIONS;
+  return wizard === 'app' ? APP_STEP_TOOL_DEFINITIONS : STEP_TOOL_DEFINITIONS;
+};
+
 /**
- * @param {{categories: Array, now: Date, currentFields?: Object, currentStep?: string|null}} params
- *   currentStep — открытый шаг мастера на сайте (id из WIZARD_STEPS); без него
- *   помощник собирает черновик целиком, как ждёт приложение.
+ * @param {{categories: Array, now: Date, currentFields?: Object, currentStep?: string|null, wizard?: 'site'|'app'}} params
+ *   currentStep — открытый шаг мастера (id из WIZARD_STEPS[wizard]); без него
+ *   помощник собирает черновик целиком, как ждут старые сборки приложения.
  * @returns {Object} Поле `session` запроса POST /v1/live/sessions.
  */
-const buildSessionConfig = ({ categories, now, currentFields = {}, currentStep = null }) => ({
+const buildSessionConfig = ({
+  categories,
+  now,
+  currentFields = {},
+  currentStep = null,
+  wizard = 'site',
+}) => ({
   model: liveModel(),
-  instructions: liveInstructions(!!currentStep),
+  instructions: liveInstructions(!!currentStep, wizard),
   ...(outputVoice() ? { audio: { output: { voice: outputVoice() } } } : {}),
   delegation: {
     type: 'responses',
     responses: {
       model: backendModel(),
-      instructions: backendInstructions({ categories, now, currentFields, currentStep }),
-      tools: currentStep ? STEP_TOOL_DEFINITIONS : TOOL_DEFINITIONS,
+      instructions: backendInstructions({ categories, now, currentFields, currentStep, wizard }),
+      tools: backendTools(!!currentStep, wizard),
       tool_choice: 'auto',
       // Черновик зависит от place_id, который возвращает resolve_location.
       parallel_tool_calls: false,
@@ -429,6 +560,7 @@ module.exports = {
   isVoiceAllowedFor,
   dailySessionLimit,
   buildSessionConfig,
+  wizardOf,
   wizardStepIdOf,
   GREETING_INSTRUCTIONS,
   FAREWELL_INSTRUCTIONS,

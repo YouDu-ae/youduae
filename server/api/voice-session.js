@@ -1,11 +1,12 @@
 /**
  * POST /api/voice/session — открывает голосовой разговор пилота.
  *
- * Тело: { sdp, currentFields?, mode?, currentStep? } — SDP-предложение браузера
- * и что уже в форме. mode: 'steps' присылает мастер на сайте: помощник заполняет
- * его по шагам, начиная с currentStep. Без mode (приложение) помощник собирает
- * черновик целиком. Ответ: { sessionId, sdp, ... } — SDP-ответ OpenAI, который
- * браузер применяет как remote description.
+ * Тело: { sdp, currentFields?, mode?, wizard?, currentStep? } — SDP-предложение
+ * и что уже в форме. mode: 'steps' присылают мастера, которые помощник заполняет
+ * по шагам, начиная с currentStep: сайт и, с wizard: 'app', приложение. Без mode
+ * (старые сборки приложения) помощник собирает черновик целиком. Ответ:
+ * { sessionId, sdp, ... } — SDP-ответ OpenAI, который клиент применяет как
+ * remote description.
  *
  * Только для вошедших пользователей: создание сессии сразу списывает деньги,
  * а у гостя нет ничего, к чему можно привязать дневной лимит.
@@ -19,6 +20,7 @@ const {
   isVoiceAllowedFor,
   dailySessionLimit,
   buildSessionConfig,
+  wizardOf,
   wizardStepIdOf,
   farewellFor,
   PHOTO_TIP_INSTRUCTIONS,
@@ -71,12 +73,14 @@ module.exports = async (req, res) => {
     const categories = await fetchListingCategories(getSdk(req, res));
     const currentFields = sanitizeCurrentFields(req.body?.currentFields);
     const stepMode = req.body?.mode === 'steps';
-    const currentStep = stepMode ? wizardStepIdOf(req.body?.currentStep) : null;
+    const wizard = wizardOf(req.body?.wizard);
+    const currentStep = stepMode ? wizardStepIdOf(req.body?.currentStep, wizard) : null;
     const session = buildSessionConfig({
       categories,
       now: new Date(),
       currentFields,
       currentStep,
+      wizard,
     });
 
     const created = await createLiveSession({
@@ -87,21 +91,19 @@ module.exports = async (req, res) => {
 
     // Без записи инструменты не признают сессию своей, и разговор всё равно
     // сломается на первом вызове — лучше отказать сразу.
-    await db.recordVoiceSession({
-      sessionId: created.sessionId,
-      userId,
-      mode: stepMode ? 'steps' : 'draft',
-    });
+    // voice-tool reads the mode back to fill the right wizard.
+    const mode = !stepMode ? 'draft' : wizard === 'app' ? 'app-steps' : 'steps';
+    await db.recordVoiceSession({ sessionId: created.sessionId, userId, mode });
 
     console.log(
       `🎙 voice-session: ${created.sessionId} for ${userId} (${used + 1} in 24h${
-        stepMode ? `, steps from ${currentStep}` : ''
+        stepMode ? `, ${wizard} steps from ${currentStep}` : ''
       })`
     );
     return res.status(201).json({
       ...created,
       greeting: greetingFor(currentFields),
-      farewell: farewellFor(stepMode),
+      farewell: farewellFor(stepMode, wizard),
       // В пошаговом режиме про фото говорит сам бэкенд, когда открывается шаг «Фото».
       ...(stepMode ? {} : { photoTip: PHOTO_TIP_INSTRUCTIONS }),
     });

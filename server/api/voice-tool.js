@@ -88,7 +88,12 @@ module.exports = async (req, res) => {
     const categories = await fetchListingCategories(getSdk(req, res));
     const context =
       name === 'fill_task_fields'
-        ? { categories, form: sanitizeCurrentFields(req.body.form) }
+        ? {
+            categories,
+            form: sanitizeCurrentFields(req.body.form),
+            wizard: session.mode === 'app-steps' ? 'app' : 'site',
+            now: new Date(),
+          }
         : { categories };
     const output = await executeTool(name, args, context);
 

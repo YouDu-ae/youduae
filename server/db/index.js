@@ -183,7 +183,8 @@ const initDatabase = async () => {
 
       -- What a conversation did, without a word of what was said: how often
       -- the backend ran a tool, how many runs failed and which form fields
-      -- it filled. mode is 'steps' for the site's wizard, 'draft' for the app.
+      -- it filled. mode is 'steps' for the site's wizard, 'app-steps' for the
+      -- app's, 'draft' for app builds that take one whole draft.
       ALTER TABLE voice_sessions
         ADD COLUMN IF NOT EXISTS mode VARCHAR(10),
         ADD COLUMN IF NOT EXISTS tool_calls INTEGER NOT NULL DEFAULT 0,
@@ -1036,7 +1037,7 @@ const withdrawVoiceConsent = async userId => {
 
 const getVoiceSession = async sessionId => {
   const result = await pool.query(
-    `SELECT session_id, user_id, started_at, draft_ready_at
+    `SELECT session_id, user_id, started_at, draft_ready_at, mode
      FROM voice_sessions WHERE session_id = $1`,
     [sessionId]
   );

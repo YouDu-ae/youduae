@@ -172,8 +172,20 @@ describe('POST /api/voice/tool', () => {
       expect(mockExecuteTool).toHaveBeenCalledWith('fill_task_fields', { price: 400 }, {
         categories: [],
         form: { title: 'Кран', price: 300 },
+        wizard: 'site',
+        now: expect.any(Date),
       });
       expect(mockMarkVoiceDraftReady).not.toHaveBeenCalled();
+    });
+
+    // The app's form keeps a date and coordinates the site's wizard has no place for.
+    it('fills the app form in a conversation the app opened', async () => {
+      mockGetVoiceSession.mockResolvedValue({ ...ownSession, mode: 'app-steps' });
+      mockExecuteTool.mockResolvedValue({ ok: true, fields: { price: 400 }, complete: false });
+
+      await call({ sessionId: 'sess_1', name: 'fill_task_fields', arguments: '{"price":400}' });
+
+      expect(mockExecuteTool.mock.calls[0][2].wizard).toBe('app');
     });
 
     it('records a finished draft once the form is complete', async () => {

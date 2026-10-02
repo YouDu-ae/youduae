@@ -6,8 +6,9 @@
  * нажав кнопку в мастере: публикация сразу рассылает уведомления специалистам,
  * и неверно расслышанный адрес или бюджет не должен уйти двум десяткам мастеров.
  *
- * Черновик, который собирает prepare_task_draft, совпадает по форме с тем, что
- * мастер хранит в guestListingStorage и публикует через /post-from-draft.
+ * fill_task_fields вписывает поля по шагам в мастер на сайте или в приложении,
+ * каждому в его форме. prepare_task_draft собирает задание целиком для сборок
+ * приложения, которые ждут готовый черновик в конце разговора.
  */
 
 const { fetchAutocomplete, fetchPlaceDetails, PlacesError } = require('../api/places-proxy');
@@ -38,6 +39,26 @@ const LIMITS = {
 
 const MAX_LOCATION_CANDIDATES = 3;
 const CYRILLIC = /[а-яё]/i;
+
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+// Further ahead than this is more likely a misheard date than a plan.
+const MAX_DEADLINE_DAYS = 365;
+
+/**
+ * Дата по Дубаю в виде ГГГГ-ММ-ДД: сервер живёт в UTC, а люди на четыре часа впереди.
+ */
+const dubaiDate = (now, daysAhead = 0) => {
+  const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Dubai' }).format(now);
+  const date = new Date(`${today}T00:00:00Z`);
+  date.setUTCDate(date.getUTCDate() + daysAhead);
+  return date.toISOString().slice(0, 10);
+};
+
+const isCalendarDate = value => {
+  if (!ISO_DATE.test(value)) return false;
+  const date = new Date(`${value}T00:00:00Z`);
+  return !Number.isNaN(date.getTime()) && date.toISOString().startsWith(value);
+};
 
 const RESOLVE_LOCATION_TOOL = {
   type: 'function',
@@ -136,7 +157,7 @@ const FILL_TASK_FIELD_PROPERTIES = {
   },
 };
 
-const FILL_TASK_FIELDS_TOOL = {
+const fillTaskFieldsTool = properties => ({
   type: 'function',
   name: 'fill_task_fields',
   description:
@@ -147,21 +168,43 @@ const FILL_TASK_FIELDS_TOOL = {
   parameters: {
     type: 'object',
     properties: Object.fromEntries(
-      Object.entries(FILL_TASK_FIELD_PROPERTIES).map(([name, property]) => [name, nullable(property)])
+      Object.entries(properties).map(([name, property]) => [name, nullable(property)])
     ),
-    required: Object.keys(FILL_TASK_FIELD_PROPERTIES),
+    required: Object.keys(properties),
     additionalProperties: false,
   },
-};
+});
 
-// Приложение заполняет форму один раз, готовым черновиком.
+const FILL_TASK_FIELDS_TOOL = fillTaskFieldsTool(FILL_TASK_FIELD_PROPERTIES);
+
+// The app's form asks for a date rather than one of the site's four deadlines.
+const APP_FILL_TASK_FIELDS_TOOL = fillTaskFieldsTool({
+  ...FILL_TASK_FIELD_PROPERTIES,
+  deadline: {
+    type: 'string',
+    description: 'Дата, когда нужно сделать, в виде ГГГГ-ММ-ДД по Дубаю, не раньше сегодняшней.',
+  },
+});
+
+// Сборки приложения, которые заполняют форму один раз, готовым черновиком.
 const TOOL_DEFINITIONS = [RESOLVE_LOCATION_TOOL, COUNT_SPECIALISTS_TOOL, PREPARE_TASK_DRAFT_TOOL];
 
 // Мастер на сайте заполняется по шагам прямо во время разговора.
 const STEP_TOOL_DEFINITIONS = [RESOLVE_LOCATION_TOOL, COUNT_SPECIALISTS_TOOL, FILL_TASK_FIELDS_TOOL];
 
+// Мастер в приложении — тоже по шагам.
+const APP_STEP_TOOL_DEFINITIONS = [
+  RESOLVE_LOCATION_TOOL,
+  COUNT_SPECIALISTS_TOOL,
+  APP_FILL_TASK_FIELDS_TOOL,
+];
+
 const TOOL_NAMES = [
-  ...new Set([...TOOL_DEFINITIONS, ...STEP_TOOL_DEFINITIONS].map(tool => tool.name)),
+  ...new Set(
+    [...TOOL_DEFINITIONS, ...STEP_TOOL_DEFINITIONS, ...APP_STEP_TOOL_DEFINITIONS].map(
+      tool => tool.name
+    )
+  ),
 ];
 
 const text = value => (typeof value === 'string' ? value.trim() : '');
@@ -224,11 +267,27 @@ const FIELD_CHECKS = {
 
 const TASK_FIELDS = Object.keys(FIELD_CHECKS);
 
-const checkFields = (names, args, categories) => {
+const appDeadlineCheck = now => ({ deadline }) => {
+  const value = text(deadline);
+  return isCalendarDate(value) &&
+    value >= dubaiDate(now) &&
+    value <= dubaiDate(now, MAX_DEADLINE_DAYS)
+    ? { value }
+    : { error: 'Дата нужна в виде ГГГГ-ММ-ДД, не раньше сегодняшней и не позже чем через год.' };
+};
+
+/**
+ * @param {'site'|'app'} wizard
+ * @param {Date} now today, for the app's deadline date
+ */
+const fieldChecksFor = (wizard, now) =>
+  wizard === 'app' ? { ...FIELD_CHECKS, deadline: appDeadlineCheck(now) } : FIELD_CHECKS;
+
+const checkFields = (names, args, categories, checks = FIELD_CHECKS) => {
   const values = {};
   const errors = {};
   names.forEach(name => {
-    const { value, error } = FIELD_CHECKS[name](args, categories);
+    const { value, error } = checks[name](args, categories);
     if (error) {
       errors[name] = error;
     } else {
@@ -280,14 +339,15 @@ const WIZARD_FIELDS = {
 const isGiven = value => value !== undefined && value !== null && text(String(value)) !== '';
 
 /**
- * Проверяет только переданные поля: на сайте помощник заполняет форму по шагам.
+ * Проверяет только переданные поля: помощник заполняет форму по шагам.
  * Годные поля возвращаются в виде мастера, даже если соседнее поле с ошибкой.
  *
+ * @param {Object} [checks] fieldChecksFor(wizard, now); by default the site's
  * @returns {{fields: Object, placeId: string|undefined, errors: Object<string, string>}}
  */
-const validateTaskFields = (args, categories) => {
+const validateTaskFields = (args, categories, checks = FIELD_CHECKS) => {
   const given = TASK_FIELDS.filter(name => isGiven(args[name]));
-  const { values, errors } = checkFields(given, args, categories);
+  const { values, errors } = checkFields(given, args, categories, checks);
 
   // A subcategory is only checked against the category from the same call.
   if (given.includes('subcategory') && !given.includes('category')) {
@@ -312,11 +372,12 @@ const validateTaskFields = (args, categories) => {
  * Хватает ли в форме всего, без чего мастер не пустит к публикации.
  *
  * @param {Object} form поля в виде мастера: category — id, address — строка.
+ * @param {Object} [checks] fieldChecksFor(wizard, now); by default the site's
  */
-const isTaskComplete = (form, categories) =>
+const isTaskComplete = (form, categories, checks = FIELD_CHECKS) =>
   !!text(form.address) &&
   ['title', 'description', 'category', 'deadline', 'price'].every(
-    name => !FIELD_CHECKS[name](form, categories).error
+    name => !checks[name](form, categories).error
   );
 
 /**
@@ -329,6 +390,12 @@ const toWizardLocation = ({ address, lat, lng }) => ({
   predictions: [],
   selectedPlace: { address, origin: { lat, lng }, bounds: null },
 });
+
+/**
+ * Значение адреса в форме приложения: CreateListingWizard не пускает дальше
+ * второго шага без координат.
+ */
+const toAppLocation = ({ address, lat, lng }) => ({ address, lat, lng });
 
 const resolveLocation = async ({ query }) => {
   const input = text(query);
@@ -411,7 +478,7 @@ const prepareTaskDraft = async (args, { categories }) => {
       deadline: fields.deadline,
       paymentMethod: fields.paymentMethod,
       price: fields.price,
-      location: toWizardLocation(place),
+      location: toAppLocation(place),
     },
     // То, что помощник проговорит вслух перед тем, как попросить проверить экран.
     summary: {
@@ -426,16 +493,21 @@ const prepareTaskDraft = async (args, { categories }) => {
 
 /**
  * @param {Object} args поля, которые помощник уже узнал; любое подмножество.
- * @param {{categories: Array, form?: Object}} context form — что в форме сейчас,
- *   чтобы сказать, заполнено ли задание целиком вместе с новыми полями.
+ * @param {{categories: Array, form?: Object, wizard?: 'site'|'app', now?: Date}} context
+ *   form — что в форме сейчас, чтобы сказать, заполнено ли задание целиком
+ *   вместе с новыми полями; wizard — чей мастер на экране: от него зависят вид
+ *   адреса и срока.
  */
-const fillTaskFields = async (args, { categories, form = {} }) => {
-  const { fields, placeId, errors } = validateTaskFields(args, categories);
+const fillTaskFields = async (args, { categories, form = {}, wizard = 'site', now = new Date() }) => {
+  const checks = fieldChecksFor(wizard, now);
+  const { fields, placeId, errors } = validateTaskFields(args, categories, checks);
 
+  let address = form.address;
   if (placeId) {
     const place = await lookupPlace(placeId);
     if (place) {
-      fields.location = toWizardLocation(place);
+      fields.location = wizard === 'app' ? toAppLocation(place) : toWizardLocation(place);
+      address = place.address;
     } else {
       errors.place_id = 'Не удалось определить этот адрес. Попроси назвать его ещё раз.';
     }
@@ -446,12 +518,11 @@ const fillTaskFields = async (args, { categories, form = {} }) => {
     return { ok: false, error: 'Не передано ни одного поля.' };
   }
 
-  const address = fields.location?.selectedPlace?.address || form.address;
   return {
     ok: !failed,
     fields,
     ...(failed ? { errors } : {}),
-    complete: isTaskComplete({ ...form, ...fields, address }, categories),
+    complete: isTaskComplete({ ...form, ...fields, address }, categories, checks),
   };
 };
 
@@ -489,12 +560,16 @@ const executeTool = async (name, args, context) => {
 module.exports = {
   TOOL_DEFINITIONS,
   STEP_TOOL_DEFINITIONS,
+  APP_STEP_TOOL_DEFINITIONS,
   TOOL_NAMES,
   DEADLINES,
   PAYMENT_METHODS,
+  dubaiDate,
+  fieldChecksFor,
   validateDraftFields,
   validateTaskFields,
   isTaskComplete,
   toWizardLocation,
+  toAppLocation,
   executeTool,
 };

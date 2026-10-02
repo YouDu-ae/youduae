@@ -1,6 +1,7 @@
 const {
   isVoiceAllowedFor,
   buildSessionConfig,
+  wizardOf,
   wizardStepIdOf,
   sanitizeCurrentFields,
   greetingFor,
@@ -12,7 +13,11 @@ const {
   dailySessionLimit,
   LiveSessionError,
 } = require('./voiceSession');
-const { TOOL_DEFINITIONS, STEP_TOOL_DEFINITIONS } = require('./voiceTools');
+const {
+  TOOL_DEFINITIONS,
+  STEP_TOOL_DEFINITIONS,
+  APP_STEP_TOOL_DEFINITIONS,
+} = require('./voiceTools');
 
 const categories = [
   {
@@ -86,6 +91,26 @@ describe('buildSessionConfig', () => {
     expect(greetingFor({ title: 'Кран' })).toContain('часть задания уже заполнена');
   });
 
+  it('takes the payment method the app chooses in advance for an empty form', () => {
+    const currentFields = sanitizeCurrentFields({
+      title: '',
+      description: '',
+      deadline: '',
+      paymentMethod: 'cash',
+      address: '',
+      price: 0,
+    });
+    expect(greetingFor(currentFields)).toBe(GREETING_INSTRUCTIONS);
+    const { instructions } = buildSessionConfig({
+      categories,
+      now: lateEveningUtc,
+      currentFields,
+      currentStep: 'task',
+      wizard: 'app',
+    }).delegation.responses;
+    expect(instructions).not.toContain('В форме уже заполнено');
+  });
+
   describe('on the site wizard, step by step', () => {
     const stepSession = (currentStep, currentFields = {}) =>
       buildSessionConfig({ categories, now: lateEveningUtc, currentFields, currentStep });
@@ -141,6 +166,99 @@ describe('buildSessionConfig', () => {
       expect(farewellFor(false)).toBe(FAREWELL_INSTRUCTIONS);
       expect(farewellFor(true)).toContain('добавить фото');
       expect(farewellFor(true)).toContain('Всего доброго!');
+    });
+
+    it('keeps asking the site to confirm one of several addresses', () => {
+      const { instructions } = stepSession('location').delegation.responses;
+      expect(instructions).toContain('Если вариантов несколько, перечисли их');
+    });
+  });
+
+  describe('on the app wizard, step by step', () => {
+    const appSession = (currentStep, currentFields = {}) =>
+      buildSessionConfig({
+        categories,
+        now: lateEveningUtc,
+        currentFields,
+        currentStep,
+        wizard: 'app',
+      });
+
+    it('fills the app form as it goes', () => {
+      const session = appSession('task');
+
+      expect(session.delegation.responses.tools).toBe(APP_STEP_TOOL_DEFINITIONS);
+      expect(session.delegation.responses.instructions).toContain('fill_task_fields');
+      expect(session.delegation.responses.instructions).not.toContain('prepare_task_draft');
+      expect(session.instructions).toContain('«Проверка»');
+      expect(session.instructions).not.toContain('«Фото»');
+    });
+
+    it('tells GPT-Live when to hand the work to the backend', () => {
+      const { instructions } = appSession('task');
+
+      expect(instructions).toContain('Delegation policy:');
+      expect(instructions).toContain('Delegate to the backend when:');
+      expect(instructions).toContain('Do not delegate to the backend when:');
+    });
+
+    it('tells the backend the app steps and which one is open', () => {
+      const { instructions } = appSession('details').delegation.responses;
+
+      expect(instructions).toContain('мастере на экране приложения');
+      expect(instructions).toContain('2. «Детали» — адрес, бюджет в дирхамах и дата.');
+      expect(instructions).toContain('Сейчас открыт шаг 2 «Детали».');
+    });
+
+    // Asked for the title and the category one by one, the conversation would
+    // sound like a questionnaire.
+    it('asks what exactly needs doing and writes the first step itself', () => {
+      const { instructions } = appSession('task').delegation.responses;
+
+      expect(instructions).toContain('спроси, что именно нужно сделать');
+      expect(instructions).toContain('Не спрашивай отдельно ни название, ни описание, ни категорию');
+    });
+
+    // The app animates the fields and only then opens the next step.
+    it('holds questions about the next step until the app opens it', () => {
+      const session = appSession('task');
+
+      expect(session.delegation.responses.instructions).toContain(
+        'Не спрашивай о следующем шаге, пока ответ fill_task_fields не сообщит, что он открыт'
+      );
+      expect(session.instructions).toContain('не спрашивай о следующем, пока бэкенд не сообщит');
+    });
+
+    it('takes dates off a list of the days ahead in Dubai', () => {
+      const { instructions } = appSession('details').delegation.responses;
+
+      expect(instructions).toContain('четверг, 24 сентября — 2026-09-24');
+      expect(instructions).toContain('пятница, 25 сентября — 2026-09-25');
+      expect(instructions).toContain('ГГГГ-ММ-ДД');
+      expect(instructions).not.toContain('это week');
+    });
+
+    it('fills a clearly matching address without a round of options', () => {
+      const { instructions } = appSession('details').delegation.responses;
+
+      expect(instructions).toContain('явно совпадает с тем, что назвал человек');
+      expect(instructions).not.toContain('Если вариантов несколько, перечисли их');
+    });
+
+    it('starts from the first app step when the step is unknown', () => {
+      expect(wizardOf('app')).toBe('app');
+      expect(wizardOf('evil')).toBe('site');
+      expect(wizardStepIdOf('details', 'app')).toBe('details');
+      expect(wizardStepIdOf('location', 'app')).toBe('task');
+      expect(wizardStepIdOf(undefined, 'app')).toBe('task');
+    });
+
+    it('says goodbye with the publish button the app shows', () => {
+      const farewell = farewellFor(true, 'app');
+
+      expect(farewell).toContain('«Опубликовать»');
+      expect(farewell).not.toContain('добавить фото');
+      expect(farewell).toContain('Всего доброго!');
     });
   });
 

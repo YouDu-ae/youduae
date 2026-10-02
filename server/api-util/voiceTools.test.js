@@ -28,9 +28,13 @@ const {
   validateTaskFields,
   isTaskComplete,
   toWizardLocation,
+  toAppLocation,
+  dubaiDate,
+  fieldChecksFor,
   executeTool,
   TOOL_DEFINITIONS,
   STEP_TOOL_DEFINITIONS,
+  APP_STEP_TOOL_DEFINITIONS,
   TOOL_NAMES,
 } = require('./voiceTools');
 
@@ -221,6 +225,41 @@ describe('isTaskComplete', () => {
   it('does not need the optional fields', () => {
     expect(isTaskComplete({ ...complete, subcategory: '', paymentMethod: '' }, categories)).toBe(true);
   });
+
+  it('wants a date rather than a deadline choice in the app', () => {
+    const appChecks = fieldChecksFor('app', new Date('2026-10-02T08:00:00Z'));
+
+    expect(isTaskComplete({ ...complete, deadline: '2026-10-03' }, categories, appChecks)).toBe(true);
+    expect(isTaskComplete(complete, categories, appChecks)).toBe(false);
+  });
+});
+
+describe('dubaiDate', () => {
+  // 23 Sep 2026, 22:30 UTC is already the 24th in Dubai.
+  it('counts days in Dubai, not on the UTC server', () => {
+    const lateEveningUtc = new Date('2026-09-23T22:30:00Z');
+
+    expect(dubaiDate(lateEveningUtc)).toBe('2026-09-24');
+    expect(dubaiDate(lateEveningUtc, 7)).toBe('2026-10-01');
+  });
+});
+
+describe('the app deadline', () => {
+  const now = new Date('2026-10-02T08:00:00Z');
+  const check = deadline => validateTaskFields({ deadline }, categories, fieldChecksFor('app', now));
+
+  it('takes a day from today on', () => {
+    expect(check('2026-10-02').fields).toEqual({ deadline: '2026-10-02' });
+    expect(check('2026-10-09').fields).toEqual({ deadline: '2026-10-09' });
+  });
+
+  it('refuses the past, a day that does not exist and a year too far', () => {
+    ['2026-10-01', '2026-02-30', '2026-13-01', '2027-10-03', 'tomorrow', '03.10.2026'].forEach(
+      deadline => {
+        expect(check(deadline).errors.deadline).toBeDefined();
+      }
+    );
+  });
 });
 
 describe('toWizardLocation', () => {
@@ -229,6 +268,16 @@ describe('toWizardLocation', () => {
       search: 'Dubai Marina',
       predictions: [],
       selectedPlace: { address: 'Dubai Marina', origin: { lat: 25.08, lng: 55.14 }, bounds: null },
+    });
+  });
+});
+
+describe('toAppLocation', () => {
+  it('matches the location the app form keeps', () => {
+    expect(toAppLocation({ address: 'Dubai Marina', lat: 25.08, lng: 55.14 })).toEqual({
+      address: 'Dubai Marina',
+      lat: 25.08,
+      lng: 55.14,
     });
   });
 });
@@ -247,7 +296,7 @@ describe('executeTool', () => {
       'prepare_task_draft',
       'fill_task_fields',
     ]);
-    [...TOOL_DEFINITIONS, ...STEP_TOOL_DEFINITIONS].forEach(tool => {
+    [...TOOL_DEFINITIONS, ...STEP_TOOL_DEFINITIONS, ...APP_STEP_TOOL_DEFINITIONS].forEach(tool => {
       expect(tool.type).toBe('function');
       expect(tool.parameters.additionalProperties).toBe(false);
     });
@@ -256,15 +305,26 @@ describe('executeTool', () => {
   // Responses turns a tool without `strict` into a strict one where every field
   // is required, and the backend then made up a budget of 1 AED to fill it.
   it('lets fill_task_fields leave unknown fields as null', () => {
-    const tool = STEP_TOOL_DEFINITIONS.find(t => t.name === 'fill_task_fields');
-    const properties = Object.entries(tool.parameters.properties);
+    [STEP_TOOL_DEFINITIONS, APP_STEP_TOOL_DEFINITIONS].forEach(tools => {
+      const tool = tools.find(t => t.name === 'fill_task_fields');
+      const properties = Object.entries(tool.parameters.properties);
 
-    expect(tool.strict).toBe(true);
-    expect(tool.parameters.required).toEqual(properties.map(([name]) => name));
-    properties.forEach(([, property]) => {
-      expect(property.type).toContain('null');
-      if (property.enum) expect(property.enum).toContain(null);
+      expect(tool.strict).toBe(true);
+      expect(tool.parameters.required).toEqual(properties.map(([name]) => name));
+      properties.forEach(([, property]) => {
+        expect(property.type).toContain('null');
+        if (property.enum) expect(property.enum).toContain(null);
+      });
     });
+  });
+
+  it('asks the app for a date instead of the site deadlines', () => {
+    const appTool = APP_STEP_TOOL_DEFINITIONS.find(t => t.name === 'fill_task_fields');
+    const siteTool = STEP_TOOL_DEFINITIONS.find(t => t.name === 'fill_task_fields');
+
+    expect(appTool.parameters.properties.deadline.enum).toBeUndefined();
+    expect(appTool.parameters.properties.deadline.description).toContain('ГГГГ-ММ-ДД');
+    expect(siteTool.parameters.properties.deadline.enum).toContain('week');
   });
 
   it('lets prepare_task_draft leave only the optional fields as null', () => {
@@ -280,18 +340,21 @@ describe('executeTool', () => {
     expect(properties.payment_method.enum).toContain(null);
   });
 
-  // The iOS app waits for a whole draft; only the site fills its wizard step by step.
-  it('keeps the app on the whole-draft tools', () => {
+  // App builds already installed wait for a whole draft; the site and newer
+  // app builds fill their wizard step by step.
+  it('keeps older app builds on the whole-draft tools', () => {
     expect(TOOL_DEFINITIONS.map(tool => tool.name)).toEqual([
       'resolve_location',
       'count_specialists',
       'prepare_task_draft',
     ]);
-    expect(STEP_TOOL_DEFINITIONS.map(tool => tool.name)).toEqual([
-      'resolve_location',
-      'count_specialists',
-      'fill_task_fields',
-    ]);
+    [STEP_TOOL_DEFINITIONS, APP_STEP_TOOL_DEFINITIONS].forEach(tools => {
+      expect(tools.map(tool => tool.name)).toEqual([
+        'resolve_location',
+        'count_specialists',
+        'fill_task_fields',
+      ]);
+    });
   });
 
   it('offers at most three address candidates', async () => {
@@ -348,7 +411,9 @@ describe('executeTool', () => {
     expect(result.specialists_in_category).toBe(0);
   });
 
-  it('builds a draft in the shape the wizard stores', async () => {
+  // The app read the address from the site's shape, found nothing there and
+  // was left with an empty address after every voice draft.
+  it('builds a draft in the shape the app form keeps', async () => {
     mockFetchPlaceDetails.mockResolvedValue(marinaDetails);
 
     const result = await executeTool('prepare_task_draft', validArgs, { categories });
@@ -362,7 +427,7 @@ describe('executeTool', () => {
       deadline: 'tomorrow',
       paymentMethod: '',
       price: 400,
-      location: toWizardLocation({ address: 'Dubai Marina, Dubai, UAE', lat: 25.08, lng: 55.14 }),
+      location: { address: 'Dubai Marina, Dubai, UAE', lat: 25.08, lng: 55.14 },
     });
     expect(result.summary.deadline).toBe('завтра');
   });
@@ -440,6 +505,39 @@ describe('executeTool', () => {
     it('asks for something to fill', async () => {
       const result = await executeTool('fill_task_fields', {}, { categories });
       expect(result).toEqual({ ok: false, error: expect.any(String) });
+    });
+
+    describe('in the app', () => {
+      const app = { categories, wizard: 'app', now: new Date('2026-10-02T08:00:00Z') };
+
+      // The app does not let the person past the second step without coordinates.
+      it('gives the address together with its coordinates', async () => {
+        mockFetchPlaceDetails.mockResolvedValue(marinaDetails);
+
+        const result = await executeTool('fill_task_fields', { place_id: 'place-marina' }, app);
+
+        expect(result.fields).toEqual({
+          location: { address: 'Dubai Marina, Dubai, UAE', lat: 25.08, lng: 55.14 },
+        });
+      });
+
+      it('fills the date the person named', async () => {
+        const result = await executeTool('fill_task_fields', { deadline: '2026-10-09' }, app);
+        expect(result).toEqual({ ok: true, fields: { deadline: '2026-10-09' }, complete: false });
+      });
+
+      it('tells when the form is complete', async () => {
+        const form = {
+          ...titleStep,
+          category: 'repairs_main',
+          deadline: '2026-10-03',
+          address: 'Dubai Marina, Dubai, UAE',
+        };
+
+        const result = await executeTool('fill_task_fields', { price: 400 }, { ...app, form });
+
+        expect(result.complete).toBe(true);
+      });
     });
   });
 
