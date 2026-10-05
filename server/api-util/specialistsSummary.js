@@ -98,4 +98,10 @@ const hasIntegrationCredentials = () =>
  */
 const getSpecialistsSummary = () => summaryCache.get(CACHE_KEY, buildSummary);
 
-module.exports = { getSpecialistsSummary, hasIntegrationCredentials, CACHE_TTL_MS };
+module.exports = {
+  getSpecialistsSummary,
+  hasIntegrationCredentials,
+  hasOpenProfile,
+  avatarUrl,
+  CACHE_TTL_MS,
+};

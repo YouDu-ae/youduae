@@ -9,6 +9,7 @@ const { handleError } = require('../api-util/sdk');
 const { createCache } = require('../api-util/cache');
 const { COMPLETED_TRANSITIONS } = require('../api-util/reputation');
 const { queryAllPages } = require('../api-util/paginate');
+const { transactionValueAED } = require('../api-util/transactionValue');
 
 // Use Integration API credentials for accessing transaction data
 const INTEGRATION_CLIENT_ID = process.env.INTEGRATION_API_CLIENT_ID;
@@ -20,26 +21,6 @@ const TRANSIT_VERBOSE = process.env.REACT_APP_SHARETRIBE_SDK_TRANSIT_VERBOSE ===
 const CACHE_TTL_MS = 15 * 60 * 1000;
 
 const statsCache = createCache({ ttlMs: CACHE_TTL_MS, maxEntries: 1 });
-
-/**
- * Value of one finished task in AED.
- *
- * In assignment-flow-v3 the agreed price lives in protectedData.offer.price and
- * is already in AED; the purchase and booking processes report payinTotal in
- * cents instead.
- */
-const transactionValueAED = tx => {
-  const payinTotal = tx.attributes.payinTotal;
-  const offer = (tx.attributes.protectedData || {}).offer;
-
-  if (payinTotal && payinTotal.currency === 'AED') {
-    return payinTotal.amount / 100;
-  }
-  if (offer && offer.price && offer.currency === 'AED') {
-    return offer.price;
-  }
-  return 0;
-};
 
 const fetchPlatformStats = async () => {
   const integrationSdkInstance = integrationSdk.createInstance({

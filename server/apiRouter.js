@@ -39,6 +39,7 @@ const addPortfolioItem = require('./api/add-portfolio-item');
 const userCompletedTransactions = require('./api/user-completed-transactions');
 const platformStats = require('./api/platform-stats');
 const landingReviews = require('./api/landing-reviews');
+const taskOfTheMonth = require('./api/task-of-the-month');
 const listingResponses = require('./api/listing-responses');
 const acceptOffer = require('./api/accept-offer');
 const declineOffer = require('./api/decline-offer');
@@ -151,6 +152,9 @@ router.get('/platform-stats', expensiveLimiter, platformStats);
 // minutes, so it relies on the router-wide apiLimiter rather than the stricter
 // expensiveLimiter: UAE carrier NAT puts many visitors on one address.
 router.get('/landing-reviews', landingReviews);
+// Same reasoning as /landing-reviews: cached for an hour, and /cooperation
+// requests it while rendering on the server for every visitor.
+router.get('/task-of-the-month', taskOfTheMonth);
 router.get('/listing-responses', expensiveLimiter, attachUser, listingResponses);
 router.post('/accept-offer', acceptOffer);
 router.post('/decline-offer', declineOffer);

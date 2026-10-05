@@ -401,6 +401,7 @@ const routeConfiguration = (layoutConfig, accessControlConfig) => {
       path: '/cooperation',
       name: 'CooperationPage',
       component: CooperationPage,
+      loadData: pageDataLoadingAPI.CooperationPage.loadData,
     },
     {
       path: '/cooperation/signup/customer',

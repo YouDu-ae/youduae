@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSelector } from 'react-redux';
 import { Helmet } from 'react-helmet-async';
 import { NamedLink, Page } from '../../components';
 import TopbarContainer from '../../containers/TopbarContainer/TopbarContainer';
@@ -6,9 +7,14 @@ import FooterCustom from '../FooterCustom/FooterCustom';
 import { getPlatformStats } from '../../util/api';
 import { useIntl, FormattedMessage } from '../../util/reactIntl';
 
+import SectionTaskOfTheMonth from './SectionTaskOfTheMonth';
+import SectionTutorialVideo from './SectionTutorialVideo';
 import css from './CooperationPage.module.css';
 
 const CANONICAL_URL = 'https://youdu.ae/cooperation';
+
+// Пока ссылки нет, блок с роликом на странице не появляется
+const TUTORIAL_VIDEO_URL = '';
 
 // Animated counter hook
 const useAnimatedCounter = (targetValue, duration = 2000, enabled = true) => {
@@ -74,6 +80,7 @@ const CooperationPage = () => {
   const SEO_KEYWORDS = intl.formatMessage({ id: 'CooperationPage.schemaKeywords' });
   const [stats, setStats] = useState({ totalCompletedTasks: 0, totalSumAED: 0 });
   const [statsLoading, setStatsLoading] = useState(true);
+  const { month, taskOfTheMonth } = useSelector(state => state.CooperationPage);
   
   // Animated counters
   const animatedTasks = useAnimatedCounter(stats.totalCompletedTasks, 1500, !statsLoading);
@@ -424,6 +431,8 @@ const toggle = i => {
           </div>
         </section>
 
+        <SectionTaskOfTheMonth month={month} task={taskOfTheMonth} />
+
 
         {/* ===== REVIEWS ===== */}
 <section className={css.reviewsSection}>
@@ -541,6 +550,8 @@ const toggle = i => {
     </div>
   </div>
 </section>
+
+<SectionTutorialVideo videoUrl={TUTORIAL_VIDEO_URL} />
 
 {/* ===== PRESENTATION ===== */}
 <section className={css.presentationSection}>
