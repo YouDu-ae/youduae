@@ -15,9 +15,9 @@ module.exports = (req, res) => {
   }
 
   getSpecialistsSummary()
-    .then(payload => {
+    .then(({ total, avatars, categories }) => {
       res.set('Cache-Control', `public, max-age=${CACHE_TTL_MS / 1000}`);
-      res.status(200).json(payload);
+      res.status(200).json({ total, avatars, categories });
     })
     .catch(err => {
       console.error('❌ Specialists summary failed:', err?.message);

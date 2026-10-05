@@ -101,6 +101,7 @@ const routeConfiguration = (layoutConfig, accessControlConfig) => {
       path: '/category/:categoryId',
       name: 'CategoryExecutorsPage',
       component: CategoryExecutorsPage,
+      loadData: pageDataLoadingAPI.CategoryExecutorsPage.loadData,
     },
     {
       path: '/baraholka-dubai',

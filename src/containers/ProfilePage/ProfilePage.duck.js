@@ -1,5 +1,6 @@
 import { addMarketplaceEntities } from '../../ducks/marketplaceData.duck';
 import { fetchCurrentUser } from '../../ducks/user.duck';
+import { apiBaseUrl } from '../../util/api';
 import { types as sdkTypes, createImageVariantConfig } from '../../util/sdkLoader';
 import { PROFILE_PAGE_PENDING_APPROVAL_VARIANT } from '../../util/urlHelpers';
 import { denormalisedResponseEntities } from '../../util/data';
@@ -24,6 +25,15 @@ export const QUERY_REVIEWS_REQUEST = 'app/ProfilePage/QUERY_REVIEWS_REQUEST';
 export const QUERY_REVIEWS_SUCCESS = 'app/ProfilePage/QUERY_REVIEWS_SUCCESS';
 export const QUERY_REVIEWS_ERROR = 'app/ProfilePage/QUERY_REVIEWS_ERROR';
 
+export const QUERY_COMPLETED_WORKS_REQUEST = 'app/ProfilePage/QUERY_COMPLETED_WORKS_REQUEST';
+export const QUERY_COMPLETED_WORKS_SUCCESS = 'app/ProfilePage/QUERY_COMPLETED_WORKS_SUCCESS';
+export const QUERY_COMPLETED_WORKS_ERROR = 'app/ProfilePage/QUERY_COMPLETED_WORKS_ERROR';
+export const COMPLETED_WORKS_SERVER_DATA_REUSED = 'app/ProfilePage/COMPLETED_WORKS_SERVER_DATA_REUSED';
+
+// Медленный ответ на сервере задержал бы весь HTML профиля: дольше этого не
+// ждём, и список подтянет браузер.
+const SERVER_FETCH_TIMEOUT_MS = 5000;
+
 // ================ Reducer ================ //
 
 const initialState = {
@@ -33,13 +43,28 @@ const initialState = {
   queryListingsError: null,
   reviews: [],
   queryReviewsError: null,
+  completedWorksUserId: null,
+  completedWorks: [],
+  completedWorksLoaded: false,
+  completedWorksLoadedOnServer: false,
+  queryCompletedWorksError: null,
 };
 
 export default function profilePageReducer(state = initialState, action = {}) {
   const { type, payload } = action;
   switch (type) {
     case SET_INITIAL_STATE:
-      return { ...initialState };
+      // Выполненные задания не сбрасываем: после серверного рендера loadData
+      // запускается ещё раз и берёт их из уже полученных, не запрашивая заново.
+      // Чужие задания не покажутся — страница сверяет completedWorksUserId
+      // с открытым профилем.
+      return {
+        ...initialState,
+        completedWorksUserId: state.completedWorksUserId,
+        completedWorks: state.completedWorks,
+        completedWorksLoaded: state.completedWorksLoaded,
+        completedWorksLoadedOnServer: state.completedWorksLoadedOnServer,
+      };
     case SHOW_USER_REQUEST:
       return { ...state, userShowError: null, userId: payload.userId };
     case SHOW_USER_SUCCESS:
@@ -66,6 +91,40 @@ export default function profilePageReducer(state = initialState, action = {}) {
       return { ...state, reviews: payload };
     case QUERY_REVIEWS_ERROR:
       return { ...state, reviews: [], queryReviewsError: payload };
+
+    case QUERY_COMPLETED_WORKS_REQUEST: {
+      const isSameUser = payload.userId === state.completedWorksUserId;
+      return {
+        ...state,
+        completedWorksUserId: payload.userId,
+        completedWorks: isSameUser ? state.completedWorks : [],
+        completedWorksLoaded: isSameUser && state.completedWorksLoaded,
+        completedWorksLoadedOnServer: false,
+        queryCompletedWorksError: null,
+      };
+    }
+    case QUERY_COMPLETED_WORKS_SUCCESS:
+      if (payload.userId !== state.completedWorksUserId) {
+        return state;
+      }
+      return {
+        ...state,
+        completedWorks: payload.completedWorks,
+        completedWorksLoaded: true,
+        completedWorksLoadedOnServer: payload.onServer,
+      };
+    case QUERY_COMPLETED_WORKS_ERROR:
+      if (payload.userId !== state.completedWorksUserId) {
+        return state;
+      }
+      return {
+        ...state,
+        completedWorks: [],
+        completedWorksLoaded: false,
+        queryCompletedWorksError: payload.error,
+      };
+    case COMPLETED_WORKS_SERVER_DATA_REUSED:
+      return { ...state, completedWorksLoadedOnServer: false };
 
     default:
       return state;
@@ -124,6 +183,26 @@ export const queryReviewsError = e => ({
   payload: e,
 });
 
+export const queryCompletedWorksRequest = userId => ({
+  type: QUERY_COMPLETED_WORKS_REQUEST,
+  payload: { userId },
+});
+
+export const queryCompletedWorksSuccess = (userId, completedWorks, onServer) => ({
+  type: QUERY_COMPLETED_WORKS_SUCCESS,
+  payload: { userId, completedWorks, onServer },
+});
+
+export const queryCompletedWorksError = (userId, error) => ({
+  type: QUERY_COMPLETED_WORKS_ERROR,
+  error: true,
+  payload: { userId, error },
+});
+
+export const completedWorksServerDataReused = () => ({
+  type: COMPLETED_WORKS_SERVER_DATA_REUSED,
+});
+
 // ================ Thunks ================ //
 
 export const queryUserListings = (userId, config, ownProfileOnly = false) => (
@@ -180,7 +259,7 @@ export const queryUserListings = (userId, config, ownProfileOnly = false) => (
 };
 
 export const queryUserReviews = userId => (dispatch, getState, sdk) => {
-  sdk.reviews
+  return sdk.reviews
     .query({
       subject_id: userId,
       state: 'public',
@@ -192,6 +271,43 @@ export const queryUserReviews = userId => (dispatch, getState, sdk) => {
       dispatch(queryReviewsSuccess(reviews));
     })
     .catch(e => dispatch(queryReviewsError(e)));
+};
+
+/**
+ * Выполненные задания грузятся вместе с профилем, в том числе на сервере:
+ * иначе в HTML у каждого мастера «Выполненные задания (0)», и это читают
+ * поисковики и AI-ассистенты, которые не выполняют JavaScript.
+ */
+export const queryCompletedWorks = (userId, config) => (dispatch, getState) => {
+  const id = userId.uuid;
+  const isServer = typeof window === 'undefined';
+  const state = getState().ProfilePage;
+
+  // Сразу после серверного рендера браузер вызывает loadData ещё раз: список уже
+  // в разметке, а каждый запрос — несколько обращений к Integration API.
+  if (!isServer && state.completedWorksLoadedOnServer && state.completedWorksUserId === id) {
+    dispatch(completedWorksServerDataReused());
+    return Promise.resolve();
+  }
+
+  dispatch(queryCompletedWorksRequest(id));
+
+  // На сервере window недоступен, поэтому корень берём из конфигурации
+  const baseUrl = isServer ? apiBaseUrl(config?.marketplaceRootURL) : apiBaseUrl();
+  const signalMaybe = isServer ? { signal: AbortSignal.timeout(SERVER_FETCH_TIMEOUT_MS) } : {};
+
+  return fetch(
+    `${baseUrl}/api/user-completed-transactions?userId=${encodeURIComponent(id)}`,
+    signalMaybe
+  )
+    .then(response => {
+      if (!response.ok) {
+        throw new Error(`Failed to load completed works: ${response.status}`);
+      }
+      return response.json();
+    })
+    .then(data => dispatch(queryCompletedWorksSuccess(id, data.completedWorks || [], isServer)))
+    .catch(e => dispatch(queryCompletedWorksError(id, storableError(e))));
 };
 
 export const showUser = (userId, config) => (dispatch, getState, sdk) => {
@@ -241,6 +357,7 @@ export const loadData = (params, search, config) => (dispatch, getState, sdk) =>
           dispatch(showUser(userId, config)),
           dispatch(queryUserListings(userId, config)),
           dispatch(queryUserReviews(userId)),
+          dispatch(queryCompletedWorks(userId, config)),
         ]);
       } else if (isCurrentUser(userId, currentUser)) {
         // Handle a scenario, where user (in pending-approval state)
@@ -275,13 +392,18 @@ export const loadData = (params, search, config) => (dispatch, getState, sdk) =>
       dispatch(fetchCurrentUser(fetchCurrentUserOptions)),
       dispatch(queryUserListings(userId, config, canFetchOwnProfileOnly)),
       dispatch(showUserRequest(userId)),
+      dispatch(queryCompletedWorks(userId, config)),
     ]);
   }
+
+  // Без прав на просмотр страница уводит на NoAccessPage, задания не понадобятся
+  const canSeeProfile = !(isPrivateMarketplace && hasNoViewingRights);
 
   return Promise.all([
     dispatch(fetchCurrentUser(fetchCurrentUserOptions)),
     dispatch(showUser(userId, config)),
     dispatch(queryUserListings(userId, config)),
     dispatch(queryUserReviews(userId)),
+    ...(canSeeProfile ? [dispatch(queryCompletedWorks(userId, config))] : []),
   ]);
 };

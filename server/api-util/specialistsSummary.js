@@ -23,6 +23,9 @@ const CACHE_KEY = 'all';
 
 const summaryCache = createCache({ ttlMs: CACHE_TTL_MS });
 
+// Профили забаненных и удалённых пользователей не открываются
+const hasOpenProfile = attributes => !attributes?.banned && !attributes?.deleted;
+
 const avatarUrl = image => {
   const variants = image?.attributes?.variants || {};
   return (
@@ -46,6 +49,7 @@ const buildSummary = async () => {
 
   const categories = {};
   const avatars = [];
+  const profileIds = [];
   let total = 0;
 
   users.forEach(user => {
@@ -58,6 +62,10 @@ const buildSummary = async () => {
     }
 
     total += 1;
+
+    if (hasOpenProfile(user.attributes)) {
+      profileIds.push(user.id.uuid);
+    }
 
     const imageId = user.relationships?.profileImage?.data?.id?.uuid;
     const avatar = imageId ? avatarUrl(imagesById.get(imageId)) : null;
@@ -77,14 +85,16 @@ const buildSummary = async () => {
 
   console.log(`👷 Specialists summary: ${total} of ${users.length} users (cache miss)`);
 
-  return { total, avatars, categories };
+  return { total, avatars, categories, profileIds };
 };
 
 const hasIntegrationCredentials = () =>
   !!process.env.INTEGRATION_API_CLIENT_ID && !!process.env.INTEGRATION_API_CLIENT_SECRET;
 
 /**
- * @returns {Promise<{total: number, avatars: string[], categories: Object<string, {count: number, avatars: string[]}>}>}
+ * profileIds — открытые профили исполнителей, их перечисляет sitemap.
+ *
+ * @returns {Promise<{total: number, avatars: string[], categories: Object<string, {count: number, avatars: string[]}>, profileIds: string[]}>}
  */
 const getSpecialistsSummary = () => summaryCache.get(CACHE_KEY, buildSummary);
 

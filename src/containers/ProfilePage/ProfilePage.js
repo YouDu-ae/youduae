@@ -64,6 +64,19 @@ import SectionSpecialistContext from './SectionSpecialistContext';
 
 const MAX_MOBILE_SCREEN_WIDTH = 768;
 const MIN_LENGTH_FOR_LONG_WORDS = 20;
+// Поисковики показывают в сниппете примерно столько символов описания
+const META_DESCRIPTION_MAX_LENGTH = 160;
+const NO_COMPLETED_WORKS = [];
+
+const metaDescriptionFromBio = bio => {
+  const text = bio.replace(/\s+/g, ' ').trim();
+  if (text.length <= META_DESCRIPTION_MAX_LENGTH) {
+    return text;
+  }
+  const cut = text.slice(0, META_DESCRIPTION_MAX_LENGTH - 1);
+  const lastSpace = cut.lastIndexOf(' ');
+  return `${(lastSpace > 0 ? cut.slice(0, lastSpace) : cut).trim()}…`;
+};
 
 const capitalizeFirstLetter = str =>
   str ? str.charAt(0).toUpperCase() + str.slice(1) : str;
@@ -493,8 +506,6 @@ export const CustomUserFields = props => {
 
 export const MainContent = props => {
   const [mounted, setMounted] = useState(false);
-  const [completedTransactions, setCompletedTransactions] = useState([]);
-  const [loadingTransactions, setLoadingTransactions] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -509,6 +520,8 @@ export const MainContent = props => {
     queryListingsError,
     reviews = [],
     queryReviewsError,
+    completedWorks = [],
+    completedWorksLoaded = false,
     publicData,
     metadata,
     userFieldConfig,
@@ -516,24 +529,6 @@ export const MainContent = props => {
     hideReviews,
     userTypeRoles,
   } = props;
-
-  // Load completed transactions for ALL users (Provider and Customer)
-  useEffect(() => {
-    if (user?.id?.uuid) {
-      setLoadingTransactions(true);
-      
-      import('../../util/api')
-        .then(module => module.getUserCompletedTransactions(user.id.uuid))
-        .then(response => {
-          setCompletedTransactions(response.completedWorks || []);
-          setLoadingTransactions(false);
-        })
-        .catch(error => {
-          console.error('Failed to load completed transactions:', error);
-          setLoadingTransactions(false);
-        });
-    }
-  }, [user?.id?.uuid, userTypeRoles.provider, userTypeRoles.customer]);
 
   const openListings = listings.filter(l => l?.attributes?.state === 'published');
   const closedListings = listings.filter(l => l?.attributes?.state === 'closed');
@@ -598,7 +593,7 @@ export const MainContent = props => {
         reviews={reviews}
         user={user}
         userTypeRoles={userTypeRoles}
-        completedTaskCount={completedTransactions.length}
+        completedTaskCount={completedWorks.length}
       />
 
       {displayName ? (
@@ -640,17 +635,17 @@ export const MainContent = props => {
         )
       ) : null}
       {/* Completed tasks section - для ВСЕХ пользователей */}
-      {completedTransactions.length > 0 ? (
+      {completedWorks.length > 0 ? (
         // Show completed transactions for ALL user types
         <div className={classNames(css.listingsContainer, css.completedListings)}>
           <H4 as="h2" className={css.listingsTitle}>
             <FormattedMessage
               id={userTypeRoles.customer ? "ProfilePage.completedListingsTitle" : "ProfilePage.completedTasksTitle"}
-              values={{ count: completedTransactions.length }}
+              values={{ count: completedWorks.length }}
             />
           </H4>
           <div className={css.completedTasksList}>
-            {completedTransactions.map(work => {
+            {completedWorks.map(work => {
               const hasPrice = work.price && work.price > 0;
               const formattedPrice = hasPrice
                 ? new Intl.NumberFormat(intl.locale, {
@@ -668,7 +663,11 @@ export const MainContent = props => {
                     <h4 className={css.taskTitle}>{work.listingTitle}</h4>
                     <div className={css.taskMeta}>
                       <p className={css.taskDate}>
-                        {new Date(work.completedAt).toLocaleDateString(intl.locale)}
+                        {/* Сервер живёт в UTC, браузер — по местному времени: без
+                            общего пояса дата на сервере и в браузере разойдётся */}
+                        {new Date(work.completedAt).toLocaleDateString(intl.locale, {
+                          timeZone: 'Asia/Dubai',
+                        })}
                       </p>
                       {hasPrice && (
                         <p className={css.taskPrice}>{formattedPrice}</p>
@@ -680,7 +679,7 @@ export const MainContent = props => {
             })}
           </div>
         </div>
-      ) : !loadingTransactions ? (
+      ) : completedWorksLoaded ? (
         // Empty state for both user types
         <div className={classNames(css.listingsContainer, css.completedListings)}>
           <H4 as="h2" className={css.listingsTitle}>
@@ -770,6 +769,9 @@ export const ProfilePageComponent = props => {
 
   const schemaTitleVars = { name: displayName, marketplaceName: config.marketplaceName };
   const schemaTitle = intl.formatMessage({ id: 'ProfilePage.schemaTitle' }, schemaTitleVars);
+  const schemaDescription = bio?.trim()
+    ? metaDescriptionFromBio(bio)
+    : intl.formatMessage({ id: 'ProfilePage.schemaDescription' }, schemaTitleVars);
 
   if (!isDataLoaded) {
     return null;
@@ -818,12 +820,15 @@ export const ProfilePageComponent = props => {
     <Page
       scrollingDisabled={scrollingDisabled}
       title={schemaTitle}
+      description={schemaDescription}
       schema={{
         '@context': 'http://schema.org',
         '@type': 'ProfilePage',
         mainEntity: {
           '@type': 'Person',
           name: profileUser?.attributes?.profile?.displayName,
+          description: schemaDescription,
+          url: `${config.marketplaceRootURL}/u/${pathParams.id}`,
         },
         name: schemaTitle,
       }}
@@ -867,9 +872,13 @@ const mapStateToProps = state => {
     userListingRefs,
     reviews = [],
     queryReviewsError,
+    completedWorksUserId,
+    completedWorks,
+    completedWorksLoaded,
   } = state.ProfilePage;
   const userMatches = getMarketplaceEntities(state, [{ type: 'user', id: userId }]);
   const user = userMatches.length === 1 ? userMatches[0] : null;
+  const hasCompletedWorksOfUser = !!userId && completedWorksUserId === userId.uuid;
 
   // Show currentUser's data if it's not approved yet
   const isCurrentUser = userId?.uuid === currentUser?.id?.uuid;
@@ -886,6 +895,8 @@ const mapStateToProps = state => {
     listings: getMarketplaceEntities(state, userListingRefs),
     reviews,
     queryReviewsError,
+    completedWorks: hasCompletedWorksOfUser ? completedWorks : NO_COMPLETED_WORKS,
+    completedWorksLoaded: hasCompletedWorksOfUser && completedWorksLoaded,
   };
 };
 

@@ -854,6 +854,7 @@
   "ProfilePage.reviewsFromMyCustomersTitle": "Reviews from customers ({count})",
   "ProfilePage.serviceCategoriesTitle": "Service categories",
   "ProfilePage.schemaTitle": "{name} | {marketplaceName}",
+  "ProfilePage.schemaDescription": "{name} on {marketplaceName}: reviews, completed tasks and services in the UAE.",
   "ProfileSettingsForm.addYourProfilePicture": "+ Add your profile picture…",
   "ProfileSettingsForm.addYourProfilePictureMobile": "+ Add",
   "ProfileSettingsForm.bioHeading": "Your profile bio",

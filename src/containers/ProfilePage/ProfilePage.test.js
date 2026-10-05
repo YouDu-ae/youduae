@@ -22,6 +22,8 @@ import ProfilePage from './ProfilePage';
 
 import {
   loadData,
+  queryCompletedWorksRequest,
+  queryCompletedWorksSuccess,
   queryListingsError,
   queryListingsRequest,
   queryListingsSuccess,
@@ -218,6 +220,16 @@ describe('Duck', () => {
   const forbiddenError = new Error({ status: 403, message: 'forbidden' });
   const errorSdkFn = error => jest.fn(() => Promise.reject(error));
 
+  const completedWorks = [{ transactionId: 'tx1', listingTitle: 'Fix the tap' }];
+  beforeEach(() => {
+    global.fetch = jest.fn(() =>
+      Promise.resolve({ ok: true, json: () => Promise.resolve({ completedWorks }) })
+    );
+  });
+  afterEach(() => {
+    delete global.fetch;
+  });
+
   it("loadData() for full viewing rights user loads someone else's profile", () => {
     const initialState = getInitialState();
 
@@ -254,6 +266,7 @@ describe('Duck', () => {
         currentUserShowRequest(),
         showUserRequest(user.id, config),
         queryListingsRequest(user.id),
+        queryCompletedWorksRequest(user.id.uuid),
         currentUserShowSuccess(currentUser),
         addMarketplaceEntities(fakeResponse(user), sanitizeConfig),
         showUserSuccess(),
@@ -262,7 +275,12 @@ describe('Duck', () => {
         queryReviewsSuccess(reviews),
         authInfoRequest(),
         authInfoSuccess({}),
+        queryCompletedWorksSuccess(user.id.uuid, completedWorks, false),
       ]);
+      expect(global.fetch).toHaveBeenCalledWith(
+        `http://localhost/api/user-completed-transactions?userId=${user.id.uuid}`,
+        {}
+      );
     });
   });
 
@@ -308,6 +326,7 @@ describe('Duck', () => {
         queryReviewsError(forbiddenError),
         authInfoSuccess({}),
       ]);
+      expect(global.fetch).not.toHaveBeenCalled();
     });
   });
 

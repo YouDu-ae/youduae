@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { useSelector } from 'react-redux';
 import { useParams, useLocation, useHistory } from 'react-router-dom';
+import { useConfiguration } from '../../context/configurationContext';
 import { FormattedMessage, useIntl } from '../../util/reactIntl';
 import { Page, LayoutSingleColumn, NamedLink, VerificationBadge, SubcategoryFilter } from '../../components';
 import TopbarContainer from '../TopbarContainer/TopbarContainer';
@@ -9,8 +11,9 @@ import {
   SERVICE_CATEGORIES,
   getSubcategoryLabel,
 } from '../../config/serviceCategories';
-import { searchExecutors } from '../../util/api';
 import css from './CategoryExecutorsPage.module.css';
+
+const subcategoryFromSearch = search => new URLSearchParams(search).get('sub') || null;
 
 /**
  * Страница со списком исполнителей по категории услуг
@@ -21,54 +24,31 @@ import css from './CategoryExecutorsPage.module.css';
  * Публичная страница: список исполнителей доступен всем посетителям.
  */
 const CategoryExecutorsPageComponent = () => {
+  const config = useConfiguration();
   const intl = useIntl();
   const locale = intl.locale === 'ru' ? 'ru' : 'en';
   const { categoryId } = useParams();
   const location = useLocation();
   const history = useHistory();
-  const [executors, setExecutors] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [selectedSubcategory, setSelectedSubcategory] = useState(null);
+  // Исполнителей грузит loadData — и на сервере, и при переходах на клиенте
+  const pageState = useSelector(state => state.CategoryExecutorsPage);
+  // Подкатегория из адреса нужна уже в первом рендере, чтобы сервер отдал
+  // отфильтрованный список, а браузер нарисовал при гидратации то же самое
+  const [selectedSubcategory, setSelectedSubcategory] = useState(() =>
+    subcategoryFromSearch(location.search)
+  );
 
   const categoryLabel = getCategoryLabel(categoryId, locale);
   const categoryExists = SERVICE_CATEGORIES.find(cat => cat.id === categoryId);
 
   useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    const sub = params.get('sub');
-    setSelectedSubcategory(sub || null);
+    setSelectedSubcategory(subcategoryFromSearch(location.search));
   }, [location.search]);
 
-  useEffect(() => {
-    if (!categoryExists) {
-      setError(intl.formatMessage({ id: 'CategoryExecutorsPage.categoryNotFound' }));
-      setLoading(false);
-      setExecutors([]);
-      return;
-    }
-
-    let cancelled = false;
-    setLoading(true);
-    setError(null);
-
-    searchExecutors(categoryId)
-      .then(data => {
-        if (cancelled) return;
-        setExecutors(data.data || []);
-        setLoading(false);
-      })
-      .catch(err => {
-        if (cancelled) return;
-        console.error('❌ Error fetching executors:', err);
-        setError(err.message || 'Failed to fetch executors');
-        setLoading(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [categoryId, categoryExists, intl]);
+  const isCurrentCategory = pageState.categoryId === categoryId;
+  const executors = isCurrentCategory ? pageState.executors : [];
+  const error = isCurrentCategory ? pageState.fetchExecutorsError : null;
+  const loading = !error && !(isCurrentCategory && pageState.executorsLoaded);
 
   const formatDate = dateString => {
     const date = new Date(dateString);
@@ -184,6 +164,20 @@ const CategoryExecutorsPageComponent = () => {
           { id: 'CategoryExecutorsPage.schemaDescription' },
           { category: categoryLabel }
         ),
+        ...(filteredExecutors.length > 0
+          ? {
+              mainEntity: {
+                '@type': 'ItemList',
+                numberOfItems: filteredExecutors.length,
+                itemListElement: filteredExecutors.map((executor, index) => ({
+                  '@type': 'ListItem',
+                  position: index + 1,
+                  name: executor.displayName,
+                  url: `${config.marketplaceRootURL}/u/${executor.id}`,
+                })),
+              },
+            }
+          : {}),
       }}
     >
       <LayoutSingleColumn topbar={<TopbarContainer />} footer={<FooterContainer />}>

@@ -847,6 +847,7 @@
   "ProfilePage.reviewsAsACustomerTitle": "Отзывы ({count})",
   "ProfilePage.reviewsFromMyCustomersTitle": "Отзывы исполнителей ({count})",
   "ProfilePage.schemaTitle": "{name} | {marketplaceName}",
+  "ProfilePage.schemaDescription": "{name} на {marketplaceName}: отзывы, выполненные задания и услуги в ОАЭ.",
   "ProfileSettingsForm.addYourProfilePicture": "+ Добавьте фотографию профиля…",
   "ProfileSettingsForm.addYourProfilePictureMobile": "+ Добавить",
   "ProfileSettingsForm.bioHeading": "Описание вашего профиля",

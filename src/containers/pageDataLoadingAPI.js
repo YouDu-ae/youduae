@@ -3,6 +3,7 @@
  */
 import { loadData as AuthenticationPageLoader } from './AuthenticationPage/AuthenticationPage.duck';
 import { loadData as BlogArticlePageLoader } from './BlogArticlePage/BlogArticlePage.duck';
+import { loadData as CategoryExecutorsPageLoader } from './CategoryExecutorsPage/CategoryExecutorsPage.duck';
 import { setInitialValues as CheckoutPageInitialValues } from './CheckoutPage/CheckoutPage.duck';
 import { loadData as CMSPageLoader } from './CMSPage/CMSPage.duck';
 import { loadData as ContactDetailsPageLoader } from './ContactDetailsPage/ContactDetailsPage.duck';
@@ -30,6 +31,9 @@ const getPageDataLoadingAPI = () => {
     },
     BlogArticlePage: {
       loadData: BlogArticlePageLoader,
+    },
+    CategoryExecutorsPage: {
+      loadData: CategoryExecutorsPageLoader,
     },
     CheckoutPage: {
       setInitialValues: CheckoutPageInitialValues,

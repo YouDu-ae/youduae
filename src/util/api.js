@@ -206,20 +206,6 @@ export const transitionPrivileged = body => {
   return post('/api/transition-privileged', body);
 };
 
-// Search executors by service category
-//
-// This endpoint returns a list of Customer users (executors) who provide
-// services in the specified category. The response includes user info,
-// reviews count, and average rating.
-//
-// Soft-gate for guests is enforced in CategoryExecutorsPage (UI only).
-// See `server/api/search-executors.js` for implementation details.
-export const searchExecutors = category => {
-  return get(`/api/search-executors?category=${encodeURIComponent(category)}`, {
-    headers: { 'Content-Type': 'application/json' },
-  });
-};
-
 // Counts of specialists per service category, with a few avatars each.
 //
 // One cheap request covering every category at once: the task wizard needs the
@@ -348,13 +334,6 @@ export const verifyEmailOtp = ({ challengeToken, code }) => {
 
 export const assertEmailVerified = ({ verifiedToken }) => {
   return post('/api/otp/email/assert', { verifiedToken }, {
-    headers: { 'Content-Type': 'application/json' },
-  });
-};
-
-// Get completed transactions for a Customer user
-export const getUserCompletedTransactions = userId => {
-  return get(`/api/user-completed-transactions?userId=${userId}`, {
     headers: { 'Content-Type': 'application/json' },
   });
 };

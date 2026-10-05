@@ -3,6 +3,11 @@ const { SitemapIndexStream, SitemapStream, streamToPromise } = require('sitemap'
 const log = require('../log.js');
 const { getRootURL } = require('../api-util/rootURL.js');
 const sdkUtils = require('../api-util/sdk.js');
+const {
+  getSpecialistsSummary,
+  hasIntegrationCredentials,
+} = require('../api-util/specialistsSummary.js');
+const { CATEGORY_LABELS } = require('../api-util/notifyListingPublished.js');
 
 const isSitemapDisabled = process.env.SITEMAP_DISABLED === 'true';
 const dev = process.env.REACT_APP_ENV === 'development';
@@ -10,7 +15,7 @@ const dev = process.env.REACT_APP_ENV === 'development';
 ///////////////////////////////////////////////////////////////////////////////
 // This file generates sitemaps.                                             //
 // 1. The robotsTxt.js adds link to the sitemap-index.xml                    //
-// 2. sitemap-index.xml links to 3 different sub sitemaps:                   //
+// 2. sitemap-index.xml links to 5 different sub sitemaps:                   //
 //   a. sitemap-default.xml                                                  //
 //     - Contains links to public built-in pages of the client app.          //
 //     - It also shows landing-page, terms-of-service and privacy-policy     //
@@ -20,6 +25,10 @@ const dev = process.env.REACT_APP_ENV === 'development';
 //   c. sitemap-recent-pages.xml                                             //
 //     - This contains Pages, which are shown from path /p/:pageId           //
 //     - Does not contain landing-page, terms-of-service and privacy-policy  //
+//   d. sitemap-specialists.xml                                              //
+//     - Category pages that have specialists, and specialists' profiles     //
+//   e. sitemap-blog.xml                                                     //
+//     - Published blog articles                                             //
 //                                                                           //
 // Note: There's simple memory cache in use (ttl = 1 day).                   //
 //       These middlewares also add cache control headers, but googlebot     //
@@ -51,7 +60,12 @@ const defaultPublicPaths = {
   login: { url: '/login' },
   search: { url: '/s' },
   baraholkaDubai: { url: '/baraholka-dubai' },
+  cooperation: { url: '/cooperation' },
+  blog: { url: '/blog' },
+  help: { url: '/help' },
 };
+
+const emptySitemap = `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml"></urlset>`;
 
 // Time-to-live (ttl) is set to one day aka 86400 seconds
 const ttl = 86400; // seconds
@@ -85,10 +99,12 @@ const cache = createCacheProxy(ttl);
 /////////////////////////////////////////////
 
 /**
- * This sitemap-index.xml links to 3 different sub sitemaps:
+ * This sitemap-index.xml links to 5 different sub sitemaps:
  * - sitemap-default.xml
  * - sitemap-recent-listings.xml
  * - sitemap-recent-pages.xml
+ * - sitemap-specialists.xml
+ * - sitemap-blog.xml
  *
  * @param {Object} req request
  * @param {Object} res response
@@ -115,8 +131,14 @@ const sitemapIndex = (req, res, rootUrl, isPrivateMarketplace) => {
 
     // Sitemap-index will contain the following sitemaps:
     const sitemaps = isPrivateMarketplace
-      ? ['/sitemap-default.xml', '/sitemap-recent-pages.xml']
-      : ['/sitemap-default.xml', '/sitemap-recent-listings.xml', '/sitemap-recent-pages.xml'];
+      ? ['/sitemap-default.xml', '/sitemap-recent-pages.xml', '/sitemap-blog.xml']
+      : [
+          '/sitemap-default.xml',
+          '/sitemap-recent-listings.xml',
+          '/sitemap-recent-pages.xml',
+          '/sitemap-specialists.xml',
+          '/sitemap-blog.xml',
+        ];
 
     // Add sitemaps to the index
     sitemaps.forEach(sitemapPath => {
@@ -314,6 +336,119 @@ const sitemapPages = (req, res, rootUrl, sdk) => {
 };
 
 /**
+ * Categories that have at least one specialist, and the specialists' profiles.
+ *
+ * @param {Object} req request
+ * @param {Object} res response
+ * @param {String} rootUrl location from where these sitemap paths can be found
+ */
+const sitemapSpecialists = (req, res, rootUrl) => {
+  res.set({
+    'Content-Type': 'application/xml',
+    'Cache-Control': `public, max-age=${ttl}`,
+  });
+
+  // If we have a cached content send it
+  const { data, timestamp } = cache.sitemapSpecialists;
+  if (data && timestamp) {
+    const age = Math.floor((Date.now() - timestamp) / 1000);
+    res.set('Age', age);
+    res.send(data);
+    return;
+  }
+
+  if (!hasIntegrationCredentials()) {
+    res.send(emptySitemap);
+    return;
+  }
+
+  getSpecialistsSummary()
+    .then(({ categories, profileIds }) => {
+      // Profiles can still hold category ids the site no longer has a page for
+      const categoryPaths = Object.keys(categories)
+        .filter(categoryId => CATEGORY_LABELS[categoryId])
+        .map(categoryId => `category/${encodeURIComponent(categoryId)}`);
+      const profilePaths = profileIds.map(id => `u/${id}`);
+      const paths = [...categoryPaths, ...profilePaths];
+
+      if (paths.length === 0) {
+        res.send(emptySitemap);
+        return;
+      }
+
+      const smStream = new SitemapStream({ hostname: rootUrl });
+      Readable.from(paths).pipe(smStream);
+
+      // Save to in-memory cache
+      streamToPromise(smStream).then(sm => (cache.sitemapSpecialists = sm));
+
+      // Write the stream to the response
+      smStream.pipe(res).on('error', e => {
+        throw e;
+      });
+    })
+    .catch(e => {
+      log.error(e, 'sitemap-specialists-render-failed');
+      res.status(500).end();
+    });
+};
+
+/**
+ * Published blog articles.
+ *
+ * @param {Object} req request
+ * @param {Object} res response
+ * @param {String} rootUrl location from where these sitemap paths can be found
+ */
+const sitemapBlog = (req, res, rootUrl) => {
+  res.set({
+    'Content-Type': 'application/xml',
+    'Cache-Control': `public, max-age=${ttl}`,
+  });
+
+  // If we have a cached content send it
+  const { data, timestamp } = cache.sitemapBlog;
+  if (data && timestamp) {
+    const age = Math.floor((Date.now() - timestamp) / 1000);
+    res.set('Age', age);
+    res.send(data);
+    return;
+  }
+
+  // Articles live in the database, which local development does not have
+  if (!process.env.DATABASE_URL) {
+    res.send(emptySitemap);
+    return;
+  }
+
+  require('../db')
+    .getArticles()
+    .then(articles => {
+      const paths = articles.map(article => `blog/${encodeURIComponent(article.slug)}`);
+
+      if (paths.length === 0) {
+        res.send(emptySitemap);
+        return;
+      }
+
+      const smStream = new SitemapStream({ hostname: rootUrl });
+      Readable.from(paths).pipe(smStream);
+
+      // Save to in-memory cache
+      streamToPromise(smStream).then(sm => (cache.sitemapBlog = sm));
+
+      // Write the stream to the response
+      smStream.pipe(res).on('error', e => {
+        throw e;
+      });
+    })
+    .catch(e => {
+      log.error(e, 'sitemap-blog-render-failed');
+      res.status(500).end();
+    });
+};
+
+/**
  * Render different sitemap resources.
  *
  * @param {Object} req request
@@ -337,13 +472,18 @@ const handleSitemaps = (req, res, next, sdk, isPrivateMarketplace) => {
     sitemapListings(req, res, rootUrl, sdk);
   } else if (sitemapResource === 'recent-pages') {
     sitemapPages(req, res, rootUrl, sdk);
+  } else if (sitemapResource === 'specialists' && !isPrivateMarketplace) {
+    sitemapSpecialists(req, res, rootUrl);
+  } else if (sitemapResource === 'blog') {
+    sitemapBlog(req, res, rootUrl);
   } else {
     // If none of the resource-routes mapped, we pass this forward.
     next();
   }
 };
 /**
- * Route: "sitemap-:resource". resouce can point to index, default, recent-listings, or recent-pages.
+ * Route: "sitemap-:resource". resouce can point to index, default, recent-listings, recent-pages,
+ * specialists, or blog.
  *
  * @param {Object} req request
  * @param {Object} res response
