@@ -62,12 +62,19 @@ export default function reducer(state = initialState, action = {}) {
         updateInProgress: true,
         updateProfileError: null,
       };
-    case UPDATE_PROFILE_SUCCESS:
+    case UPDATE_PROFILE_SUCCESS: {
+      // Saved photos are listed with the profile's portfolio from now on; kept
+      // here as well, they show twice and the next save adds them again. A photo
+      // uploaded while the save was in flight is not in the profile and stays.
+      const saved = payload?.data?.attributes?.profile?.publicData?.portfolio;
+      const savedIds = new Set((Array.isArray(saved) ? saved : []).map(img => img?.imageId));
       return {
         ...state,
         image: null,
         updateInProgress: false,
+        portfolioImages: state.portfolioImages.filter(img => !savedIds.has(img.imageId)),
       };
+    }
     case UPDATE_PROFILE_ERROR:
       return {
         ...state,

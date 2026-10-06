@@ -76,28 +76,49 @@ const parseCallbackData = data => {
   return { action: match[1] === 'a' ? 'approve' : 'reject', userId: match[2], key: match[3] };
 };
 
+/** Photos awaiting a decision, each once even when the portfolio holds copies. */
+const pendingPhotosOf = portfolio => {
+  const seen = new Set();
+  return portfolio.filter(item => {
+    if (!awaitsModeration(item) || seen.has(photoKey(item))) {
+      return false;
+    }
+    seen.add(photoKey(item));
+    return true;
+  });
+};
+
 /**
  * The portfolio after the moderator's decision, and what the decision did.
  *
  * A rejected photo is removed rather than marked: the website knows only
  * `pending` and `approved`, and public data stays readable through the API.
+ * A portfolio can hold copies of one photo: they share the decision, and
+ * approving keeps a single copy.
  */
 const applyDecision = (portfolio, key, action) => {
   const items = Array.isArray(portfolio) ? portfolio : [];
-  const index = items.findIndex(item => item && typeof item === 'object' && photoKey(item) === key);
+  const isTarget = item => !!item && typeof item === 'object' && photoKey(item) === key;
+  const copies = items.filter(isTarget);
 
-  if (index === -1) {
+  if (copies.length === 0) {
     return { outcome: 'missing', portfolio: items };
   }
   if (action === 'reject') {
-    return { outcome: 'rejected', portfolio: items.filter((_, i) => i !== index) };
+    return { outcome: 'rejected', portfolio: items.filter(item => !isTarget(item)) };
   }
-  if (items[index].status === 'approved') {
+  if (copies.length === 1 && copies[0].status === 'approved') {
     return { outcome: 'already-approved', portfolio: items };
   }
+  const first = items.findIndex(isTarget);
   return {
     outcome: 'approved',
-    portfolio: items.map((item, i) => (i === index ? { ...item, status: 'approved' } : item)),
+    portfolio: items.flatMap((item, i) => {
+      if (!isTarget(item)) {
+        return [item];
+      }
+      return i === first ? [{ ...item, status: 'approved' }] : [];
+    }),
   };
 };
 
@@ -214,7 +235,7 @@ const notifyNewPhotos = async (userId, { imageIds, photosCount } = {}) => {
   }
 
   const { userName, portfolio } = await loadSpecialist(userId);
-  const pending = portfolio.filter(awaitsModeration);
+  const pending = pendingPhotosOf(portfolio);
 
   let fresh;
   if (Array.isArray(imageIds) && imageIds.length > 0) {
@@ -261,7 +282,7 @@ const listPendingPhotos = async () => {
       return [];
     }
     const profile = user.attributes.profile || {};
-    const pending = portfolioOf(profile).filter(awaitsModeration);
+    const pending = pendingPhotosOf(portfolioOf(profile));
     return pending.map((item, index) => ({
       userId: user.id.uuid,
       userName: nameOf(profile),

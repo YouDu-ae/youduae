@@ -156,6 +156,13 @@ describe('announcing new photos', () => {
     expect(calls('sendPhoto').map(body => body.photo)).toEqual([photo(3).imageUrl]);
   });
 
+  it('sends a photo stored twice in the portfolio once', async () => {
+    const userId = newUserId();
+    mockShow.mockResolvedValue(userResponse(userId, [photo(2), photo(2)]));
+
+    expect(await notifyNewPhotos(userId, { imageIds: ['img-2'] })).toEqual({ sent: 1, total: 1 });
+  });
+
   it('does not announce the same photo twice when the profile is saved again', async () => {
     const userId = newUserId();
     mockShow.mockResolvedValue(userResponse(userId, [photo(2)]));
@@ -319,6 +326,19 @@ describe('a tap on a moderation button', () => {
 });
 
 describe('applyDecision', () => {
+  it('decides every copy of a photo at once, keeping one approved copy', () => {
+    const portfolio = [photo(2), photo(3), photo(2)];
+
+    expect(applyDecision(portfolio, photoKey(photo(2)), 'approve')).toEqual({
+      outcome: 'approved',
+      portfolio: [{ ...photo(2), status: 'approved' }, photo(3)],
+    });
+    expect(applyDecision(portfolio, photoKey(photo(2)), 'reject')).toEqual({
+      outcome: 'rejected',
+      portfolio: [photo(3)],
+    });
+  });
+
   it('finds photos added by hand in Console without an image id', () => {
     const manual = { imageUrl: 'https://sharetribe.imgix.net/manual.jpg', status: 'pending' };
 
@@ -356,6 +376,18 @@ describe('/portfolio', () => {
     expect(photos).toHaveLength(10);
     expect(photos[0].caption).toContain('· 1 из 7');
     expect(photos[7].caption).toContain('· 1 из 5');
+  });
+
+  it('lists a photo stored twice in a portfolio once', async () => {
+    mockQuery.mockResolvedValue(
+      queryResponse([userResponse(newUserId(), [photo(1), photo(1), photo(2)]).data.data])
+    );
+
+    expect(await sendPendingPhotos(ADMIN_CHAT)).toEqual({ sent: 2, total: 2 });
+    expect(calls('sendPhoto').map(body => body.photo)).toEqual([
+      photo(1).imageUrl,
+      photo(2).imageUrl,
+    ]);
   });
 
   it('says so when nothing is waiting', async () => {
