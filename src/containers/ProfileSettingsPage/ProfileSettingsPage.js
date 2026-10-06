@@ -81,7 +81,7 @@ export const ProfileSettingsPageComponent = props => {
   const intl = useIntl();
   const [removedPortfolioIds, setRemovedPortfolioIds] = React.useState([]);
   const [showSuccess, setShowSuccess] = React.useState(false);
-  const [pendingPortfolioCount, setPendingPortfolioCount] = React.useState(0);
+  const [pendingPortfolioIds, setPendingPortfolioIds] = React.useState([]);
   const prevUpdateInProgress = React.useRef(false);
 
   const {
@@ -109,29 +109,21 @@ export const ProfileSettingsPageComponent = props => {
       setShowSuccess(true);
       const timer = setTimeout(() => setShowSuccess(false), 3000);
       
-      // Notify admin if there are new portfolio photos pending moderation
-      if (pendingPortfolioCount > 0 && currentUser) {
-        const userId = currentUser.id?.uuid;
-        const displayName = currentUser.attributes?.profile?.displayName || 
-          `${currentUser.attributes?.profile?.firstName} ${currentUser.attributes?.profile?.lastName}`;
-        
+      // Send the new portfolio photos to the moderator's Telegram
+      if (pendingPortfolioIds.length > 0 && currentUser) {
         fetch('/api/notify-portfolio-moderation', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            userId,
-            userName: displayName,
-            photosCount: pendingPortfolioCount,
-          }),
+          body: JSON.stringify({ imageIds: pendingPortfolioIds }),
         }).catch(err => console.error('Failed to notify admin:', err));
-        
-        setPendingPortfolioCount(0);
+
+        setPendingPortfolioIds([]);
       }
       
       return () => clearTimeout(timer);
     }
     prevUpdateInProgress.current = updateInProgress;
-  }, [updateInProgress, updateProfileError, pendingPortfolioCount, currentUser]);
+  }, [updateInProgress, updateProfileError, pendingPortfolioIds, currentUser]);
 
   const handlePortfolioRemoveExisting = imageId => {
     setRemovedPortfolioIds(prev => [...prev, imageId]);
@@ -203,10 +195,15 @@ export const ProfileSettingsPageComponent = props => {
       status: 'pending',
     }));
     const updatedPortfolio = [...filteredExistingPortfolio, ...newPortfolioImages];
+    // The copy on this page can predate a moderator's decision made meanwhile
+    // in Telegram, so the portfolio is written only when the specialist changed it.
+    const portfolioChanged =
+      newPortfolioImages.length > 0 ||
+      filteredExistingPortfolio.length !== existingPortfolio.length;
     
     // Track new pending photos for admin notification
     if (newPortfolioImages.length > 0) {
-      setPendingPortfolioCount(newPortfolioImages.length);
+      setPendingPortfolioIds(newPortfolioImages.map(img => img.imageId));
     }
 
     const profile = {
@@ -216,7 +213,9 @@ export const ProfileSettingsPageComponent = props => {
       bio,
       publicData: {
         ...publicDataFields,
-        portfolio: updatedPortfolio.length > 0 ? updatedPortfolio : null,
+        ...(portfolioChanged
+          ? { portfolio: updatedPortfolio.length > 0 ? updatedPortfolio : null }
+          : {}),
       },
       protectedData: {
         ...protectedDataFields,

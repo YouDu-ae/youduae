@@ -1,39 +1,33 @@
 /**
- * API endpoint to notify admin about new portfolio photos pending moderation
+ * Sends a specialist's newly saved portfolio photos to the admin chat, each
+ * with «Одобрить» / «Отклонить» buttons.
+ *
+ * The specialist is the signed-in caller. The body only says which of their
+ * photos are new; whatever it claims is checked against the stored portfolio.
  */
 
-const { notifyAdminPortfolioModeration } = require('./telegram-bot');
+const { notifyNewPhotos } = require('../api-util/portfolioModeration');
+
+const MAX_IMAGE_IDS = 10;
 
 async function notifyPortfolioModeration(req, res) {
+  const { imageIds, photosCount } = req.body || {};
+  const ids = Array.isArray(imageIds)
+    ? imageIds.filter(id => typeof id === 'string').slice(0, MAX_IMAGE_IDS)
+    : undefined;
+
   try {
-    const { userId, userName, photosCount } = req.body;
-    
-    if (!userId || !userName || !photosCount) {
-      return res.status(400).json({ 
-        error: 'Missing required fields: userId, userName, photosCount' 
-      });
+    const { sent, total } = await notifyNewPhotos(req.authUserId, { imageIds: ids, photosCount });
+    if (sent > 0) {
+      console.log(`📸 Sent ${sent} portfolio photo(s) of ${req.authUserId} for moderation`);
     }
-    
-    const profileUrl = `https://youdu.ae/u/${userId}`;
-    const consoleUrl = `https://console.sharetribe.com/a/users/${userId}`;
-    
-    const result = await notifyAdminPortfolioModeration({
-      userId,
-      userName,
-      photosCount,
-      profileUrl,
-      consoleUrl,
-    });
-    
-    if (result) {
-      console.log(`📸 Admin notified about portfolio moderation for user ${userId}`);
-      res.json({ success: true });
-    } else {
-      console.log(`⚠️ Failed to notify admin (TELEGRAM_ADMIN_CHAT_ID not set or error)`);
-      res.json({ success: false, reason: 'Admin chat ID not configured' });
-    }
+    res.json({ success: sent === total, sent });
   } catch (error) {
-    console.error('Error sending portfolio moderation notification:', error);
+    console.error(
+      'Error sending portfolio moderation notification:',
+      error?.status,
+      error?.message
+    );
     res.status(500).json({ error: 'Failed to send notification' });
   }
 }

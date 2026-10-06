@@ -11,6 +11,7 @@ const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 const sharetribeIntegrationSdk = require('sharetribe-flex-integration-sdk');
+const portfolioModeration = require('../api-util/portfolioModeration');
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_ADMIN_CHAT_ID = process.env.TELEGRAM_ADMIN_CHAT_ID;
@@ -233,6 +234,12 @@ function generateVerificationCode() {
 async function handleWebhook(req, res) {
   try {
     const update = req.body;
+
+    // Buttons under the portfolio photos sent to the admin chat.
+    if (update.callback_query) {
+      await portfolioModeration.handleCallback(update.callback_query);
+      return res.sendStatus(200);
+    }
     
     if (!update.message) {
       return res.sendStatus(200);
@@ -416,6 +423,17 @@ async function handleWebhook(req, res) {
         console.error('Error getting pending listings:', error);
         await sendTelegramMessage(chatId, '⚠️ Ошибка получения заданий на модерации');
       }
+    }
+    // Admin command: portfolio photos waiting for moderation, with buttons.
+    // A batch takes about ten seconds to send, so the update is acknowledged
+    // first rather than kept waiting.
+    else if (text === '/portfolio' && chatId.toString() === TELEGRAM_ADMIN_CHAT_ID) {
+      res.sendStatus(200);
+      portfolioModeration.sendPendingPhotos(chatId).catch(error => {
+        console.error('Error sending pending portfolio photos:', error);
+        sendTelegramMessage(chatId, '⚠️ Ошибка получения фото на модерации');
+      });
+      return;
     }
     else {
       await sendUnknownCommandMessage(chatId);
@@ -988,30 +1006,6 @@ async function notifyNewListingToCategory(data) {
 }
 
 /**
- * Send notification to admin about new portfolio photos for moderation
- */
-async function notifyAdminPortfolioModeration(data) {
-  if (!TELEGRAM_ADMIN_CHAT_ID) {
-    console.log('⚠️ TELEGRAM_ADMIN_CHAT_ID not set, skipping admin notification');
-    return false;
-  }
-  
-  const { userId, userName, photosCount, profileUrl, consoleUrl } = data;
-  
-  const message = `📸 <b>Новые фото на модерацию!</b>
-
-👤 Пользователь: <b>${escapeHtml(userName)}</b>
-🖼 Фото: ${photosCount} шт.
-
-<a href="${profileUrl}">Профиль пользователя →</a>
-<a href="${consoleUrl}">Открыть Console →</a>
-
-⏰ Ожидает модерации`;
-
-  return await sendTelegramMessage(TELEGRAM_ADMIN_CHAT_ID, message);
-}
-
-/**
  * Russian plural forms: 1 отклик, 2 отклика, 5 откликов.
  */
 const pluralRu = (count, one, few, many) => {
@@ -1188,7 +1182,8 @@ async function setupWebhook(webhookUrl) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         url: webhookUrl,
-        allowed_updates: ['message'],
+        // callback_query carries the taps on the portfolio moderation buttons.
+        allowed_updates: ['message', 'callback_query'],
         // Without it the webhook rejects every update (telegramWebhookAuth).
         secret_token: process.env.TELEGRAM_WEBHOOK_SECRET,
       }),
@@ -1217,7 +1212,6 @@ module.exports = {
   notifyNewMessage,
   notifyNewListing,
   notifyNewListingToCategory,
-  notifyAdminPortfolioModeration,
   notifyAdminListingPendingApproval,
   notifyAdminAccountDeletionRequest,
   notifyUnansweredOffers,

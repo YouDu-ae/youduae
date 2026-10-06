@@ -163,7 +163,7 @@ router.post('/register-device-token', registerDeviceToken);
 router.post('/send-notification', writeLimiter, sendNotification);
 router.post('/notify-new-message', notifyNewMessage);
 router.post('/notify-new-review', notifyNewReview);
-router.post('/notify-portfolio-moderation', requireUser, notifyPortfolioModeration);
+router.post('/notify-portfolio-moderation', writeLimiter, requireUser, notifyPortfolioModeration);
 router.post('/notify-verification', requireUser, notifyVerification);
 
 // Google Places (для мобильного приложения — ключ на сервере, без referrer с телефона)
