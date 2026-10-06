@@ -551,6 +551,18 @@
   color: #1a1a1a;
 }
 
+.thisOfferAside {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  min-width: 0;
+}
+
+.thisOfferMeta {
+  justify-content: flex-end;
+}
+
 .thisOfferAmount {
   font-size: 28px;
   font-weight: 700;

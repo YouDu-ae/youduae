@@ -54,6 +54,29 @@ export const chatTaskStatus = (processState, listing) => {
   return taskStatus;
 };
 
+const OfferReputation = ({ rating, reviewCount, completedCount, className }) => (
+  <span className={classNames(css.otherOfferMeta, className)}>
+    {rating > 0 ? (
+      <>
+        <StarRating rating={rating} />
+        <FormattedMessage
+          id="TransactionPanel.taskSummary.otherOfferReviews"
+          values={{ rating: Number(rating).toFixed(1), count: reviewCount }}
+        />
+      </>
+    ) : (
+      <FormattedMessage id="TransactionPanel.taskSummary.otherOfferNoReviews" />
+    )}
+    <span className={css.otherOfferDot} aria-hidden="true">
+      ·
+    </span>
+    <FormattedMessage
+      id="TransactionPanel.taskSummary.otherOfferCompleted"
+      values={{ count: completedCount || 0 }}
+    />
+  </span>
+);
+
 const formatOfferPrice = offer => {
   if (!offer || offer.price === undefined || offer.price === null || offer.price === '') {
     return null;
@@ -110,6 +133,7 @@ const TaskSummaryMaybe = props => {
   const status = chatTaskStatus(processState, listing);
   const otherOfferCount = summary?.otherOfferCount;
   const otherOffers = isTaskAuthor && Array.isArray(summary?.otherOffers) ? summary.otherOffers : null;
+  const currentSpecialist = isTaskAuthor ? summary?.currentSpecialist : null;
   const showOfferPrice = status === 'open' && Number.isFinite(priceAmount);
 
   return (
@@ -119,9 +143,19 @@ const TaskSummaryMaybe = props => {
           <span className={css.taskSummaryLabel}>
             <FormattedMessage id="TransactionPanel.taskSummary.price" />
           </span>
-          <span className={css.thisOfferPrice}>
-            <span className={css.thisOfferAmount}>{priceAmount}</span>
-            <span className={css.thisOfferCurrency}>{priceCurrency}</span>
+          <span className={css.thisOfferAside}>
+            <span className={css.thisOfferPrice}>
+              <span className={css.thisOfferAmount}>{priceAmount}</span>
+              <span className={css.thisOfferCurrency}>{priceCurrency}</span>
+            </span>
+            {currentSpecialist ? (
+              <OfferReputation
+                className={css.thisOfferMeta}
+                rating={currentSpecialist.rating}
+                reviewCount={currentSpecialist.reviewCount}
+                completedCount={currentSpecialist.completedCount}
+              />
+            ) : null}
           </span>
         </div>
       ) : priceLabel ? (
@@ -164,29 +198,11 @@ const TaskSummaryMaybe = props => {
                         {item.name || '—'}
                         {item.verified ? <VerificationBadge isVerified /> : null}
                       </span>
-                      <span className={css.otherOfferMeta}>
-                        {item.rating > 0 ? (
-                          <>
-                            <StarRating rating={item.rating} />
-                            <FormattedMessage
-                              id="TransactionPanel.taskSummary.otherOfferReviews"
-                              values={{
-                                rating: Number(item.rating).toFixed(1),
-                                count: item.reviewCount,
-                              }}
-                            />
-                          </>
-                        ) : (
-                          <FormattedMessage id="TransactionPanel.taskSummary.otherOfferNoReviews" />
-                        )}
-                        <span className={css.otherOfferDot} aria-hidden="true">
-                          ·
-                        </span>
-                        <FormattedMessage
-                          id="TransactionPanel.taskSummary.otherOfferCompleted"
-                          values={{ count: item.completedCount || 0 }}
-                        />
-                      </span>
+                      <OfferReputation
+                        rating={item.rating}
+                        reviewCount={item.reviewCount}
+                        completedCount={item.completedCount}
+                      />
                     </span>
                     <span className={css.otherOfferPrice}>
                       <span className={css.otherOfferAmount}>

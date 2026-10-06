@@ -154,10 +154,26 @@ module.exports = async (req, res) => {
       pendingResponse.data.included,
       transactionId
     );
+    const currentUser = (txResponse.data.included || []).find(
+      item => item.type === 'user' && asUuid(item.id) === customerId
+    );
+    const enriched = await withReputation(
+      [
+        {
+          specialistId: customerId,
+          verified: resolveIsVerified(currentUser?.attributes?.profile),
+        },
+        ...offers,
+      ],
+      integrationSdk,
+      marketplaceSdk()
+    );
+    const { rating, reviewCount, completedCount, verified } = enriched[0];
 
     return res.status(200).json({
       otherOfferCount,
-      otherOffers: await withReputation(offers, integrationSdk, marketplaceSdk()),
+      currentSpecialist: { rating, reviewCount, completedCount, verified },
+      otherOffers: enriched.slice(1),
     });
   } catch (err) {
     console.error('❌ task-chat-summary:', err.message);

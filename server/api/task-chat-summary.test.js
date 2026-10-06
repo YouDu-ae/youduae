@@ -116,6 +116,7 @@ describe('task-chat-summary', () => {
 
     expect(res.json).toHaveBeenCalledWith({
       otherOfferCount: 1,
+      currentSpecialist: { verified: false, rating: 4.5, reviewCount: 4, completedCount: 7 },
       otherOffers: [
         {
           transactionId: OTHER_TX,
