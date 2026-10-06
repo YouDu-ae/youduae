@@ -52,12 +52,12 @@ const pendingPage = () => ({
       {
         id: { uuid: TX_ID },
         attributes: { protectedData: { offer: { price: 3500, currency: 'AED', comment: 'secret' } } },
-        relationships: { provider: ref('user', PROVIDER_ID) },
+        relationships: { customer: ref('user', PROVIDER_ID) },
       },
       {
         id: { uuid: OTHER_TX },
         attributes: { protectedData: { offer: { price: 2800, currency: 'AED', comment: 'also secret' } } },
-        relationships: { provider: ref('user', OTHER_PROVIDER) },
+        relationships: { customer: ref('user', OTHER_PROVIDER) },
       },
     ],
     included: [
@@ -85,7 +85,7 @@ describe('task-chat-summary', () => {
     const res = await call(userId);
 
     expect(res.status).toHaveBeenCalledWith(200);
-    if (userId === CUSTOMER_ID) {
+    if (userId === PROVIDER_ID) {
       expect(res.json.mock.calls[0][0]).toEqual(expect.objectContaining({ otherOfferCount: 3 }));
     } else {
       expect(res.json).toHaveBeenCalledWith({ otherOfferCount: 3 });
@@ -96,7 +96,7 @@ describe('task-chat-summary', () => {
   it('gives the task author the other offers without their comments', async () => {
     mockTxQuery.mockResolvedValue(pendingPage());
 
-    const res = await call(CUSTOMER_ID);
+    const res = await call(PROVIDER_ID);
 
     expect(res.json).toHaveBeenCalledWith({
       otherOfferCount: 1,
@@ -108,10 +108,10 @@ describe('task-chat-summary', () => {
   it('gives the specialist only the number', async () => {
     mockTxQuery.mockResolvedValue(pendingPage());
 
-    const res = await call(PROVIDER_ID);
+    const res = await call(CUSTOMER_ID);
 
     expect(res.json).toHaveBeenCalledWith({ otherOfferCount: 1 });
-    expect(mockTxQuery).toHaveBeenCalledWith(expect.not.objectContaining({ include: ['provider'] }));
+    expect(mockTxQuery).toHaveBeenCalledWith(expect.not.objectContaining({ include: ['customer'] }));
   });
 
   it('refuses someone outside the chat', async () => {
@@ -130,7 +130,7 @@ describe('otherOffersForAuthor', () => {
         {
           id: { uuid: OTHER_TX },
           attributes: { protectedData: { offer: { price: '1200' } } },
-          relationships: { provider: ref('user', OTHER_PROVIDER) },
+          relationships: { customer: ref('user', OTHER_PROVIDER) },
         },
       ],
       [],

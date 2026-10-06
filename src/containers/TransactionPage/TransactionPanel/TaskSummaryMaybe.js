@@ -70,7 +70,7 @@ const formatOfferPrice = offer => {
  * many other specialists still have a pending offer. Shown to both parties.
  */
 const TaskSummaryMaybe = props => {
-  const { processName, processState, transactionId, listing, offer, isCustomer } = props;
+  const { processName, processState, transactionId, listing, offer, isTaskAuthor } = props;
   const [summary, setSummary] = useState(null);
 
   const txId = transactionId?.uuid || transactionId;
@@ -106,7 +106,7 @@ const TaskSummaryMaybe = props => {
   const priceLabel = formatOfferPrice(offer);
   const status = chatTaskStatus(processState, listing);
   const otherOfferCount = summary?.otherOfferCount;
-  const otherOffers = isCustomer && Array.isArray(summary?.otherOffers) ? summary.otherOffers : null;
+  const otherOffers = isTaskAuthor && Array.isArray(summary?.otherOffers) ? summary.otherOffers : null;
 
   return (
     <div className={css.taskSummary}>

@@ -2,9 +2,11 @@
  * Compact counts for the task chat: how many *other* specialists still have
  * a pending offer on the same listing.
  *
- * The specialist who sent this offer only gets the number. The task author
- * (the customer of the transaction) also gets the other offers: name, price
- * and the chat id, so the chat can link to them. Comments stay out.
+ * The specialist who sent this offer (the customer of the transaction) only
+ * gets the number. The task author (the provider: they own the listing) also
+ * gets the other offers — the other specialists' names, prices and chat ids.
+ * Comments stay out. In this process the specialist is the customer, because
+ * they are the one who starts the transaction.
  *
  * Auth: the current user must be the provider or the customer of the given
  * transaction. Integration API is used because a specialist cannot query
@@ -39,12 +41,12 @@ const otherOffersForAuthor = (transactions, included, currentTransactionId) => {
   return transactions
     .filter(tx => asUuid(tx.id) !== currentTransactionId)
     .map(tx => {
-      const providerId = asUuid(tx.relationships?.provider?.data?.id);
+      const specialistId = asUuid(tx.relationships?.customer?.data?.id);
       const offer = tx.attributes?.protectedData?.offer || {};
       const price = Number(offer.price);
       return {
         transactionId: asUuid(tx.id),
-        name: userName(users.get(providerId)),
+        name: userName(users.get(specialistId)),
         price: Number.isFinite(price) ? price : null,
         currency: offer.currency || 'AED',
       };
@@ -87,18 +89,18 @@ module.exports = async (req, res) => {
       return res.status(200).json({ otherOfferCount: 0 });
     }
 
-    const isAuthor = req.authUserId === customerId;
+    const isTaskAuthor = req.authUserId === providerId;
     const pendingResponse = await integrationSdk.transactions.query({
       listingId,
       lastTransitions: [PENDING_TRANSITION],
-      ...(isAuthor ? { include: ['provider'], perPage: OTHER_OFFERS_PAGE } : { perPage: 1 }),
+      ...(isTaskAuthor ? { include: ['customer'], perPage: OTHER_OFFERS_PAGE } : { perPage: 1 }),
     });
 
     const pendingTotal = pendingResponse.data.meta?.totalItems || 0;
     const thisOfferIsPending = tx.attributes?.lastTransition === PENDING_TRANSITION;
     const otherOfferCount = thisOfferIsPending ? Math.max(0, pendingTotal - 1) : pendingTotal;
 
-    if (!isAuthor) {
+    if (!isTaskAuthor) {
       return res.status(200).json({ otherOfferCount });
     }
 
