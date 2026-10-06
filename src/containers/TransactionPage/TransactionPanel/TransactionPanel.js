@@ -5,6 +5,7 @@ import { FormattedMessage, injectIntl, intlShape } from '../../../util/reactIntl
 import { displayPrice } from '../../../util/configHelpers';
 import { propTypes } from '../../../util/types';
 import { userDisplayNameAsString } from '../../../util/data';
+import { isVerifiedUser } from '../../../util/userHelpers';
 import { isMobileSafari } from '../../../util/userAgent';
 import { createSlug } from '../../../util/urlHelpers';
 
@@ -37,8 +38,8 @@ import css from './TransactionPanel.module.css';
 
 // Helper function to get display names for different roles
 const displayNames = (currentUser, provider, customer, intl) => {
-  const providerVerified = provider?.attributes?.profile?.publicData?.isVerified || false;
-  const customerVerified = customer?.attributes?.profile?.publicData?.isVerified || false;
+  const providerVerified = isVerifiedUser(provider);
+  const customerVerified = isVerifiedUser(customer);
 
   const authorDisplayName = (
     <>

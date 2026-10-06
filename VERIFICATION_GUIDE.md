@@ -330,21 +330,10 @@ Type: Boolean
 Value: true
 ```
 
-#### Шаг 2: Заполните **Public data**
-В секции **Public data** добавьте или измените JSON:
-
-```json
-{
-  "isVerified": true,
-  "verifiedAt": "2025-10-16",
-  "verificationType": "individual"
-}
-```
-
-**Поля:**
-- `isVerified` (**обязательно**): `true` — пользователь верифицирован
-- `verifiedAt` (опционально): дата верификации в формате `YYYY-MM-DD`
-- `verificationType` (опционально): `individual` (физлицо) или `company` (компания)
+#### Шаг 2: **Public data** не трогайте
+`isVerified` в **Public data** сайт и приложение не учитывают: эти данные
+пользователь может изменить сам. Значок зависит только от **Profile metadata**,
+которую меняет только оператор.
 
 #### Шаг 3: Обновите статус в **Protected data**
 Измените статус документов с `pending` на `approved`:
@@ -380,7 +369,7 @@ Value: true
 ### Если документы не прошли проверку:
 
 #### Шаг 1: НЕ устанавливайте `isVerified`
-Не добавляйте `isVerified: true` в **Public data**.
+Не добавляйте `isVerified: true` в **Profile metadata**.
 
 #### Шаг 2: Обновите статус в **Protected data**
 Измените статус документов на `rejected` и добавьте причину:
@@ -463,8 +452,9 @@ https://youdo.com/account/verification
    - ❌ Никогда не храните документы в `publicData`
    - ✅ `protectedData` доступен только владельцу и операторам
 
-2. **Статус верификации в `publicData`**
-   - ✅ Только флаг `isVerified: true/false`
+2. **Статус верификации в `metadata`**
+   - ✅ Только флаг `isVerified: true/false`, его ставит только оператор
+   - ❌ Не храните его в `publicData`: её пользователь меняет сам
    - ❌ Никогда не публикуйте ID документов, номера, личные данные
 
 3. **Конфиденциальность**
@@ -487,7 +477,7 @@ https://youdo.com/account/verification
 **A:** Да. Если статус `rejected` или `pending`, пользователь может загрузить новые документы через `/account/verification`.
 
 ### Q: Как отозвать верификацию?
-**A:** Удалите или измените `isVerified` на `false` в **Public data**. Измените статус на `revoked` в **Protected data** с указанием причины в `verificationNotes`.
+**A:** Удалите или измените `isVerified` на `false` в **Profile metadata**. Измените статус на `revoked` в **Protected data** с указанием причины в `verificationNotes`.
 
 ### Q: Можно ли верифицировать компанию?
 **A:** Да. Используйте `"verificationType": "company"` и требуйте бизнес-лицензию.

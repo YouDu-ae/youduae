@@ -11,6 +11,7 @@ import {
 import StarRating from './StarRating/StarRating';
 import { NamedLink, Avatar, VerificationBadge } from '../components';
 import { FormattedMessage, useIntl } from '../util/reactIntl';
+import { isVerifiedUser } from '../util/userHelpers';
 
 import css from './OfferList.module.css';
 import { trackProviderSelected } from '../analytics/plausibleEvents';
@@ -314,20 +315,8 @@ export default function OfferList({ listingId, isOwner, publicData = {} }) {
     }
     
     // Проверяем статус верификации
-    // ✅ Обрабатываем два формата: boolean или объект {isVerified: true}
-    const publicDataA = customerA?.attributes?.profile?.publicData;
-    const publicDataB = customerB?.attributes?.profile?.publicData;
-    
-    const isVerifiedValueA = publicDataA?.isVerified;
-    const isVerifiedValueB = publicDataB?.isVerified;
-    
-    const isVerifiedA = 
-      isVerifiedValueA === true || 
-      (typeof isVerifiedValueA === 'object' && isVerifiedValueA?.isVerified === true);
-    
-    const isVerifiedB = 
-      isVerifiedValueB === true || 
-      (typeof isVerifiedValueB === 'object' && isVerifiedValueB?.isVerified === true);
+    const isVerifiedA = isVerifiedUser(customerA);
+    const isVerifiedB = isVerifiedUser(customerB);
     
     // Получаем статистику отзывов
     const customerIdA = customerA?.id?.uuid;
@@ -349,14 +338,12 @@ export default function OfferList({ listingId, isOwner, publicData = {} }) {
       A: { 
         name: customerNameA, 
         verified: isVerifiedA, 
-        verifiedValue: isVerifiedValueA,
         reviews: reviewCountA, 
         rating: ratingA 
       },
       B: { 
         name: customerNameB, 
         verified: isVerifiedB, 
-        verifiedValue: isVerifiedValueB,
         reviews: reviewCountB, 
         rating: ratingB 
       },
@@ -397,7 +384,7 @@ export default function OfferList({ listingId, isOwner, publicData = {} }) {
       customer = getIncludedEntity(tx, included, 'customer');
     }
     const customerName = customer?.attributes?.profile?.displayName || 'Unknown';
-    const isVerified = customer?.attributes?.profile?.publicData?.isVerified === true;
+    const isVerified = isVerifiedUser(customer);
     const customerId = customer?.id?.uuid;
     const stats = customerId ? reviewsStats[customerId] : null;
     const reviewCount = stats?.reviewCount || 0;
@@ -480,24 +467,7 @@ export default function OfferList({ listingId, isOwner, publicData = {} }) {
           const customerName = customerProfile.displayName || intl.formatMessage({ id: 'OfferList.defaultSpecialistName' });
           const customerId = customer?.id?.uuid;
           
-          // ✅ ДЕТАЛЬНАЯ ПРОВЕРКА ВЕРИФИКАЦИИ
-          const publicData = customerProfile?.publicData || {};
-          
-          // ✅ Обрабатываем два формата:
-          // 1. publicData.isVerified = true (правильный)
-          // 2. publicData.isVerified = {isVerified: true} (вложенный объект)
-          const isVerifiedValue = publicData?.isVerified;
-          const isVerified = 
-            isVerifiedValue === true || 
-            (typeof isVerifiedValue === 'object' && isVerifiedValue?.isVerified === true);
-          
-          // 🔍 ДЕБАГ: Логируем данные верификации
-          if (isVerifiedValue) {
-            console.log('✅ VERIFIED USER FOUND:', customerName);
-            console.log('  - isVerifiedValue:', isVerifiedValue);
-            console.log('  - isVerified (computed):', isVerified);
-            console.log('  - Type of isVerifiedValue:', typeof isVerifiedValue);
-          }
+          const isVerified = isVerifiedUser(customer);
           
           // Получаем статистику отзывов из загруженных данных
           const userStats = customerId ? reviewsStats[customerId] : null;

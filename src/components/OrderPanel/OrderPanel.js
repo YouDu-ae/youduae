@@ -10,7 +10,7 @@ import {
   displayDeliveryShipping,
   displayPrice,
 } from '../../util/configHelpers';
-import { getCurrentUserTypeRoles } from '../../util/userHelpers';
+import { getCurrentUserTypeRoles, isVerifiedUser } from '../../util/userHelpers';
 import {
   propTypes,
   AVAILABILITY_MULTIPLE_SEATS,
@@ -498,7 +498,7 @@ const OrderPanel = props => {
           <span className={css.providerNamePlain}>
             <FormattedMessage id="OrderPanel.author" values={{ name: authorDisplayName }} />
           </span>
-              {author?.attributes?.profile?.publicData?.isVerified && (
+              {isVerifiedUser(author) && (
                 <span className={css.verifiedBadge} title="Verified Provider">
                   ✓
                 </span>

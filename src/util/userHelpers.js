@@ -224,6 +224,21 @@ export const hasPermissionToViewData = currentUser => {
 export const isUserAuthorized = currentUser => currentUser?.attributes?.state === 'active';
 
 /**
+ * Check if a user carries the verified badge.
+ *
+ * Only the operator can set it, in the profile's metadata: public data is
+ * written by the users themselves. The nested `{ isVerified: true }` form
+ * comes from an early manual edit in Console.
+ *
+ * @param {Object} user API entity, with `profile.metadata` among its fields.
+ * @returns {Boolean} true if the operator has verified the user.
+ */
+export const isVerifiedUser = user => {
+  const value = user?.attributes?.profile?.metadata?.isVerified;
+  return value === true || value?.isVerified === true;
+};
+
+/**
  * Get the user type configuration for the current user's user type
  * @param {*} config marketplace configuration
  * @param {*} currentUser API entity

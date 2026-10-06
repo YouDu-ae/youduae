@@ -20,7 +20,12 @@ module.exports = (req, res) => {
       listingId,
       lastTransitions: ['transition/inquire', 'transition/accept-offer'],
       include: ['provider', 'customer', 'customer.profileImage', 'listing'],
-      'fields.user': ['profile.displayName', 'profile.abbreviatedName', 'profile.publicData'],
+      'fields.user': [
+        'profile.displayName',
+        'profile.abbreviatedName',
+        'profile.publicData',
+        'profile.metadata',
+      ],
       'fields.image': [
         'variants.square-xsmall',
         'variants.square-xsmall2x',

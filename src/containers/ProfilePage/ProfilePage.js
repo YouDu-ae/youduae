@@ -29,6 +29,7 @@ import {
   getCurrentUserTypeRoles,
   hasPermissionToViewData,
   isUserAuthorized,
+  isVerifiedUser,
 } from '../../util/userHelpers';
 import { richText } from '../../util/richText';
 
@@ -113,7 +114,7 @@ const formatRegistrationDate = (dateValue, intl) => {
 
 export const AsideContent = props => {
   const { user, displayName, showLinkToProfileSettingsPage } = props;
-  const isVerified = user?.attributes?.profile?.publicData?.isVerified;
+  const isVerified = isVerifiedUser(user);
   const instagram = user?.attributes?.profile?.publicData?.instagram;
 
   return (
@@ -559,7 +560,7 @@ export const MainContent = props => {
       </p>
     );
   }
-  const isVerified = user?.attributes?.profile?.publicData?.isVerified;
+  const isVerified = isVerifiedUser(user);
   const portfolioPhotos = approvedPortfolioPhotos({ publicData, metadata });
 
   return (

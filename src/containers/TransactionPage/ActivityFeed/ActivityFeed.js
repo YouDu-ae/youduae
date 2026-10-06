@@ -6,6 +6,7 @@ import { FormattedMessage, useIntl } from '../../../util/reactIntl';
 import { richText } from '../../../util/richText';
 import { formatDateWithProximity } from '../../../util/dates';
 import { propTypes } from '../../../util/types';
+import { isVerifiedUser } from '../../../util/userHelpers';
 import {
   getProcess,
   getUserTxRole,
@@ -37,7 +38,7 @@ const Message = props => {
     longWordMinLength: MIN_LENGTH_FOR_LONG_WORDS,
     longWordClass: css.longWord,
   });
-  const senderVerified = message.sender?.attributes?.profile?.publicData?.isVerified || false;
+  const senderVerified = isVerifiedUser(message.sender);
 
   return (
     <div className={css.message}>

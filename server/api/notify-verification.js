@@ -40,7 +40,7 @@ async function notifyVerification(req, res) {
 1. Откройте Sharetribe Console → Users
 2. Найдите пользователя по ID
 3. Проверьте protectedData.verificationDocuments
-4. Установите publicData.isVerified = true
+4. В Metadata установите isVerified = true (не в Public data: её пользователь меняет сам)
 
 🔗 <a href="https://console.sharetribe.com">Sharetribe Console</a>`;
 

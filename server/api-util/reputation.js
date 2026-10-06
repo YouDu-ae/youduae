@@ -41,18 +41,14 @@ const parseRole = value => (value === ROLE.CLIENT ? ROLE.CLIENT : ROLE.SPECIALIS
 /**
  * Reads the verification flag from a user profile.
  *
- * `publicData` is the documented location (see VERIFICATION_GUIDE.md) and the
- * only one the web UI reads. Two other shapes exist in live data: an early
- * nested `{ isVerified: true }` object, and `metadata` written by older server
- * code. Both are accepted so that already-verified specialists keep their badge.
+ * Only the operator can set it, in `metadata` (see VERIFICATION_GUIDE.md):
+ * `publicData` is written by the users themselves. The nested
+ * `{ isVerified: true }` form comes from an early manual edit in Console. The
+ * website reads the flag the same way (isVerifiedUser in src/util/userHelpers).
  */
 const resolveIsVerified = profile => {
-  const publicValue = profile?.publicData?.isVerified;
-
-  if (publicValue === true) return true;
-  if (typeof publicValue === 'object' && publicValue?.isVerified === true) return true;
-
-  return profile?.metadata?.isVerified === true;
+  const value = profile?.metadata?.isVerified;
+  return value === true || value?.isVerified === true;
 };
 
 /**

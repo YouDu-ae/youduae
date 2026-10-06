@@ -9,7 +9,7 @@ import { useRouteConfiguration } from '../../context/routeConfigurationContext';
 
 import { FormattedMessage, intlShape, useIntl } from '../../util/reactIntl';
 import { parse } from '../../util/urlHelpers';
-import { getCurrentUserTypeRoles } from '../../util/userHelpers';
+import { getCurrentUserTypeRoles, isVerifiedUser } from '../../util/userHelpers';
 import { hasUnreadUpdates } from '../../util/transactionNotifications';
 import {
   propTypes,
@@ -175,7 +175,7 @@ export const InboxItem = props => {
   const otherUser = isCustomer ? provider : customer;
   const otherUserDisplayName = <UserDisplayName user={otherUser} intl={intl} />;
   const isOtherUserBanned = otherUser.attributes.banned;
-  const isOtherUserVerified = otherUser?.attributes?.profile?.publicData?.isVerified || false;
+  const isOtherUserVerified = isVerifiedUser(otherUser);
 
   // Проверяем, есть ли непрочитанные обновления
   const currentUserId = currentUser?.id?.uuid;

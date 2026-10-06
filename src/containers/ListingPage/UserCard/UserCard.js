@@ -5,6 +5,7 @@ import classNames from 'classnames';
 import { FormattedMessage } from '../../../util/reactIntl';
 import { richText } from '../../../util/richText';
 import { ensureUser, ensureCurrentUser } from '../../../util/data';
+import { isVerifiedUser } from '../../../util/userHelpers';
 import { propTypes } from '../../../util/types';
 
 import { AvatarLarge, NamedLink, InlineTextButton, VerificationBadge } from '../../../components';
@@ -88,7 +89,7 @@ const UserCard = props => {
   const isCurrentUser =
     ensuredUser.id && ensuredCurrentUser.id && ensuredUser.id.uuid === ensuredCurrentUser.id.uuid;
   const { displayName, bio } = ensuredUser.attributes.profile;
-  const isVerified = ensuredUser?.attributes?.profile?.publicData?.isVerified;
+  const isVerified = isVerifiedUser(ensuredUser);
 
   const hasBio = !!bio;
   const classes = classNames(rootClassName || css.root, className);

@@ -2,6 +2,7 @@ import {
   pickUserFieldsData,
   initialValuesForUserFields,
   getPropsForCustomUserFieldInputs,
+  isVerifiedUser,
 } from './userHelpers';
 
 import { fakeIntl } from './testData';
@@ -355,5 +356,25 @@ describe('userHelpers', () => {
       const filteredConfig2 = expectedUserFieldInput(2, ['c', 'd']).filter(filterFn);
       expect(inputConfig2).toEqual(filteredConfig2);
     });
+  });
+});
+
+describe('isVerifiedUser', () => {
+  const userWith = profile => ({ attributes: { profile } });
+
+  it('trusts the flag only in metadata, which the operator writes', () => {
+    expect(isVerifiedUser(userWith({ metadata: { isVerified: true } }))).toBe(true);
+    expect(isVerifiedUser(userWith({ publicData: { isVerified: true } }))).toBe(false);
+  });
+
+  it('accepts the nested form from an early manual edit', () => {
+    expect(isVerifiedUser(userWith({ metadata: { isVerified: { isVerified: true } } }))).toBe(true);
+  });
+
+  it('treats anything else as not verified', () => {
+    expect(isVerifiedUser(userWith({ metadata: { isVerified: 'true' } }))).toBe(false);
+    expect(isVerifiedUser(userWith({ metadata: { isVerified: false } }))).toBe(false);
+    expect(isVerifiedUser(userWith({}))).toBe(false);
+    expect(isVerifiedUser(null)).toBe(false);
   });
 });
