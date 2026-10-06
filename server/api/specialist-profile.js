@@ -1,6 +1,7 @@
 const sharetribeIntegrationSdk = require('sharetribe-flex-integration-sdk');
 const sharetribeSdk = require('sharetribe-flex-sdk');
 const { createCache } = require('../api-util/cache');
+const { approvedPhotos, photoIdOf } = require('../api-util/portfolio');
 const {
   ROLE,
   resolveIsVerified,
@@ -45,40 +46,11 @@ const getIntegrationSdk = () => {
   return integrationSdkInstance;
 };
 
-/**
- * Photos a specialist uploads on the website wait in `publicData.portfolio` as
- * `pending` until the operator approves them in Console. Only approved ones
- * are public — the same rule the website's profile page follows.
- */
-const approvedPortfolio = portfolio => {
-  if (!Array.isArray(portfolio)) {
-    return [];
-  }
-
-  const seen = new Set();
-  const photos = [];
-
-  for (const item of portfolio) {
-    const url = item?.imageUrl;
-    if (item?.status !== 'approved' || typeof url !== 'string' || !url.startsWith('https://')) {
-      continue;
-    }
-
-    // The entries are edited by hand in Console, so the id may be missing.
-    const id = typeof item.imageId === 'string' && item.imageId ? item.imageId : url;
-    if (seen.has(id)) {
-      continue;
-    }
-
-    seen.add(id);
-    photos.push({ id, url });
-    if (photos.length === MAX_PORTFOLIO_PHOTOS) {
-      break;
-    }
-  }
-
-  return photos;
-};
+/** The approved photos, as the website's profile page shows them (see api-util/portfolio). */
+const approvedPortfolio = profile =>
+  approvedPhotos(profile)
+    .slice(0, MAX_PORTFOLIO_PHOTOS)
+    .map(photo => ({ id: photoIdOf(photo), url: photo.imageUrl }));
 
 const avatarUrlOf = (user, included) => {
   const imageId = user.relationships?.profileImage?.data?.id?.uuid;
@@ -123,7 +95,7 @@ const buildProfile = async userId => {
     completedTasks,
     categories: Array.isArray(publicData.serviceCategories) ? publicData.serviceCategories : [],
     memberSince: user.attributes.createdAt,
-    portfolio: approvedPortfolio(publicData.portfolio),
+    portfolio: approvedPortfolio(profile),
   };
 };
 

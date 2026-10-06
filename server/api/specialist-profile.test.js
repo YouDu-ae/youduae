@@ -20,13 +20,20 @@ const { approvedPortfolio, profileCache } = specialistProfile;
 const USER_ID = '6a7c8e37-0000-4000-8000-000000000001';
 const AVATAR_ID = 'aaaaaaaa-0000-4000-8000-000000000002';
 
-const photo = (n, status = 'approved') => ({
+const photo = (n, status = 'pending') => ({
   imageId: `image-${n}`,
   imageUrl: `https://sharetribe.imgix.net/photo-${n}.jpg`,
   status,
 });
 
-const showResponse = ({ attributes = {}, publicData = {}, withAvatar = true } = {}) => ({
+const approval = item => ({ imageId: item.imageId, imageUrl: item.imageUrl });
+
+const showResponse = ({
+  attributes = {},
+  publicData = {},
+  approved = [],
+  withAvatar = true,
+} = {}) => ({
   data: {
     data: {
       id: { uuid: USER_ID },
@@ -42,7 +49,7 @@ const showResponse = ({ attributes = {}, publicData = {}, withAvatar = true } = 
           publicData: { userType: 'customer', ...publicData },
           protectedData: { phoneNumber: '+971500000000' },
           privateData: { note: 'secret' },
-          metadata: { isVerified: true },
+          metadata: { isVerified: true, approvedPortfolio: approved.map(approval) },
         },
         ...attributes,
       },
@@ -101,8 +108,9 @@ describe('GET /api/specialist-profile', () => {
       showResponse({
         publicData: {
           serviceCategories: ['repair', 'cleaning'],
-          portfolio: [photo(1), photo(2, 'pending'), photo(3)],
+          portfolio: [photo(1), photo(2), photo(3)],
         },
+        approved: [photo(1), photo(3)],
       })
     );
 
@@ -184,40 +192,58 @@ describe('GET /api/specialist-profile', () => {
 });
 
 describe('approvedPortfolio', () => {
-  it('keeps at most five photos in their original order', () => {
-    const portfolio = [1, 2, 3, 4, 5, 6, 7].map(n => photo(n));
+  const profileWith = (portfolio, approved = []) => ({
+    publicData: { portfolio },
+    metadata: { approvedPortfolio: approved },
+  });
 
-    expect(approvedPortfolio(portfolio).map(item => item.id)).toEqual([
-      'image-1',
-      'image-2',
-      'image-3',
-      'image-4',
-      'image-5',
+  it('keeps at most five photos in the order the specialist chose', () => {
+    const photos = [1, 2, 3, 4, 5, 6, 7].map(n => photo(n));
+
+    expect(
+      approvedPortfolio(profileWith(photos, [...photos].reverse().map(approval))).map(
+        item => item.id
+      )
+    ).toEqual(['image-1', 'image-2', 'image-3', 'image-4', 'image-5']);
+  });
+
+  it('ignores a status the specialist set in their own data', () => {
+    expect(approvedPortfolio(profileWith([photo(1, 'approved')]))).toEqual([]);
+  });
+
+  it('shows a photo from the address the moderator approved', () => {
+    const swapped = { ...photo(1), imageUrl: 'https://sharetribe.imgix.net/other.jpg' };
+
+    expect(approvedPortfolio(profileWith([swapped], [approval(photo(1))]))).toEqual([
+      { id: 'image-1', url: 'https://sharetribe.imgix.net/photo-1.jpg' },
     ]);
   });
 
-  it('skips repeats and entries that cannot be shown', () => {
+  it('hides an approved photo the specialist has removed', () => {
+    expect(approvedPortfolio(profileWith([photo(2)], [approval(photo(1))]))).toEqual([]);
+  });
+
+  it('skips repeats and photos kept outside Sharetribe', () => {
+    const noId = { imageUrl: 'https://sharetribe.imgix.net/no-id.jpg' };
+    const outside = { imageId: 'image-4', imageUrl: 'https://example.com/4.jpg' };
     const portfolio = [
       photo(1),
       photo(1),
       null,
       'https://sharetribe.imgix.net/bare.jpg',
-      { ...photo(2), imageUrl: 'http://insecure.example.com/2.jpg' },
-      { ...photo(3), imageUrl: undefined },
-      { imageUrl: 'https://sharetribe.imgix.net/no-id.jpg', status: 'approved' },
+      outside,
+      noId,
     ];
 
-    expect(approvedPortfolio(portfolio)).toEqual([
+    expect(approvedPortfolio(profileWith(portfolio, [approval(photo(1)), outside, noId]))).toEqual([
       { id: 'image-1', url: 'https://sharetribe.imgix.net/photo-1.jpg' },
-      {
-        id: 'https://sharetribe.imgix.net/no-id.jpg',
-        url: 'https://sharetribe.imgix.net/no-id.jpg',
-      },
+      { id: noId.imageUrl, url: noId.imageUrl },
     ]);
   });
 
-  it('returns nothing when the portfolio is absent or not a list', () => {
+  it('returns nothing when the lists are absent or not lists', () => {
     expect(approvedPortfolio(undefined)).toEqual([]);
-    expect(approvedPortfolio({ 0: photo(1) })).toEqual([]);
+    expect(approvedPortfolio(profileWith({ 0: photo(1) }, [approval(photo(1))]))).toEqual([]);
+    expect(approvedPortfolio(profileWith([photo(1)], { 0: approval(photo(1)) }))).toEqual([]);
   });
 });

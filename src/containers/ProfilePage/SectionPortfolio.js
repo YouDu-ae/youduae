@@ -5,11 +5,8 @@ import { Heading } from '../../components';
 import css from './ProfilePage.module.css';
 
 const SectionPortfolio = props => {
-  const { portfolio = [] } = props;
+  const { photos: approvedImages = [] } = props;
   const [selectedImage, setSelectedImage] = useState(null);
-
-  // Only show approved images
-  const approvedImages = portfolio.filter(img => img.status === 'approved');
 
   if (!approvedImages.length) {
     return null;

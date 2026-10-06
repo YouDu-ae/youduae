@@ -1,15 +1,22 @@
 /**
  * Portfolio moderation from the admin Telegram chat.
  *
- * Photos a specialist uploads on the website are saved to
- * `publicData.portfolio` as `pending` and stay hidden until approved. Each new
- * photo is sent to the admin chat with «Одобрить» / «Отклонить» buttons, and a
- * tap writes the decision back to the specialist's profile.
+ * Photos a specialist uploads on the website stay hidden until approved (see
+ * ./portfolio). Each new photo is sent to the admin chat with «Одобрить» /
+ * «Отклонить» buttons, and a tap writes the decision to the specialist's
+ * profile.
  */
 
 const crypto = require('crypto');
 const sharetribeIntegrationSdk = require('sharetribe-flex-integration-sdk');
 const { queryAllPages } = require('./paginate');
+const {
+  approvalRecordOf,
+  approvedRecords,
+  pendingPhotos,
+  photoIdOf,
+  submittedPhotos,
+} = require('./portfolio');
 
 const ROOT_URL = 'https://youdu.ae';
 
@@ -52,17 +59,10 @@ const escapeHtml = value =>
 const mastersCount = count =>
   `${count} ${count % 10 === 1 && count % 100 !== 11 ? 'мастера' : 'мастеров'}`;
 
-// The website's uploader treats a photo without a status as pending too.
-const awaitsModeration = item =>
-  !!item &&
-  (item.status === 'pending' || !item.status) &&
-  typeof item.imageUrl === 'string' &&
-  item.imageUrl.startsWith('https://');
-
 const photoKey = item =>
   crypto
     .createHash('sha1')
-    .update(String(item.imageId || item.imageUrl))
+    .update(photoIdOf(item))
     .digest('hex')
     .slice(0, KEY_LENGTH);
 
@@ -76,49 +76,46 @@ const parseCallbackData = data => {
   return { action: match[1] === 'a' ? 'approve' : 'reject', userId: match[2], key: match[3] };
 };
 
-/** Photos awaiting a decision, each once even when the portfolio holds copies. */
-const pendingPhotosOf = portfolio => {
-  const seen = new Set();
-  return portfolio.filter(item => {
-    if (!awaitsModeration(item) || seen.has(photoKey(item))) {
-      return false;
-    }
-    seen.add(photoKey(item));
-    return true;
-  });
-};
-
 /**
- * The portfolio after the moderator's decision, and what the decision did.
+ * What the moderator's decision does, and the profile update it needs.
  *
- * A rejected photo is removed rather than marked: the website knows only
- * `pending` and `approved`, and public data stays readable through the API.
- * A portfolio can hold copies of one photo: they share the decision, and
- * approving keeps a single copy.
+ * Approving records the photo in `metadata.approvedPortfolio` and leaves the
+ * specialist's own list alone. A rejected photo is removed from both lists
+ * rather than marked, since public data stays readable through the API. Copies
+ * of one photo share the decision.
  */
-const applyDecision = (portfolio, key, action) => {
-  const items = Array.isArray(portfolio) ? portfolio : [];
+const applyDecision = (profile, key, action) => {
   const isTarget = item => !!item && typeof item === 'object' && photoKey(item) === key;
-  const copies = items.filter(isTarget);
+  const target = submittedPhotos(profile).find(isTarget);
+  const records = approvedRecords(profile);
 
-  if (copies.length === 0) {
-    return { outcome: 'missing', portfolio: items };
+  if (!target) {
+    return { outcome: 'missing', changes: null };
   }
+
   if (action === 'reject') {
-    return { outcome: 'rejected', portfolio: items.filter(item => !isTarget(item)) };
+    const portfolio = (profile.publicData?.portfolio || []).filter(item => !isTarget(item));
+    const remaining = records.filter(record => !isTarget(record));
+    return {
+      outcome: 'rejected',
+      changes: {
+        publicData: { portfolio: portfolio.length > 0 ? portfolio : null },
+        ...(remaining.length < records.length
+          ? { metadata: { approvedPortfolio: remaining.length > 0 ? remaining : null } }
+          : {}),
+      },
+    };
   }
-  if (copies.length === 1 && copies[0].status === 'approved') {
-    return { outcome: 'already-approved', portfolio: items };
+
+  if (records.some(isTarget)) {
+    return { outcome: 'already-approved', changes: null };
   }
-  const first = items.findIndex(isTarget);
+  // Approvals of photos the specialist has removed since are dropped here.
+  const submittedIds = new Set(submittedPhotos(profile).map(photoIdOf));
+  const kept = records.filter(record => submittedIds.has(photoIdOf(record)));
   return {
     outcome: 'approved',
-    portfolio: items.flatMap((item, i) => {
-      if (!isTarget(item)) {
-        return [item];
-      }
-      return i === first ? [{ ...item, status: 'approved' }] : [];
-    }),
+    changes: { metadata: { approvedPortfolio: [...kept, approvalRecordOf(target)] } },
   };
 };
 
@@ -157,13 +154,10 @@ const nameOf = profile =>
   [profile.firstName, profile.lastName].filter(Boolean).join(' ') ||
   'Без имени';
 
-const portfolioOf = profile =>
-  Array.isArray(profile.publicData?.portfolio) ? profile.publicData.portfolio : [];
-
 const loadSpecialist = async userId => {
   const response = await getIntegrationSdk().users.show({ id: userId });
   const profile = response.data.data.attributes.profile || {};
-  return { userName: nameOf(profile), portfolio: portfolioOf(profile) };
+  return { userName: nameOf(profile), profile };
 };
 
 const sendPhotoForModeration = async (chatId, { userId, userName, item, position, total }) => {
@@ -234,8 +228,8 @@ const notifyNewPhotos = async (userId, { imageIds, photosCount } = {}) => {
     return { sent: 0, total: 0 };
   }
 
-  const { userName, portfolio } = await loadSpecialist(userId);
-  const pending = pendingPhotosOf(portfolio);
+  const { userName, profile } = await loadSpecialist(userId);
+  const pending = pendingPhotos(profile);
 
   let fresh;
   if (Array.isArray(imageIds) && imageIds.length > 0) {
@@ -282,7 +276,7 @@ const listPendingPhotos = async () => {
       return [];
     }
     const profile = user.attributes.profile || {};
-    const pending = pendingPhotosOf(portfolioOf(profile));
+    const pending = pendingPhotos(profile);
     return pending.map((item, index) => ({
       userId: user.id.uuid,
       userName: nameOf(profile),
@@ -397,13 +391,10 @@ const handleCallback = async callbackQuery => {
 
   let outcome;
   try {
-    const { portfolio } = await loadSpecialist(parsed.userId);
-    const result = applyDecision(portfolio, parsed.key, parsed.action);
-    if (result.outcome === 'approved' || result.outcome === 'rejected') {
-      await getIntegrationSdk().users.updateProfile({
-        id: parsed.userId,
-        publicData: { portfolio: result.portfolio.length > 0 ? result.portfolio : null },
-      });
+    const { profile } = await loadSpecialist(parsed.userId);
+    const result = applyDecision(profile, parsed.key, parsed.action);
+    if (result.changes) {
+      await getIntegrationSdk().users.updateProfile({ id: parsed.userId, ...result.changes });
     }
     outcome = result.outcome;
   } catch (error) {

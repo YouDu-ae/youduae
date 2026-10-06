@@ -7,6 +7,7 @@ import { FormattedMessage, useIntl } from '../../util/reactIntl';
 import { propTypes } from '../../util/types';
 import { PROFILE_PAGE_PENDING_APPROVAL_VARIANT } from '../../util/urlHelpers';
 import { ensureCurrentUser } from '../../util/data';
+import { isApprovedPortfolioPhoto } from '../../util/portfolio';
 import {
   initialValuesForUserFields,
   isUserAuthorized,
@@ -268,10 +269,14 @@ export const ProfileSettingsPageComponent = props => {
     }
   }
 
-  // Filter existing portfolio excluding removed ones
-  const existingPortfolioForForm = (publicData?.portfolio || []).filter(
-    img => !removedPortfolioIds.includes(img.imageId)
-  );
+  // Filter existing portfolio excluding removed ones. The specialist's own
+  // `status` is not trusted: what a moderator approved is in metadata.
+  const existingPortfolioForForm = (publicData?.portfolio || [])
+    .filter(img => !removedPortfolioIds.includes(img.imageId))
+    .map(img => ({
+      ...img,
+      status: isApprovedPortfolioPhoto(user.attributes?.profile, img) ? 'approved' : 'pending',
+    }));
 
   const profileSettingsForm = user.id ? (
     <ProfileSettingsForm

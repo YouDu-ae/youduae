@@ -57,6 +57,7 @@ import css from './ProfilePage.module.css';
 import SectionDetailsMaybe from './SectionDetailsMaybe';
 import SectionTextMaybe from './SectionTextMaybe';
 import SectionPortfolio from './SectionPortfolio';
+import { approvedPortfolioPhotos } from '../../util/portfolio';
 import SectionMultiEnumMaybe from './SectionMultiEnumMaybe';
 import SectionYoutubeVideoMaybe from './SectionYoutubeVideoMaybe';
 import SectionServiceCategories from './SectionServiceCategories';
@@ -559,6 +560,7 @@ export const MainContent = props => {
     );
   }
   const isVerified = user?.attributes?.profile?.publicData?.isVerified;
+  const portfolioPhotos = approvedPortfolioPhotos({ publicData, metadata });
 
   return (
     <div>
@@ -569,8 +571,8 @@ export const MainContent = props => {
       {hasBio ? <p className={css.bio}>{bioWithLinks}</p> : null}
 
       {/* Портфолио - после Bio, только для специалистов (userType === 'customer') */}
-      {publicData?.userType === 'customer' && publicData?.portfolio?.length > 0 && (
-        <SectionPortfolio portfolio={publicData.portfolio} />
+      {publicData?.userType === 'customer' && portfolioPhotos.length > 0 && (
+        <SectionPortfolio photos={portfolioPhotos} />
       )}
 
       {/* Отзывы - сразу после Bio */}

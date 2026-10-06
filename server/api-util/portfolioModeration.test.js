@@ -37,7 +37,9 @@ const photo = (n, status = 'pending') => ({
   status,
 });
 
-const userResponse = (userId, portfolio, attributes = {}) => ({
+const record = item => ({ imageId: item.imageId, imageUrl: item.imageUrl });
+
+const userResponse = (userId, portfolio, { approved = [], attributes = {} } = {}) => ({
   data: {
     data: {
       id: { uuid: userId },
@@ -45,7 +47,11 @@ const userResponse = (userId, portfolio, attributes = {}) => ({
       attributes: {
         banned: false,
         deleted: false,
-        profile: { displayName: 'Мохамед <Х>', publicData: { portfolio } },
+        profile: {
+          displayName: 'Мохамед <Х>',
+          publicData: { portfolio },
+          metadata: approved.length > 0 ? { approvedPortfolio: approved.map(record) } : {},
+        },
         ...attributes,
       },
     },
@@ -101,7 +107,9 @@ afterEach(() => {
 describe('announcing new photos', () => {
   it('sends each new photo to the admin chat with approve and reject buttons', async () => {
     const userId = newUserId();
-    mockShow.mockResolvedValue(userResponse(userId, [photo(1, 'approved'), photo(2), photo(3)]));
+    mockShow.mockResolvedValue(
+      userResponse(userId, [photo(1), photo(2), photo(3)], { approved: [photo(1)] })
+    );
 
     const result = await notifyNewPhotos(userId, { imageIds: ['img-2', 'img-3'] });
 
@@ -139,12 +147,29 @@ describe('announcing new photos', () => {
 
   it('sends only pending photos that really are in this specialist portfolio', async () => {
     const userId = newUserId();
-    mockShow.mockResolvedValue(userResponse(userId, [photo(1, 'approved'), photo(2)]));
+    mockShow.mockResolvedValue(
+      userResponse(userId, [photo(1), photo(2)], { approved: [photo(1)] })
+    );
 
     const result = await notifyNewPhotos(userId, { imageIds: ['img-1', 'img-9'] });
 
     expect(result).toEqual({ sent: 0, total: 0 });
     expect(calls('sendPhoto')).toHaveLength(0);
+  });
+
+  it('still asks about a photo the specialist marked approved themselves', async () => {
+    const userId = newUserId();
+    mockShow.mockResolvedValue(userResponse(userId, [photo(2, 'approved')]));
+
+    expect(await notifyNewPhotos(userId, { imageIds: ['img-2'] })).toEqual({ sent: 1, total: 1 });
+  });
+
+  it('never sends a photo kept outside Sharetribe', async () => {
+    const userId = newUserId();
+    const outside = { imageId: 'img-2', imageUrl: 'https://example.com/p2.jpg', status: 'pending' };
+    mockShow.mockResolvedValue(userResponse(userId, [outside]));
+
+    expect(await notifyNewPhotos(userId, { imageIds: ['img-2'] })).toEqual({ sent: 0, total: 0 });
   });
 
   it('takes the latest pending photos when an older page reports only a count', async () => {
@@ -207,16 +232,19 @@ describe('announcing new photos', () => {
 describe('a tap on a moderation button', () => {
   const buttonData = (action, userId, item) => `pf:${action}:${userId}:${photoKey(item)}`;
 
-  it('approves the photo, confirms the tap and replaces the buttons with the decision', async () => {
+  it('records the approval in metadata, confirms the tap and replaces the buttons', async () => {
     const userId = newUserId();
-    mockShow.mockResolvedValue(userResponse(userId, [photo(2), photo(3)]));
+    mockShow.mockResolvedValue(
+      userResponse(userId, [photo(2), photo(3)], { approved: [photo(2), photo(9)] })
+    );
     const query = tap(buttonData('a', userId, photo(3)));
 
     expect(await handleCallback(query)).toEqual({ outcome: 'approved' });
 
+    // Photo 9 is no longer in the portfolio, so its approval is dropped.
     expect(mockUpdateProfile).toHaveBeenCalledWith({
       id: userId,
-      publicData: { portfolio: [photo(2), { ...photo(3), status: 'approved' }] },
+      metadata: { approvedPortfolio: [record(photo(2)), record(photo(3))] },
     });
     expect(calls('answerCallbackQuery')).toEqual([
       { callback_query_id: 'query-1', text: 'Одобрено' },
@@ -247,9 +275,24 @@ describe('a tap on a moderation button', () => {
     );
   });
 
+  it('takes a rejected photo off the profile even if it was approved before', async () => {
+    const userId = newUserId();
+    mockShow.mockResolvedValue(
+      userResponse(userId, [photo(2), photo(3)], { approved: [photo(3)] })
+    );
+
+    await handleCallback(tap(buttonData('r', userId, photo(3))));
+
+    expect(mockUpdateProfile).toHaveBeenCalledWith({
+      id: userId,
+      publicData: { portfolio: [photo(2)] },
+      metadata: { approvedPortfolio: null },
+    });
+  });
+
   it('writes nothing when the photo is already approved or no longer there', async () => {
     const userId = newUserId();
-    mockShow.mockResolvedValue(userResponse(userId, [photo(3, 'approved')]));
+    mockShow.mockResolvedValue(userResponse(userId, [photo(3)], { approved: [photo(3)] }));
 
     expect(await handleCallback(tap(buttonData('a', userId, photo(3))))).toEqual({
       outcome: 'already-approved',
@@ -326,25 +369,30 @@ describe('a tap on a moderation button', () => {
 });
 
 describe('applyDecision', () => {
-  it('decides every copy of a photo at once, keeping one approved copy', () => {
-    const portfolio = [photo(2), photo(3), photo(2)];
+  const profileWith = (portfolio, approved = []) => ({
+    publicData: { portfolio },
+    metadata: { approvedPortfolio: approved.map(record) },
+  });
 
-    expect(applyDecision(portfolio, photoKey(photo(2)), 'approve')).toEqual({
+  it('decides every copy of a photo at once', () => {
+    const profile = profileWith([photo(2), photo(3), photo(2)]);
+
+    expect(applyDecision(profile, photoKey(photo(2)), 'approve')).toEqual({
       outcome: 'approved',
-      portfolio: [{ ...photo(2), status: 'approved' }, photo(3)],
+      changes: { metadata: { approvedPortfolio: [record(photo(2))] } },
     });
-    expect(applyDecision(portfolio, photoKey(photo(2)), 'reject')).toEqual({
+    expect(applyDecision(profile, photoKey(photo(2)), 'reject')).toEqual({
       outcome: 'rejected',
-      portfolio: [photo(3)],
+      changes: { publicData: { portfolio: [photo(3)] } },
     });
   });
 
   it('finds photos added by hand in Console without an image id', () => {
     const manual = { imageUrl: 'https://sharetribe.imgix.net/manual.jpg', status: 'pending' };
 
-    expect(applyDecision([manual], photoKey(manual), 'approve')).toEqual({
+    expect(applyDecision(profileWith([manual]), photoKey(manual), 'approve')).toEqual({
       outcome: 'approved',
-      portfolio: [{ ...manual, status: 'approved' }],
+      changes: { metadata: { approvedPortfolio: [{ imageUrl: manual.imageUrl }] } },
     });
   });
 });
@@ -360,10 +408,10 @@ describe('/portfolio', () => {
     const banned = newUserId();
     mockQuery.mockResolvedValue(
       queryResponse([
-        userResponse(first, [photo(1, 'approved'), ...[2, 3, 4, 5, 6, 7, 8].map(n => photo(n))])
+        userResponse(first, [1, 2, 3, 4, 5, 6, 7, 8].map(n => photo(n)), { approved: [photo(1)] })
           .data.data,
         userResponse(second, [11, 12, 13, 14, 15].map(n => photo(n))).data.data,
-        userResponse(banned, [photo(21), photo(22)], { banned: true }).data.data,
+        userResponse(banned, [photo(21), photo(22)], { attributes: { banned: true } }).data.data,
       ])
     );
 
@@ -392,7 +440,7 @@ describe('/portfolio', () => {
 
   it('says so when nothing is waiting', async () => {
     mockQuery.mockResolvedValue(
-      queryResponse([userResponse(newUserId(), [photo(1, 'approved')]).data.data])
+      queryResponse([userResponse(newUserId(), [photo(1)], { approved: [photo(1)] }).data.data])
     );
 
     expect(await sendPendingPhotos(ADMIN_CHAT)).toEqual({ sent: 0, total: 0 });
