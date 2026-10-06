@@ -1377,7 +1377,7 @@
   "TransactionPanel.taskSummary.status.hired": "Specialist hired",
   "TransactionPanel.taskSummary.status.completed": "Completed",
   "TransactionPanel.taskSummary.status.declined": "Offer declined",
-  "TransactionPanel.taskSummary.status.closed": "Completed",
+  "TransactionPanel.taskSummary.status.closed": "Closed",
   "TransactionPanel.taskSummary.status.cancelled": "Cancelled",
   "TransactionPanel.taskSummary.otherOffers": "{count, plural, =0 {No other pending offers} one {# more offer from other specialists} other {# more offers from other specialists}}",
   "TransactionPanel.offerDecision.hint": "Agreed on the details? Hire the specialist right here — the task moves to in progress and other offers are hidden.",
