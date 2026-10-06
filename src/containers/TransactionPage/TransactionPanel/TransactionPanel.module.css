@@ -541,6 +541,22 @@
   text-align: left;
 }
 
+.otherOfferList {
+  margin: 6px 0 0 0;
+  padding: 0;
+  list-style: none;
+  font-weight: 400;
+}
+
+.otherOfferLink {
+  color: var(--marketplaceColor);
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
 .offerDecision {
   margin: 12px 24px 0 24px;
 

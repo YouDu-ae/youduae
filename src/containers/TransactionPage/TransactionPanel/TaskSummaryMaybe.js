@@ -5,6 +5,7 @@ import { FormattedMessage } from '../../../util/reactIntl';
 import { ASSIGNMENT_PROCESS_NAME } from '../../../transactions/transaction';
 import { fetchTaskChatSummary } from '../../../util/api';
 import { listingWorkStatus } from '../../../util/listingWorkStatus';
+import { NamedLink } from '../../../components';
 
 import css from './TransactionPanel.module.css';
 
@@ -69,8 +70,8 @@ const formatOfferPrice = offer => {
  * many other specialists still have a pending offer. Shown to both parties.
  */
 const TaskSummaryMaybe = props => {
-  const { processName, processState, transactionId, listing, offer } = props;
-  const [otherOfferCount, setOtherOfferCount] = useState(null);
+  const { processName, processState, transactionId, listing, offer, isCustomer } = props;
+  const [summary, setSummary] = useState(null);
 
   const txId = transactionId?.uuid || transactionId;
   const isAssignment = processName === ASSIGNMENT_PROCESS_NAME;
@@ -84,12 +85,12 @@ const TaskSummaryMaybe = props => {
     fetchTaskChatSummary(txId)
       .then(data => {
         if (!cancelled && typeof data?.otherOfferCount === 'number') {
-          setOtherOfferCount(data.otherOfferCount);
+          setSummary(data);
         }
       })
       .catch(() => {
         if (!cancelled) {
-          setOtherOfferCount(null);
+          setSummary(null);
         }
       });
 
@@ -104,6 +105,8 @@ const TaskSummaryMaybe = props => {
 
   const priceLabel = formatOfferPrice(offer);
   const status = chatTaskStatus(processState, listing);
+  const otherOfferCount = summary?.otherOfferCount;
+  const otherOffers = isCustomer && Array.isArray(summary?.otherOffers) ? summary.otherOffers : null;
 
   return (
     <div className={css.taskSummary}>
@@ -127,12 +130,28 @@ const TaskSummaryMaybe = props => {
           <FormattedMessage id={`TransactionPanel.taskSummary.status.${status}`} />
         </span>
       </div>
-      {otherOfferCount === null || status !== 'open' ? null : (
+      {otherOfferCount === null || otherOfferCount === undefined || status !== 'open' ? null : (
         <div className={css.taskSummaryNote}>
           <FormattedMessage
             id="TransactionPanel.taskSummary.otherOffers"
             values={{ count: otherOfferCount }}
           />
+          {otherOffers && otherOffers.length > 0 ? (
+            <ul className={css.otherOfferList}>
+              {otherOffers.map(item => (
+                <li key={item.transactionId}>
+                  <NamedLink
+                    className={css.otherOfferLink}
+                    name="SaleDetailsPage"
+                    params={{ id: item.transactionId }}
+                  >
+                    {item.name || '—'} — {Number.isFinite(item.price) ? item.price : '—'}{' '}
+                    {item.currency || 'AED'}
+                  </NamedLink>
+                </li>
+              ))}
+            </ul>
+          ) : null}
         </div>
       )}
     </div>

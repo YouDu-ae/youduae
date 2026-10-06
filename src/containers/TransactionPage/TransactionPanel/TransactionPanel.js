@@ -317,6 +317,7 @@ export class TransactionPanelComponent extends Component {
               transactionId={transactionId}
               listing={listing}
               offer={protectedData?.offer}
+              isCustomer={isCustomer}
             />
 
             {canComplete ? (
