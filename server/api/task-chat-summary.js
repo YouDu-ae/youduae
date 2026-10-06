@@ -36,7 +36,11 @@ module.exports = async (req, res) => {
       clientSecret,
     });
 
-    const txResponse = await integrationSdk.transactions.show({ id: transactionId });
+    // Relationships come back only for what is listed in `include`.
+    const txResponse = await integrationSdk.transactions.show({
+      id: transactionId,
+      include: ['provider', 'customer', 'listing'],
+    });
     const tx = txResponse.data.data;
     const providerId = asUuid(tx.relationships?.provider?.data?.id);
     const customerId = asUuid(tx.relationships?.customer?.data?.id);

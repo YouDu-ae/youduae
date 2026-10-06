@@ -194,9 +194,12 @@ export const TransactionPageComponent = props => {
   const { listing, provider, customer, booking } = transaction || {};
 
   // Отмечаем транзакцию как просмотренную когда страница загружается
+  // Ids are compared as strings: a refetched transaction brings a new id object.
+  const viewedTransactionId = transaction?.id?.uuid;
+  const viewerId = currentUser?.id?.uuid;
   useEffect(() => {
-    if (transaction?.id && currentUser?.id && props.onUpdateNotificationCount) {
-      markTransactionAsViewed(transaction.id.uuid, currentUser.id.uuid);
+    if (viewedTransactionId && viewerId && props.onUpdateNotificationCount) {
+      markTransactionAsViewed(viewedTransactionId, viewerId);
       
       // Обновляем счётчик уведомлений после небольшой задержки
       // чтобы дать время серверу обновиться
@@ -204,7 +207,7 @@ export const TransactionPageComponent = props => {
         props.onUpdateNotificationCount();
       }, 500);
     }
-  }, [transaction?.id, currentUser?.id, props.onUpdateNotificationCount]);
+  }, [viewedTransactionId, viewerId, props.onUpdateNotificationCount]);
   // Closing a task promises a review form, so the page reopens itself with
   // this flag and shows the form as soon as the fresh transaction is loaded.
   const askedForReviewForm = (props.location?.search || '').includes('review=1');
