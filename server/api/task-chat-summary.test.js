@@ -10,6 +10,18 @@ jest.mock('sharetribe-flex-integration-sdk', () => ({
   }),
 }));
 
+jest.mock('sharetribe-flex-sdk', () => ({ createInstance: () => ({}) }));
+
+const mockFetchReviewStats = jest.fn();
+const mockFetchCompletedCount = jest.fn();
+
+jest.mock('../api-util/reputation', () => ({
+  ROLE: { SPECIALIST: 'specialist', CLIENT: 'client' },
+  resolveIsVerified: profile => profile?.metadata?.isVerified === true,
+  fetchReviewStats: (...args) => mockFetchReviewStats(...args),
+  fetchCompletedCount: (...args) => mockFetchCompletedCount(...args),
+}));
+
 const taskChatSummary = require('./task-chat-summary');
 const { otherOffersForAuthor } = taskChatSummary;
 
@@ -64,7 +76,7 @@ const pendingPage = () => ({
       {
         id: { uuid: OTHER_PROVIDER },
         type: 'user',
-        attributes: { profile: { displayName: 'Stanislav' } },
+        attributes: { profile: { displayName: 'Stanislav', metadata: { isVerified: true } } },
       },
     ],
   },
@@ -74,8 +86,12 @@ describe('task-chat-summary', () => {
   beforeEach(() => {
     process.env.INTEGRATION_API_CLIENT_ID = 'id';
     process.env.INTEGRATION_API_CLIENT_SECRET = 'secret';
+    process.env.REACT_APP_SHARETRIBE_SDK_CLIENT_ID = 'id';
+    process.env.SHARETRIBE_SDK_CLIENT_SECRET = 'secret';
     mockTxShow.mockReset().mockImplementation(params => Promise.resolve(txResponse(params)));
     mockTxQuery.mockReset().mockResolvedValue({ data: { meta: { totalItems: 4 } } });
+    mockFetchReviewStats.mockReset().mockResolvedValue({ count: 4, averageRating: 4.5 });
+    mockFetchCompletedCount.mockReset().mockResolvedValue(7);
   });
 
   it.each([
@@ -100,7 +116,18 @@ describe('task-chat-summary', () => {
 
     expect(res.json).toHaveBeenCalledWith({
       otherOfferCount: 1,
-      otherOffers: [{ transactionId: OTHER_TX, name: 'Stanislav', price: 2800, currency: 'AED' }],
+      otherOffers: [
+        {
+          transactionId: OTHER_TX,
+          name: 'Stanislav',
+          price: 2800,
+          currency: 'AED',
+          verified: true,
+          rating: 4.5,
+          reviewCount: 4,
+          completedCount: 7,
+        },
+      ],
     });
     expect(JSON.stringify(res.json.mock.calls[0][0])).not.toContain('secret');
   });
@@ -137,6 +164,15 @@ describe('otherOffersForAuthor', () => {
       TX_ID
     );
 
-    expect(offers).toEqual([{ transactionId: OTHER_TX, name: null, price: 1200, currency: 'AED' }]);
+    expect(offers).toEqual([
+      {
+        transactionId: OTHER_TX,
+        specialistId: OTHER_PROVIDER,
+        name: null,
+        price: 1200,
+        currency: 'AED',
+        verified: false,
+      },
+    ]);
   });
 });

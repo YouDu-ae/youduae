@@ -5,7 +5,8 @@ import { FormattedMessage } from '../../../util/reactIntl';
 import { ASSIGNMENT_PROCESS_NAME } from '../../../transactions/transaction';
 import { fetchTaskChatSummary } from '../../../util/api';
 import { listingWorkStatus } from '../../../util/listingWorkStatus';
-import { NamedLink } from '../../../components';
+import { NamedLink, VerificationBadge } from '../../../components';
+import StarRating from '../../../components/StarRating/StarRating';
 
 import css from './TransactionPanel.module.css';
 
@@ -139,15 +140,38 @@ const TaskSummaryMaybe = props => {
           {otherOffers && otherOffers.length > 0 ? (
             <ul className={css.otherOfferList}>
               {otherOffers.map(item => (
-                <li key={item.transactionId}>
-                  <NamedLink
-                    className={css.otherOfferLink}
-                    name="SaleDetailsPage"
-                    params={{ id: item.transactionId }}
-                  >
-                    {item.name || '—'} — {Number.isFinite(item.price) ? item.price : '—'}{' '}
-                    {item.currency || 'AED'}
-                  </NamedLink>
+                <li key={item.transactionId} className={css.otherOfferItem}>
+                  <div className={css.otherOfferHead}>
+                    <NamedLink
+                      className={css.otherOfferLink}
+                      name="SaleDetailsPage"
+                      params={{ id: item.transactionId }}
+                    >
+                      {item.name || '—'} — {Number.isFinite(item.price) ? item.price : '—'}{' '}
+                      {item.currency || 'AED'}
+                    </NamedLink>
+                    {item.verified ? <VerificationBadge isVerified /> : null}
+                  </div>
+                  <div className={css.otherOfferMeta}>
+                    {item.rating > 0 ? (
+                      <>
+                        <StarRating rating={item.rating} />
+                        <FormattedMessage
+                          id="TransactionPanel.taskSummary.otherOfferReviews"
+                          values={{ rating: Number(item.rating).toFixed(1), count: item.reviewCount }}
+                        />
+                      </>
+                    ) : (
+                      <FormattedMessage id="TransactionPanel.taskSummary.otherOfferNoReviews" />
+                    )}
+                    <span className={css.otherOfferDot} aria-hidden="true">
+                      ·
+                    </span>
+                    <FormattedMessage
+                      id="TransactionPanel.taskSummary.otherOfferCompleted"
+                      values={{ count: item.completedCount || 0 }}
+                    />
+                  </div>
                 </li>
               ))}
             </ul>

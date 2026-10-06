@@ -542,10 +542,21 @@
 }
 
 .otherOfferList {
-  margin: 6px 0 0 0;
+  margin: 8px 0 0 0;
   padding: 0;
   list-style: none;
   font-weight: 400;
+}
+
+.otherOfferItem + .otherOfferItem {
+  margin-top: 8px;
+}
+
+.otherOfferHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 0;
 }
 
 .otherOfferLink {
@@ -555,6 +566,22 @@
   &:hover {
     text-decoration: underline;
   }
+}
+
+.otherOfferMeta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  margin-top: 2px;
+  color: #666;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.3;
+}
+
+.otherOfferDot {
+  color: #999;
 }
 
 .offerDecision {

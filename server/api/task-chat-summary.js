@@ -14,6 +14,13 @@
  */
 
 const sharetribeIntegrationSdk = require('sharetribe-flex-integration-sdk');
+const sharetribeSdk = require('sharetribe-flex-sdk');
+const {
+  ROLE,
+  resolveIsVerified,
+  fetchReviewStats,
+  fetchCompletedCount,
+} = require('../api-util/reputation');
 
 const PENDING_TRANSITION = 'transition/inquire';
 const OTHER_OFFERS_PAGE = 20;
@@ -31,7 +38,8 @@ const userName = user => {
 
 /**
  * Other pending offers, for the task author only. The current chat is left
- * out. A missing name becomes null and the page shows a fallback.
+ * out. A missing name becomes null and the page shows a fallback. `specialistId`
+ * stays here for the reputation lookup and is not sent to the browser.
  */
 const otherOffersForAuthor = (transactions, included, currentTransactionId) => {
   const users = new Map(
@@ -46,11 +54,48 @@ const otherOffersForAuthor = (transactions, included, currentTransactionId) => {
       const price = Number(offer.price);
       return {
         transactionId: asUuid(tx.id),
+        specialistId,
         name: userName(users.get(specialistId)),
         price: Number.isFinite(price) ? price : null,
         currency: offer.currency || 'AED',
+        verified: resolveIsVerified(users.get(specialistId)?.attributes?.profile),
       };
     });
+};
+
+/**
+ * Reviews, the verification flag and finished-task count, as a specialist.
+ * The flag is already on the offer; the two counts need their own queries.
+ */
+const withReputation = async (offers, integrationSdk, marketplaceSdk) =>
+  Promise.all(
+    offers.map(async offer => {
+      const { specialistId, ...publicOffer } = offer;
+      if (!specialistId) {
+        return { ...publicOffer, rating: 0, reviewCount: 0, completedCount: 0 };
+      }
+      const [reviews, completedCount] = await Promise.all([
+        marketplaceSdk
+          ? fetchReviewStats(marketplaceSdk, { subjectId: specialistId, role: ROLE.SPECIALIST })
+          : { count: 0, averageRating: 0 },
+        fetchCompletedCount(integrationSdk, { userId: specialistId, role: ROLE.SPECIALIST }),
+      ]);
+      return {
+        ...publicOffer,
+        rating: reviews.averageRating,
+        reviewCount: reviews.count,
+        completedCount,
+      };
+    })
+  );
+
+const marketplaceSdk = () => {
+  const clientId = process.env.REACT_APP_SHARETRIBE_SDK_CLIENT_ID;
+  const clientSecret = process.env.SHARETRIBE_SDK_CLIENT_SECRET;
+  if (!clientId || !clientSecret) {
+    return null;
+  }
+  return sharetribeSdk.createInstance({ clientId, clientSecret });
 };
 
 module.exports = async (req, res) => {
@@ -104,9 +149,15 @@ module.exports = async (req, res) => {
       return res.status(200).json({ otherOfferCount });
     }
 
+    const offers = otherOffersForAuthor(
+      pendingResponse.data.data || [],
+      pendingResponse.data.included,
+      transactionId
+    );
+
     return res.status(200).json({
       otherOfferCount,
-      otherOffers: otherOffersForAuthor(pendingResponse.data.data || [], pendingResponse.data.included, transactionId),
+      otherOffers: await withReputation(offers, integrationSdk, marketplaceSdk()),
     });
   } catch (err) {
     console.error('❌ task-chat-summary:', err.message);
@@ -115,3 +166,4 @@ module.exports = async (req, res) => {
 };
 
 module.exports.otherOffersForAuthor = otherOffersForAuthor;
+module.exports.withReputation = withReputation;
