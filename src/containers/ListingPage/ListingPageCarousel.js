@@ -41,7 +41,8 @@ import {
   isPurchaseProcess,
   resolveLatestProcessName,
 } from '../../transactions/transaction';
-import { getListingStatus, updateListingStatus } from '../../util/api';
+import { updateListingStatus } from '../../util/api';
+import { listingWorkStatus } from '../../util/listingWorkStatus';
 
 // Global ducks (for Redux actions and thunks)
 import { getMarketplaceEntities } from '../../ducks/marketplaceData.duck';
@@ -102,7 +103,6 @@ export const ListingPageComponent = props => {
     props.inquiryModalOpenForListingId === props.params.id
   );
   const [mounted, setMounted] = useState(false);
-  const [listingStatus, setListingStatus] = useState(null);
   const [isClearingExecutor, setIsClearingExecutor] = useState(false);
 
   useEffect(() => {
@@ -178,34 +178,13 @@ export const ListingPageComponent = props => {
     : 'guest';
 
   useEffect(() => {
-    const loadStatus = async () => {
-      const listingId = rawParams.id;
-      if (listingId) {
-        try {
-          const response = await getListingStatus(listingId);
-          setListingStatus(response.status);
-        } catch (error) {
-          console.error('Failed to load listing status:', error);
-          setListingStatus(null);
-        }
-      }
-    };
-
-    loadStatus();
-
     if (mounted && currentListing?.id?.uuid) {
       trackListingView(currentListing, {
         viewerRole,
         viewerId: currentUser?.id?.uuid,
       });
     }
-  }, [
-    rawParams.id,
-    mounted,
-    currentListing?.id?.uuid,
-    viewerRole,
-    currentUser?.id?.uuid,
-  ]);
+  }, [mounted, currentListing?.id?.uuid, viewerRole, currentUser?.id?.uuid]);
 
   if (shouldShowPublicListingPage) {
     return <NamedRedirect name="ListingPage" params={params} search={location.search} />;
@@ -279,13 +258,9 @@ const isPublished =
 const processName = transactionProcessAlias ? resolveLatestProcessName(transactionProcessAlias.split('/')[0]) : null;
 const isAssignmentProcess = processName === 'assignment-flow-v3';
 
-// Проверяем статус листинга - если "в работе", то форму не показываем
-// publicData.status === 'open' — приоритет после смены исполнителя
-const listingInProgress =
-  publicData.status === 'open'
-    ? false
-    : listingStatus === 'in-progress' || publicData.hired === true;
-const listingClosed = listingStatus === 'closed';
+const workStatus = listingWorkStatus(publicData);
+const listingInProgress = workStatus === 'in-progress';
+const listingCompleted = workStatus === 'completed';
 const assignedTo = publicData.assignedTo;
 // Дополнительная проверка - если publicData.hired=true, значит исполнитель уже выбран
 const isHired = publicData.hired === true;
@@ -588,8 +563,8 @@ const isOnlyCustomer = !userRoles.customer && userRoles.provider; // Испол�
     </div>
   )}
 
-  {/* Список откликов — только владельцу, и только если не в работе */}
-  {isOwner && hasListing && !listingInProgress && (
+  {/* Список откликов — только владельцу, пока исполнитель не выбран и работа не завершена */}
+  {isOwner && hasListing && !listingInProgress && !listingCompleted && (
     <OfferList listingId={currentListing.id.uuid} isOwner publicData={publicData} />
   )}
   
@@ -635,8 +610,8 @@ const isOnlyCustomer = !userRoles.customer && userRoles.provider; // Испол�
     </div>
   )}
 
-  {/* Если листинг закрыт, показываем владельцу инфо */}
-  {isOwner && listingClosed && (
+  {/* Если работа завершена, показываем владельцу инфо */}
+  {isOwner && listingCompleted && (
     <div
       style={{
         marginTop: 24,

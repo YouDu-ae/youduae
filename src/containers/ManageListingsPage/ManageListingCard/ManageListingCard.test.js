@@ -848,3 +848,64 @@ describe('ManageListingCard', () => {
     expect(tree.asFragment().firstChild).toMatchSnapshot();
   });
 });
+
+describe('ManageListingCard: task work status', () => {
+  const renderClosedTask = taskData => {
+    const listing = createOwnListing('task-1', {
+      title: 'the task',
+      description: 'Lorem ipsum',
+      price: new Money(1000, 'USD'),
+      state: 'closed',
+      availabilityPlan: null,
+      publicData: {
+        listingType: 'free-inquiry',
+        transactionProcessAlias: 'default-inquiry/release-1',
+        unitType: 'inquiry',
+        ...taskData,
+      },
+    });
+    const config = getConfig([
+      {
+        id: 'free-inquiry',
+        transactionProcess: {
+          name: 'default-inquiry',
+          alias: 'default-inquiry/release-1',
+        },
+        unitType: 'inquiry',
+      },
+    ]);
+
+    return render(
+      <ManageListingCard
+        history={{ push: noop }}
+        listing={listing}
+        intl={fakeIntl}
+        isMenuOpen={false}
+        onCloseListing={noop}
+        onOpenListing={noop}
+        onToggleMenu={noop}
+        hasClosingError={false}
+        hasOpeningError={false}
+      />,
+      { config }
+    );
+  };
+
+  it('marks a task with a chosen executor as in progress and lets it be reopened', () => {
+    const tree = renderClosedTask({ status: 'in-progress', hired: true });
+
+    expect(tree.getByText('ManageListingCard.inProgress')).toBeInTheDocument();
+    expect(tree.queryByText('ManageListingCard.closed')).not.toBeInTheDocument();
+    expect(tree.getByText('ManageListingCard.openListing')).toBeInTheDocument();
+  });
+
+  // Completion leaves hired: true, and reopening would erase the completion.
+  it('marks a completed task as closed and does not offer to reopen it', () => {
+    const tree = renderClosedTask({ status: 'completed', hired: true, assignedTo: 'user-1' });
+
+    expect(tree.getByText('ManageListingCard.closed')).toBeInTheDocument();
+    expect(tree.queryByText('ManageListingCard.inProgress')).not.toBeInTheDocument();
+    expect(tree.getByText('ManageListingCard.closedListing')).toBeInTheDocument();
+    expect(tree.queryByText('ManageListingCard.openListing')).not.toBeInTheDocument();
+  });
+});

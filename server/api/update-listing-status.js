@@ -49,10 +49,10 @@ module.exports = async (req, res) => {
 
   console.log('🔄 update-listing-status:', { listingId, assignedTo, status });
 
-  // Ensure listingId is in correct format for SDK
-  const listingUUID = typeof listingId === 'string' 
-    ? { _sdkType: 'UUID', uuid: listingId }
-    : listingId;
+  // Объект вида { _sdkType: 'UUID' } SDK принимает только в теле POST, а GET
+  // (ownListings.show) с ним падает: нужен настоящий UUID.
+  const listingUUID =
+    typeof listingId === 'string' ? new sharetribeSdk.types.UUID(listingId) : listingId;
 
   const buildUpdateAndApply = (existingPublicData = {}) => {
   // Обновляем publicData листинга
@@ -141,18 +141,21 @@ module.exports = async (req, res) => {
     });
   };
 
-  const run = status === 'open'
-    ? sdk.ownListings
-        .show({ id: listingUUID })
-        .then(showRes => {
-          const existing = showRes?.data?.data?.attributes?.publicData || {};
-          return buildUpdateAndApply(existing);
-        })
-        .catch(err => {
-          console.warn('⚠️ Could not load listing before open; proceeding:', err?.message);
-          return buildUpdateAndApply({});
-        })
-    : buildUpdateAndApply({});
+  // Ошибка самого обновления не должна повторять его с пустыми данными:
+  // повтор перезаписал бы excludedOfferCustomerIds без прежних исполнителей.
+  const run =
+    status === 'open'
+      ? sdk.ownListings
+          .show({ id: listingUUID })
+          .then(
+            showRes => showRes?.data?.data?.attributes?.publicData || {},
+            err => {
+              console.warn('⚠️ Could not load listing before open; proceeding:', err?.message);
+              return {};
+            }
+          )
+          .then(buildUpdateAndApply)
+      : buildUpdateAndApply({});
 
   run
     .then(apiResponse => {

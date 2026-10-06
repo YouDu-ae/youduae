@@ -279,12 +279,6 @@ export const getUserReviewsStats = (userId, role = 'specialist') => {
   return get(`/api/user-reviews-stats?userId=${userId}&role=${role}`);
 };
 
-// Get listing status based on transactions
-// Returns { status: 'available' | 'in-progress' | 'closed' }
-export const getListingStatus = listingId => {
-  return get(`/api/listing-status?listingId=${listingId}`);
-};
-
 // Create listing from guest data after authentication
 export const createGuestListing = listingData => {
   return post('/api/create-guest-listing', listingData);

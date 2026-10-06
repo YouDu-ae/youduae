@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { useHistory } from 'react-router-dom';
 import classNames from 'classnames';
 
@@ -19,7 +19,7 @@ import {
 } from '../../../util/types';
 import { formatMoney } from '../../../util/currency';
 import { ensureOwnListing } from '../../../util/data';
-import { getListingStatus } from '../../../util/api';
+import { listingWorkStatus } from '../../../util/listingWorkStatus';
 import {
   LISTING_PAGE_PENDING_APPROVAL_VARIANT,
   LISTING_PAGE_DRAFT_VARIANT,
@@ -176,6 +176,7 @@ const ShowFinishDraftOverlayMaybe = props => {
 const ShowClosedOverlayMaybe = props => {
   const {
     isClosed,
+    canReopen,
     title,
     actionsInProgressListingId,
     currentListingId,
@@ -190,25 +191,28 @@ const ShowClosedOverlayMaybe = props => {
         { listingTitle: title }
       )}
     >
-      <PrimaryButtonInline
-        className={css.openListingButton}
-        disabled={!!actionsInProgressListingId}
-        onClick={event => {
-          event.preventDefault();
-          event.stopPropagation();
-          if (!actionsInProgressListingId) {
-            // Запрос подтверждения перед открытием листинга
-            const confirmMessage = intl.formatMessage({ 
-              id: 'ManageListingCard.confirmReopenListing' 
-            });
-            if (window.confirm(confirmMessage)) {
-              onOpenListing(currentListingId);
+      {/* Повторное открытие ставит status: 'open' и стирает отметку о завершении */}
+      {canReopen ? (
+        <PrimaryButtonInline
+          className={css.openListingButton}
+          disabled={!!actionsInProgressListingId}
+          onClick={event => {
+            event.preventDefault();
+            event.stopPropagation();
+            if (!actionsInProgressListingId) {
+              // Запрос подтверждения перед открытием листинга
+              const confirmMessage = intl.formatMessage({
+                id: 'ManageListingCard.confirmReopenListing',
+              });
+              if (window.confirm(confirmMessage)) {
+                onOpenListing(currentListingId);
+              }
             }
-          }
-        }}
-      >
-        <FormattedMessage id="ManageListingCard.openListing" />
-      </PrimaryButtonInline>
+          }}
+        >
+          <FormattedMessage id="ManageListingCard.openListing" />
+        </PrimaryButtonInline>
+      ) : null}
     </Overlay>
   ) : null;
 };
@@ -473,31 +477,7 @@ export const ManageListingCard = props => {
   const currentListing = ensureOwnListing(listing);
   const id = currentListing.id.uuid;
   const { title = '', price, state, publicData } = currentListing.attributes;
-
-  // State для хранения статуса листинга (загружается с backend)
-  const [listingStatus, setListingStatus] = useState(null);
-  const [statusLoading, setStatusLoading] = useState(false);
-
-  // Загрузка статуса листинга на основе транзакций
-  useEffect(() => {
-    const loadListingStatus = async () => {
-      // Только для опубликованных листингов
-      if (state !== LISTING_STATE_PENDING_APPROVAL && state !== LISTING_STATE_DRAFT && state !== LISTING_STATE_CLOSED) {
-        setStatusLoading(true);
-        try {
-          const response = await getListingStatus(id);
-          setListingStatus(response.status);
-        } catch (error) {
-          console.error('Failed to load listing status:', error);
-          setListingStatus(null);
-        } finally {
-          setStatusLoading(false);
-        }
-      }
-    };
-
-    loadListingStatus();
-  }, [id, state]);
+  const workStatus = listingWorkStatus(publicData);
   const slug = createSlug(title);
   const isPendingApproval = state === LISTING_STATE_PENDING_APPROVAL;
   const isClosed = state === LISTING_STATE_CLOSED;
@@ -648,6 +628,7 @@ export const ManageListingCard = props => {
 
         <ShowClosedOverlayMaybe
           isClosed={isClosed}
+          canReopen={workStatus !== 'completed'}
           title={title}
           actionsInProgressListingId={actionsInProgressListingId}
           currentListingId={currentListing.id}
@@ -703,7 +684,7 @@ export const ManageListingCard = props => {
             >
               {formatTitle(title, MAX_LENGTH_FOR_WORDS_IN_TITLE)}
             </InlineTextButton>
-            {listingStatus === 'in-progress' && (
+            {workStatus === 'in-progress' && (
               <span
                 style={{
                   marginLeft: 8,
@@ -718,7 +699,7 @@ export const ManageListingCard = props => {
                 <FormattedMessage id="ManageListingCard.inProgress" />
               </span>
             )}
-            {listingStatus === 'closed' && (
+            {(workStatus === 'completed' || workStatus === 'cancelled') && (
               <span
                 style={{
                   marginLeft: 8,

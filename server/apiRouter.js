@@ -30,7 +30,6 @@ const updateListingStatus = require('./api/update-listing-status');
 const userReviewsStats = require('./api/user-reviews-stats');
 const createGuestListing = require('./api/create-guest-listing');
 const notifyNewListing = require('./api/notify-new-listing');
-const listingStatus = require('./api/listing-status');
 const searchExecutors = require('./api/search-executors');
 const categorySpecialists = require('./api/category-specialists');
 const areaStats = require('./api/area-stats');
@@ -138,7 +137,6 @@ router.post('/update-listing-status', updateListingStatus);
 router.get('/user-reviews-stats', userReviewsStats);
 router.post('/create-guest-listing', writeLimiter, createGuestListing);
 router.post('/notify-new-listing', writeLimiter, notifyNewListing);
-router.get('/listing-status', listingStatus);
 router.get('/search-executors', expensiveLimiter, searchExecutors);
 router.get('/category-specialists', categorySpecialists);
 // Same reasoning as /landing-reviews: heavily cached, called by everyone filling

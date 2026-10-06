@@ -103,7 +103,7 @@ exports[`ManageListingCard matches snapshot (purchase) 1`] = `
           </button>
           <div
             class="menuContent isClosed"
-            style="right: -12px; min-width: 0;"
+            style="left: -10000px;"
           >
             <ul
               class="content"
