@@ -31,6 +31,7 @@ const userReviewsStats = require('./api/user-reviews-stats');
 const createGuestListing = require('./api/create-guest-listing');
 const notifyNewListing = require('./api/notify-new-listing');
 const searchExecutors = require('./api/search-executors');
+const specialistProfile = require('./api/specialist-profile');
 const categorySpecialists = require('./api/category-specialists');
 const areaStats = require('./api/area-stats');
 const createMyExecutorProfile = require('./api/create-my-executor-profile');
@@ -138,6 +139,7 @@ router.get('/user-reviews-stats', userReviewsStats);
 router.post('/create-guest-listing', writeLimiter, createGuestListing);
 router.post('/notify-new-listing', writeLimiter, notifyNewListing);
 router.get('/search-executors', expensiveLimiter, searchExecutors);
+router.get('/specialist-profile', expensiveLimiter, specialistProfile);
 router.get('/category-specialists', categorySpecialists);
 // Same reasoning as /landing-reviews: heavily cached, called by everyone filling
 // in a task, so the router-wide apiLimiter is the right ceiling here.
