@@ -105,13 +105,26 @@ const TaskSummaryMaybe = props => {
   }
 
   const priceLabel = formatOfferPrice(offer);
+  const priceAmount = Number(offer?.price);
+  const priceCurrency = offer?.currency || 'AED';
   const status = chatTaskStatus(processState, listing);
   const otherOfferCount = summary?.otherOfferCount;
   const otherOffers = isTaskAuthor && Array.isArray(summary?.otherOffers) ? summary.otherOffers : null;
+  const showOfferPrice = status === 'open' && Number.isFinite(priceAmount);
 
   return (
     <div className={css.taskSummary}>
-      {priceLabel ? (
+      {showOfferPrice ? (
+        <div className={css.thisOffer}>
+          <span className={css.taskSummaryLabel}>
+            <FormattedMessage id="TransactionPanel.taskSummary.price" />
+          </span>
+          <span className={css.thisOfferPrice}>
+            <span className={css.thisOfferAmount}>{priceAmount}</span>
+            <span className={css.thisOfferCurrency}>{priceCurrency}</span>
+          </span>
+        </div>
+      ) : priceLabel ? (
         <div className={css.taskSummaryRow}>
           <span className={css.taskSummaryLabel}>
             <FormattedMessage id="TransactionPanel.taskSummary.price" />
@@ -140,38 +153,48 @@ const TaskSummaryMaybe = props => {
           {otherOffers && otherOffers.length > 0 ? (
             <ul className={css.otherOfferList}>
               {otherOffers.map(item => (
-                <li key={item.transactionId} className={css.otherOfferItem}>
-                  <div className={css.otherOfferHead}>
-                    <NamedLink
-                      className={css.otherOfferLink}
-                      name="SaleDetailsPage"
-                      params={{ id: item.transactionId }}
-                    >
-                      {item.name || '—'} — {Number.isFinite(item.price) ? item.price : '—'}{' '}
-                      {item.currency || 'AED'}
-                    </NamedLink>
-                    {item.verified ? <VerificationBadge isVerified /> : null}
-                  </div>
-                  <div className={css.otherOfferMeta}>
-                    {item.rating > 0 ? (
-                      <>
-                        <StarRating rating={item.rating} />
+                <li key={item.transactionId}>
+                  <NamedLink
+                    className={css.otherOfferCard}
+                    name="SaleDetailsPage"
+                    params={{ id: item.transactionId }}
+                  >
+                    <span className={css.otherOfferMain}>
+                      <span className={css.otherOfferName}>
+                        {item.name || '—'}
+                        {item.verified ? <VerificationBadge isVerified /> : null}
+                      </span>
+                      <span className={css.otherOfferMeta}>
+                        {item.rating > 0 ? (
+                          <>
+                            <StarRating rating={item.rating} />
+                            <FormattedMessage
+                              id="TransactionPanel.taskSummary.otherOfferReviews"
+                              values={{
+                                rating: Number(item.rating).toFixed(1),
+                                count: item.reviewCount,
+                              }}
+                            />
+                          </>
+                        ) : (
+                          <FormattedMessage id="TransactionPanel.taskSummary.otherOfferNoReviews" />
+                        )}
+                        <span className={css.otherOfferDot} aria-hidden="true">
+                          ·
+                        </span>
                         <FormattedMessage
-                          id="TransactionPanel.taskSummary.otherOfferReviews"
-                          values={{ rating: Number(item.rating).toFixed(1), count: item.reviewCount }}
+                          id="TransactionPanel.taskSummary.otherOfferCompleted"
+                          values={{ count: item.completedCount || 0 }}
                         />
-                      </>
-                    ) : (
-                      <FormattedMessage id="TransactionPanel.taskSummary.otherOfferNoReviews" />
-                    )}
-                    <span className={css.otherOfferDot} aria-hidden="true">
-                      ·
+                      </span>
                     </span>
-                    <FormattedMessage
-                      id="TransactionPanel.taskSummary.otherOfferCompleted"
-                      values={{ count: item.completedCount || 0 }}
-                    />
-                  </div>
+                    <span className={css.otherOfferPrice}>
+                      <span className={css.otherOfferAmount}>
+                        {Number.isFinite(item.price) ? item.price : '—'}
+                      </span>
+                      <span className={css.otherOfferCurrency}>{item.currency || 'AED'}</span>
+                    </span>
+                  </NamedLink>
                 </li>
               ))}
             </ul>
