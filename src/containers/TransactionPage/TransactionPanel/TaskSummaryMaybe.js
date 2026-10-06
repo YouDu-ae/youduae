@@ -4,17 +4,19 @@ import classNames from 'classnames';
 import { FormattedMessage } from '../../../util/reactIntl';
 import { ASSIGNMENT_PROCESS_NAME } from '../../../transactions/transaction';
 import { fetchTaskChatSummary } from '../../../util/api';
+import { listingWorkStatus } from '../../../util/listingWorkStatus';
 
 import css from './TransactionPanel.module.css';
 
 export const listingTaskStatus = listing => {
   const publicData = listing?.attributes?.publicData || {};
-  if (publicData.cancelled === true || publicData.status === 'cancelled') {
-    return 'cancelled';
+  const workStatus = listingWorkStatus(publicData);
+  if (workStatus === 'cancelled' || workStatus === 'completed') {
+    return workStatus;
   }
   // Hiring closes the listing in Sharetribe, so the hired flags have to win
   // over the closed state, otherwise a task in progress reads as finished.
-  if (publicData.hired === true || publicData.status === 'in-progress') {
+  if (workStatus === 'in-progress') {
     return 'inProgress';
   }
   if (publicData.status === 'closed' || listing?.attributes?.state === 'closed') {
@@ -26,21 +28,28 @@ export const listingTaskStatus = listing => {
 const FINISHED_STATES = ['completed', 'reviewed-by-customer', 'reviewed-by-provider', 'reviewed'];
 
 /**
- * What this conversation is about right now. The transaction knows more than
- * the listing here: the listing is closed as soon as anyone is hired, so it
- * cannot tell "work in progress" from "task finished".
+ * What this conversation is about right now. The listing state alone cannot
+ * tell "work in progress" from "task finished" (the listing is closed as soon
+ * as anyone is hired), so this specialist's own deal is read first and the
+ * task's publicData fills in the rest.
  */
 export const chatTaskStatus = (processState, listing) => {
   if (FINISHED_STATES.includes(processState)) {
     return 'completed';
   }
-  if (processState === 'accepted') {
-    return 'hired';
-  }
   if (processState === 'declined') {
     return 'declined';
   }
-  return listingTaskStatus(listing);
+  const taskStatus = listingTaskStatus(listing);
+  // A finished or cancelled task is over for every specialist in it, including
+  // one whose accepted deal was left behind by «Сменить исполнителя».
+  if (taskStatus === 'completed' || taskStatus === 'cancelled') {
+    return taskStatus;
+  }
+  if (processState === 'accepted') {
+    return 'hired';
+  }
+  return taskStatus;
 };
 
 const formatOfferPrice = offer => {

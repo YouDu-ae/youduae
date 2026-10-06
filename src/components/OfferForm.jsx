@@ -42,8 +42,13 @@ export default function OfferForm({
   const [offerStatus, setOfferStatus] = useState(null); // pending, accepted, declined, completed
   const [transactionId, setTransactionId] = useState(null); // ID транзакции для ссылки на чат
 
-  // Проверяем, не отправлял ли пользователь уже отклик на этот листинг
+  // Проверяем, не отправлял ли пользователь уже отклик на этот листинг.
+  // Гостю и тем, кто не может откликаться, форма не показывается — проверять нечего.
   useEffect(() => {
+    if (!isOnlyCustomer) {
+      return;
+    }
+
     const checkExistingOffer = async () => {
       try {
         const response = await checkMyOffer(listingId);
@@ -68,7 +73,7 @@ export default function OfferForm({
     };
 
     checkExistingOffer();
-  }, [listingId]);
+  }, [listingId, isOnlyCustomer]);
 
   const onSubmit = async e => {
     e.preventDefault();

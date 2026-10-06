@@ -173,25 +173,35 @@ const ShowFinishDraftOverlayMaybe = props => {
   ) : null;
 };
 
+// Sharetribe закрывает задание и при выборе исполнителя, и при завершении,
+// и при отмене, поэтому надпись зависит от состояния работы.
+const CLOSED_OVERLAY_MESSAGE_IDS = {
+  'in-progress': 'ManageListingCard.inProgressListing',
+  completed: 'ManageListingCard.completedListing',
+  cancelled: 'ManageListingCard.cancelledListing',
+  open: 'ManageListingCard.closedListing',
+};
+
 const ShowClosedOverlayMaybe = props => {
   const {
     isClosed,
-    canReopen,
+    workStatus,
     title,
     actionsInProgressListingId,
     currentListingId,
     onOpenListing,
     intl,
   } = props;
+  // Повторное открытие ставит status: 'open' и стирает отметку о завершении
+  const canReopen = workStatus !== 'completed';
 
   return isClosed ? (
     <Overlay
       message={intl.formatMessage(
-        { id: 'ManageListingCard.closedListing' },
+        { id: CLOSED_OVERLAY_MESSAGE_IDS[workStatus] },
         { listingTitle: title }
       )}
     >
-      {/* Повторное открытие ставит status: 'open' и стирает отметку о завершении */}
       {canReopen ? (
         <PrimaryButtonInline
           className={css.openListingButton}
@@ -628,7 +638,7 @@ export const ManageListingCard = props => {
 
         <ShowClosedOverlayMaybe
           isClosed={isClosed}
-          canReopen={workStatus !== 'completed'}
+          workStatus={workStatus}
           title={title}
           actionsInProgressListingId={actionsInProgressListingId}
           currentListingId={currentListing.id}
@@ -711,7 +721,13 @@ export const ManageListingCard = props => {
                   fontWeight: 600,
                 }}
               >
-                <FormattedMessage id="ManageListingCard.closed" />
+                <FormattedMessage
+                  id={
+                    workStatus === 'completed'
+                      ? 'ManageListingCard.completed'
+                      : 'ManageListingCard.cancelled'
+                  }
+                />
               </span>
             )}
           </div>

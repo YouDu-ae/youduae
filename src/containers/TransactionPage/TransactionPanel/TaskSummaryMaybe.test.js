@@ -28,6 +28,15 @@ describe('listingTaskStatus', () => {
       listingTaskStatus({ attributes: { state: 'closed', publicData: { hired: true } } })
     ).toBe('inProgress');
   });
+
+  // Completion writes status: 'completed' and leaves hired: true.
+  it('reads a completed task as completed', () => {
+    expect(
+      listingTaskStatus({
+        attributes: { state: 'closed', publicData: { status: 'completed', hired: true } },
+      })
+    ).toBe('completed');
+  });
 });
 
 describe('chatTaskStatus', () => {
@@ -52,5 +61,28 @@ describe('chatTaskStatus', () => {
   it('falls back to the listing while the offer is still pending', () => {
     expect(chatTaskStatus('inquiry', openListing)).toBe('open');
     expect(chatTaskStatus('inquiry', hiredListing)).toBe('inProgress');
+  });
+
+  describe('once the task is over', () => {
+    const completedListing = {
+      attributes: { state: 'closed', publicData: { status: 'completed', hired: true } },
+    };
+    const cancelledListing = {
+      attributes: { state: 'closed', publicData: { status: 'cancelled', cancelled: true } },
+    };
+
+    it('tells specialists with a pending offer that the task is completed', () => {
+      expect(chatTaskStatus('inquiry', completedListing)).toBe('completed');
+    });
+
+    // «Сменить исполнителя» leaves the removed specialist's deal accepted.
+    it('does not show an accepted deal as hired when the task is finished or cancelled', () => {
+      expect(chatTaskStatus('accepted', completedListing)).toBe('completed');
+      expect(chatTaskStatus('accepted', cancelledListing)).toBe('cancelled');
+    });
+
+    it('still tells a declined specialist about the declined offer', () => {
+      expect(chatTaskStatus('declined', completedListing)).toBe('declined');
+    });
   });
 });
