@@ -327,6 +327,17 @@ describe('executeTool', () => {
     expect(siteTool.parameters.properties.deadline.enum).toContain('week');
   });
 
+  // The app's first step holds the photos and waits for them; the site asks
+  // for photos on its last step, where the person publishes the task anyway.
+  it('lets only the app hear that the person has no photos', () => {
+    const appTool = APP_STEP_TOOL_DEFINITIONS.find(t => t.name === 'fill_task_fields');
+    const siteTool = STEP_TOOL_DEFINITIONS.find(t => t.name === 'fill_task_fields');
+
+    expect(appTool.parameters.properties.photos_done.type).toEqual(['boolean', 'null']);
+    expect(appTool.parameters.required).toContain('photos_done');
+    expect(siteTool.parameters.properties.photos_done).toBeUndefined();
+  });
+
   it('lets prepare_task_draft leave only the optional fields as null', () => {
     const tool = TOOL_DEFINITIONS.find(t => t.name === 'prepare_task_draft');
     const { properties, required } = tool.parameters;
@@ -507,6 +518,11 @@ describe('executeTool', () => {
       expect(result).toEqual({ ok: false, error: expect.any(String) });
     });
 
+    it('has no photos to pass on to the site', async () => {
+      const result = await executeTool('fill_task_fields', { photos_done: true }, { categories });
+      expect(result).toEqual({ ok: false, error: expect.any(String) });
+    });
+
     describe('in the app', () => {
       const app = { categories, wizard: 'app', now: new Date('2026-10-02T08:00:00Z') };
 
@@ -524,6 +540,20 @@ describe('executeTool', () => {
       it('fills the date the person named', async () => {
         const result = await executeTool('fill_task_fields', { deadline: '2026-10-09' }, app);
         expect(result).toEqual({ ok: true, fields: { deadline: '2026-10-09' }, complete: false });
+      });
+
+      it('passes on that the person has no photos, so the first step can go on', async () => {
+        const result = await executeTool('fill_task_fields', { photos_done: true }, app);
+        expect(result).toEqual({ ok: true, fields: { photosDone: true }, complete: false });
+      });
+
+      it('leaves the photos out while the person has not answered about them', async () => {
+        const result = await executeTool(
+          'fill_task_fields',
+          { deadline: '2026-10-09', photos_done: null },
+          app
+        );
+        expect(result.fields).toEqual({ deadline: '2026-10-09' });
       });
 
       it('tells when the form is complete', async () => {

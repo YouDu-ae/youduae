@@ -142,6 +142,13 @@ describe('buildSessionConfig', () => {
       expect(instructions).toContain('Способ оплаты не спрашивай');
     });
 
+    it('leaves the photos to the last step of the site', () => {
+      const session = stepSession('title');
+
+      expect(session.delegation.responses.instructions).not.toContain('photos_done');
+      expect(session.instructions).not.toContain('Когда бэкенд попросит спросить о фото');
+    });
+
     it('tells the backend which step is open', () => {
       const { instructions } = stepSession('location').delegation.responses;
 
@@ -243,6 +250,33 @@ describe('buildSessionConfig', () => {
 
       expect(instructions).toContain('явно совпадает с тем, что назвал человек');
       expect(instructions).not.toContain('Если вариантов несколько, перечисли их');
+    });
+
+    // The first step holds the photos below the task, so they come up there
+    // and not only once everything else is filled.
+    it('asks about photos on the first step and goes on without them', () => {
+      const session = appSession('task');
+      const backend = session.delegation.responses.instructions;
+
+      expect(backend).toContain('1. «Задание» — название, описание, категория и под ними фото');
+      expect(backend).toContain(
+        'спроси, есть ли фото к заданию, и если есть, предложи добавить их сейчас'
+      );
+      expect(backend).toContain('вызови fill_task_fields с photos_done: true');
+      expect(session.instructions).toContain(
+        'Человек ответил, что фото нет или что добавит их позже.'
+      );
+      expect(session.instructions).toContain('Человек сказал, что сейчас добавит фото');
+    });
+
+    it('asks about the details in the order they stand on the screen', () => {
+      const { instructions } = appSession('details').delegation.responses;
+      expect(instructions).toContain('сначала адрес, потом бюджет, потом дату');
+    });
+
+    it('brings photos up on the review step only if nobody asked about them', () => {
+      const { instructions } = appSession('review').delegation.responses;
+      expect(instructions).toContain('Если фото нет и о них ещё не спрашивали');
     });
 
     it('starts from the first app step when the step is unknown', () => {

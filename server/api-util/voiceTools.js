@@ -178,11 +178,19 @@ const fillTaskFieldsTool = properties => ({
 const FILL_TASK_FIELDS_TOOL = fillTaskFieldsTool(FILL_TASK_FIELD_PROPERTIES);
 
 // The app's form asks for a date rather than one of the site's four deadlines.
+// Its first step also holds the photos, which only the person can add: the
+// step waits for them until the person says there are none.
 const APP_FILL_TASK_FIELDS_TOOL = fillTaskFieldsTool({
   ...FILL_TASK_FIELD_PROPERTIES,
   deadline: {
     type: 'string',
     description: 'Дата, когда нужно сделать, в виде ГГГГ-ММ-ДД по Дубаю, не раньше сегодняшней.',
+  },
+  photos_done: {
+    type: 'boolean',
+    description:
+      'true, если на вопрос о фото человек ответил, что фото нет или что добавит их позже: ' +
+      'приложение перейдёт к следующему шагу. Иначе null.',
   },
 });
 
@@ -501,6 +509,9 @@ const prepareTaskDraft = async (args, { categories }) => {
 const fillTaskFields = async (args, { categories, form = {}, wizard = 'site', now = new Date() }) => {
   const checks = fieldChecksFor(wizard, now);
   const { fields, placeId, errors } = validateTaskFields(args, categories, checks);
+  if (wizard === 'app' && args.photos_done === true) {
+    fields.photosDone = true;
+  }
 
   let address = form.address;
   if (placeId) {
