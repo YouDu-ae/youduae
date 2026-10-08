@@ -11,6 +11,7 @@ const {
   safetyIdentifierFor,
   createLiveSession,
   dailySessionLimit,
+  isExemptFromDailyVoiceLimit,
   LiveSessionError,
 } = require('./voiceSession');
 const {
@@ -389,6 +390,22 @@ describe('dailySessionLimit', () => {
     expect(dailySessionLimit()).toBe(5);
     process.env.VOICE_DAILY_SESSION_LIMIT = '12';
     expect(dailySessionLimit()).toBe(12);
+  });
+});
+
+describe('isExemptFromDailyVoiceLimit', () => {
+  const original = process.env.VOICE_DAILY_LIMIT_EXEMPT_USER_IDS;
+  afterEach(() => {
+    process.env.VOICE_DAILY_LIMIT_EXEMPT_USER_IDS = original;
+  });
+
+  it('is true only for an id on the list', () => {
+    process.env.VOICE_DAILY_LIMIT_EXEMPT_USER_IDS = ' user-a , user-b ';
+    expect(isExemptFromDailyVoiceLimit('user-a')).toBe(true);
+    expect(isExemptFromDailyVoiceLimit('user-c')).toBe(false);
+    expect(isExemptFromDailyVoiceLimit('')).toBe(false);
+    delete process.env.VOICE_DAILY_LIMIT_EXEMPT_USER_IDS;
+    expect(isExemptFromDailyVoiceLimit('user-a')).toBe(false);
   });
 });
 

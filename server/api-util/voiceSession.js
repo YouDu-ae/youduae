@@ -59,6 +59,17 @@ const dailySessionLimit = () => {
   return Number.isInteger(configured) && configured > 0 ? configured : DEFAULT_DAILY_LIMIT;
 };
 
+// Testers who need more than the daily cap. Same shape as the pilot list:
+// comma-separated user ids, empty means nobody is exempt.
+const dailyLimitExemptUserIds = () =>
+  (process.env.VOICE_DAILY_LIMIT_EXEMPT_USER_IDS || '')
+    .split(',')
+    .map(id => id.trim())
+    .filter(Boolean);
+
+const isExemptFromDailyVoiceLimit = userId =>
+  Boolean(userId) && dailyLimitExemptUserIds().includes(userId);
+
 const liveModel = () => process.env.VOICE_LIVE_MODEL || 'gpt-live-1';
 const backendModel = () => process.env.VOICE_BACKEND_MODEL || 'gpt-5.6-terra';
 // Unset keeps GPT-Live's default voice (marin). Chosen on the server so it can
@@ -566,6 +577,7 @@ module.exports = {
   isVoicePilotEnabled,
   isVoiceAllowedFor,
   dailySessionLimit,
+  isExemptFromDailyVoiceLimit,
   buildSessionConfig,
   wizardOf,
   wizardStepIdOf,

@@ -19,6 +19,7 @@ const {
   isVoicePilotEnabled,
   isVoiceAllowedFor,
   dailySessionLimit,
+  isExemptFromDailyVoiceLimit,
   buildSessionConfig,
   wizardOf,
   wizardStepIdOf,
@@ -62,8 +63,10 @@ module.exports = async (req, res) => {
     }
 
     // До обращения к OpenAI: отказ после создания сессии уже стоил бы денег.
-    const used = await db.countRecentVoiceSessions(userId);
-    if (used >= dailySessionLimit()) {
+    // A named tester can go past the cap; everyone else still stops at it.
+    const exempt = isExemptFromDailyVoiceLimit(userId);
+    const used = exempt ? null : await db.countRecentVoiceSessions(userId);
+    if (!exempt && used >= dailySessionLimit()) {
       return res.status(429).json({
         error: 'daily_limit',
         message: 'На сегодня голосовые разговоры закончились. Заполните задание вручную.',
@@ -96,9 +99,9 @@ module.exports = async (req, res) => {
     await db.recordVoiceSession({ sessionId: created.sessionId, userId, mode });
 
     console.log(
-      `🎙 voice-session: ${created.sessionId} for ${userId} (${used + 1} in 24h${
-        stepMode ? `, ${wizard} steps from ${currentStep}` : ''
-      })`
+      `🎙 voice-session: ${created.sessionId} for ${userId} (${
+        exempt ? 'no daily cap' : `${used + 1} in 24h`
+      }${stepMode ? `, ${wizard} steps from ${currentStep}` : ''})`
     );
     return res.status(201).json({
       ...created,
