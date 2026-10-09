@@ -289,6 +289,9 @@ const getSearchParams = config => {
       'publicData.shippingEnabled',
       'publicData.priceVariationsEnabled',
       'publicData.priceVariants',
+      // YouDu task fields
+      'publicData.deadline',
+      'publicData.paymentMethod',
     ],
     'fields.user': ['profile.displayName', 'profile.abbreviatedName'],
     'fields.image': [
@@ -318,7 +321,7 @@ describe('SearchPage', () => {
     const searchRouteConfig = routeConfiguration.find(conf => conf.name === 'SearchPage');
     const SearchPage = searchRouteConfig.component;
 
-    const { getByPlaceholderText, getByText, getAllByText, queryByText, getByRole } = render(
+    const { queryByPlaceholderText, getByText, getAllByText, queryByText, getByRole } = render(
       <SearchPage {...props} />,
       {
         initialState,
@@ -328,9 +331,9 @@ describe('SearchPage', () => {
     );
 
     await waitFor(() => {
-      // Has main search in Topbar and it's a location search.
-      expect(getByPlaceholderText('TopbarSearchForm.placeholder')).toBeInTheDocument();
-      expect(screen.getByTestId('location-search')).toBeInTheDocument();
+      // YouDu removed the search form from the Topbar
+      expect(queryByPlaceholderText('TopbarSearchForm.placeholder')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('location-search')).not.toBeInTheDocument();
 
       // Has filter column
       expect(screen.getByTestId('filterColumnAside')).toBeInTheDocument();
@@ -396,7 +399,8 @@ describe('SearchPage', () => {
     expect(getByText('Saltwater')).toBeInTheDocument();
   });
 
-  it('Check that map and filters exist in map variant', async () => {
+  // The site uses the grid variant; its map view is the separate SearchMapPage
+  it('Check that the map variant opens as a full-screen map', async () => {
     // Select correct SearchPage variant according to route configuration
     const config = getConfig('map');
     const routeConfiguration = getRouteConfiguration(config.layout);
@@ -404,90 +408,24 @@ describe('SearchPage', () => {
     const searchRouteConfig = routeConfiguration.find(conf => conf.name === 'SearchPage');
     const SearchPage = searchRouteConfig.component;
 
-    const { getByPlaceholderText, getByText, getAllByText, queryByText, getByRole } = render(
-      <SearchPage {...props} />,
-      {
-        initialState,
-        config,
-        routeConfiguration,
-      }
-    );
+    const { container, queryByPlaceholderText, queryByText } = render(<SearchPage {...props} />, {
+      initialState,
+      config,
+      routeConfiguration,
+    });
 
     await waitFor(() => {
-      // Has main search in Topbar and it's a location search.
-      expect(getByPlaceholderText('TopbarSearchForm.placeholder')).toBeInTheDocument();
-      expect(screen.getByTestId('location-search')).toBeInTheDocument();
+      // YouDu removed the search form from the Topbar
+      expect(queryByPlaceholderText('TopbarSearchForm.placeholder')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('location-search')).not.toBeInTheDocument();
 
-      // Does not have filter column
+      // The map replaces the results list, its filters and sorting
+      expect(container.querySelector('.fullScreenMapWrapper')).toBeInTheDocument();
+      expect(screen.queryByTestId('searchMapContainer')).not.toBeInTheDocument();
       expect(screen.queryByTestId('filterColumnAside')).not.toBeInTheDocument();
-      // Has search map container
-      expect(screen.getByTestId('searchMapContainer')).toBeInTheDocument();
-
-      // Has SortBy component
-      expect(getByText('MainPanelHeader.sortBy')).toBeInTheDocument();
-      expect(getAllByText('Newest')).toHaveLength(4); // desktop and mobile dropdowns & selected
-      expect(getAllByText('Oldest')).toHaveLength(2); // desktop and mobile dropdowns
-
-      // Has no Cat filter (primary filter tied to 'Cats' category)
-      expect(queryByText('Cat')).not.toBeInTheDocument();
-      // Does not have Amenities filter (secondary)
-      expect(queryByText('Amenities')).not.toBeInTheDocument();
-      // Has Single Select Test filter
-      expect(getByText('Single Select Test')).toBeInTheDocument();
-      expect(queryByText('Enum 1')).not.toBeInTheDocument();
-      expect(queryByText('Enum 2')).not.toBeInTheDocument();
-
-      // Has Category filter
-      expect(getByText('FilterComponent.categoryLabel')).toBeInTheDocument();
-      expect(queryByText('Dogs')).not.toBeInTheDocument();
-      expect(queryByText('Cats')).not.toBeInTheDocument();
-      expect(queryByText('Fish')).not.toBeInTheDocument();
-
-      // Has Listing type filter
-      expect(getByText('FilterComponent.listingTypeLabel')).toBeInTheDocument();
-      expect(queryByText('Rent bicycles daily')).not.toBeInTheDocument();
-      expect(queryByText('Rent bicycles nightly')).not.toBeInTheDocument();
-      expect(queryByText('Rent bicycles hourly')).not.toBeInTheDocument();
-      expect(queryByText('Sell bicycles')).not.toBeInTheDocument();
-
-      // Has "more filters" button for secondary filters
-      expect(getByText('SearchFiltersPrimary.moreFiltersButton')).toBeInTheDocument();
-
-      // Has Price filter
-      expect(getByText('FilterComponent.priceLabel')).toBeInTheDocument();
-
-      // Shows listings
-      // Has listing with title
-      expect(getByText('l1 title')).toBeInTheDocument();
-      // Has listing with title
-      expect(getByText('l2 title')).toBeInTheDocument();
-      // 2 listings with the same price
-      expect(getAllByText('ListingCard.price')).toHaveLength(2);
+      expect(queryByText('MainPanelHeader.sortBy')).not.toBeInTheDocument();
+      expect(queryByText('l1 title')).not.toBeInTheDocument();
     });
-
-    // Test category intercation
-    await waitFor(() => {
-      userEvent.click(getByRole('button', { name: 'FilterComponent.categoryLabel' }));
-    });
-    expect(getByText('Dogs')).toBeInTheDocument();
-    expect(queryByText('Poodle')).not.toBeInTheDocument();
-    expect(getByText('Cats')).toBeInTheDocument();
-    expect(queryByText('Burmese')).not.toBeInTheDocument();
-    expect(getByText('Fish')).toBeInTheDocument();
-    expect(queryByText('Freshwater')).not.toBeInTheDocument();
-
-    // Test category intercation: click "Fish"
-    await waitFor(() => {
-      userEvent.click(getByRole('button', { name: 'Fish' }));
-    });
-    expect(getByText('Dogs')).toBeInTheDocument();
-    expect(queryByText('Poodle')).not.toBeInTheDocument();
-    expect(getByText('Cats')).toBeInTheDocument();
-    expect(queryByText('Burmese')).not.toBeInTheDocument();
-    // Subcategories of Fish should be visible
-    expect(getByText('Fish')).toBeInTheDocument();
-    expect(getByText('Freshwater')).toBeInTheDocument();
-    expect(getByText('Saltwater')).toBeInTheDocument();
   });
 
   it('Check that Cat filters is revealed in grid variant', async () => {
@@ -498,7 +436,7 @@ describe('SearchPage', () => {
     const searchRouteConfig = routeConfiguration.find(conf => conf.name === 'SearchPage');
     const SearchPage = searchRouteConfig.component;
 
-    const { getByPlaceholderText, getByText, getAllByText, queryByText, getByRole } = render(
+    const { queryByPlaceholderText, getByText, getAllByText, queryByText, getByRole } = render(
       <SearchPage {...props} />,
       {
         initialState,
@@ -548,7 +486,7 @@ describe('SearchPage', () => {
     const searchRouteConfig = routeConfiguration.find(conf => conf.name === 'SearchPage');
     const SearchPage = searchRouteConfig.component;
 
-    const { getByPlaceholderText, getByText, getAllByText, queryByText, getByRole } = render(
+    const { queryByPlaceholderText, getByText, getAllByText, queryByText, getByRole } = render(
       <SearchPage {...props} />,
       {
         initialState,
@@ -588,7 +526,7 @@ describe('SearchPage', () => {
     );
     const SearchPage = searchRouteConfig.component;
 
-    const { getByPlaceholderText, getByText, getAllByText, queryByText, getByRole } = render(
+    const { queryByPlaceholderText, getByText, getAllByText, queryByText, getByRole } = render(
       <SearchPage {...props} />,
       {
         initialState,

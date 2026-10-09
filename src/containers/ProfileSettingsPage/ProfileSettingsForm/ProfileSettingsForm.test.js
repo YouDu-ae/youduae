@@ -394,7 +394,8 @@ describe('ProfileSettingsForm', () => {
     );
 
     expect(screen.getByText('Text Field')).toBeInTheDocument();
-    expect(screen.getByText('Text field content')).toBeInTheDocument();
+    // YouDu shows text fields as one-line inputs unless displayAsTextarea is set
+    expect(screen.getByDisplayValue('Text field content')).toBeInTheDocument();
     expect(screen.getByText('Multi-enum Field')).toBeInTheDocument();
     expect(screen.getByRole('checkbox', { name: 'ml1' }).checked).toBe(true);
     expect(screen.getByRole('checkbox', { name: 'ml2' }).checked).toBe(true);

@@ -2,7 +2,13 @@ import React from 'react';
 import '@testing-library/jest-dom';
 
 import { types as sdkTypes } from '../../util/sdkLoader';
-import { createListing, createStock, createUser, fakeIntl } from '../../util/testData';
+import {
+  createCurrentUser,
+  createListing,
+  createStock,
+  createUser,
+  fakeIntl,
+} from '../../util/testData';
 import {
   renderWithProviders as render,
   testingLibrary,
@@ -186,8 +192,13 @@ const timeSlotsForDate = {
   },
 };
 
+// Only specialists get the order button; in YouDu their userType is 'customer'
+const specialist = createCurrentUser('specialist');
+specialist.attributes.profile.publicData = { userType: 'customer' };
+
 const commonProps = {
   author: createUser('john-author'),
+  currentUser: specialist,
   authorLink: null,
   onSubmit: noop,
   title: 'title!',

@@ -225,7 +225,7 @@ describe('ListingPage variants', () => {
     const listingRouteConfig = routeConfiguration.find(conf => conf.name === 'ListingPage');
     const ListingPage = listingRouteConfig.component;
 
-    const { getByPlaceholderText, getByRole, queryAllByRole, getByText } = render(
+    const { queryByPlaceholderText, getByRole, queryByRole, queryAllByRole, getByText } = render(
       <ListingPage {...props} />,
       {
         initialState,
@@ -235,9 +235,9 @@ describe('ListingPage variants', () => {
     );
 
     await waitFor(() => {
-      // Has main search in Topbar and it's a location search.
-      expect(getByPlaceholderText('TopbarSearchForm.placeholder')).toBeInTheDocument();
-      expect(screen.getByTestId('location-search')).toBeInTheDocument();
+      // YouDu removed the search form from the Topbar
+      expect(queryByPlaceholderText('TopbarSearchForm.placeholder')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('location-search')).not.toBeInTheDocument();
 
       // Has hero (coverPhoto) section
       expect(screen.getByTestId('hero')).toBeInTheDocument();
@@ -268,8 +268,8 @@ describe('ListingPage variants', () => {
       expect(getByRole('heading', { name: 'ListingPage.aboutProviderTitle' })).toBeInTheDocument();
       // Has link to provider's profile
       expect(getByRole('link', { name: 'UserCard.viewProfileLink' })).toBeInTheDocument();
-      // Has button to contact provider
-      expect(getByRole('button', { name: 'UserCard.contactUser' })).toBeInTheDocument();
+      // YouDu removed the contact button from the author card
+      expect(queryByRole('button', { name: 'UserCard.contactUser' })).not.toBeInTheDocument();
     });
   });
 
@@ -281,7 +281,7 @@ describe('ListingPage variants', () => {
     const listingRouteConfig = routeConfiguration.find(conf => conf.name === 'ListingPage');
     const ListingPage = listingRouteConfig.component;
 
-    const { getByPlaceholderText, getByRole, queryAllByRole, getByText } = render(
+    const { queryByPlaceholderText, getByRole, queryByRole, queryAllByRole, getByText } = render(
       <ListingPage {...props} />,
       {
         initialState,
@@ -290,9 +290,9 @@ describe('ListingPage variants', () => {
       }
     );
     await waitFor(() => {
-      // Has main search in Topbar and it's a location search.
-      expect(getByPlaceholderText('TopbarSearchForm.placeholder')).toBeInTheDocument();
-      expect(screen.getByTestId('location-search')).toBeInTheDocument();
+      // YouDu removed the search form from the Topbar
+      expect(queryByPlaceholderText('TopbarSearchForm.placeholder')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('location-search')).not.toBeInTheDocument();
 
       // Does not have hero (coverPhoto) section on carousel mode
       expect(screen.getByTestId('carousel')).toBeInTheDocument();
@@ -310,21 +310,15 @@ describe('ListingPage variants', () => {
       // Has details location title
       expect(getByRole('heading', { name: 'ListingPage.locationTitle' })).toBeInTheDocument();
 
-      // Has details reviews title
-      const reviewsTitle = getByRole('heading', { name: 'ListingPage.reviewsTitle' });
-      expect(reviewsTitle).toBeInTheDocument();
-      const sectionReviews = within(reviewsTitle.parentNode.parentNode);
-      expect(sectionReviews.getByText('It was awesome!')).toBeInTheDocument();
-      expect(sectionReviews.getByText('reviewerA display name')).toBeInTheDocument();
-      expect(sectionReviews.getByText('June 2023')).toBeInTheDocument();
-      expect(sectionReviews.getAllByTitle('4/5')).toHaveLength(2);
+      // The carousel layout shows the author's rating instead of the reviews section
+      expect(queryByRole('heading', { name: 'ListingPage.reviewsTitle' })).not.toBeInTheDocument();
 
       // Has details provider/author title
       expect(getByRole('heading', { name: 'ListingPage.aboutProviderTitle' })).toBeInTheDocument();
       // Has link to provider's profile
       expect(getByRole('link', { name: 'UserCard.viewProfileLink' })).toBeInTheDocument();
-      // Has button to contact provider
-      expect(getByRole('button', { name: 'UserCard.contactUser' })).toBeInTheDocument();
+      // YouDu removed the contact button from the author card
+      expect(queryByRole('button', { name: 'UserCard.contactUser' })).not.toBeInTheDocument();
     });
   });
 });

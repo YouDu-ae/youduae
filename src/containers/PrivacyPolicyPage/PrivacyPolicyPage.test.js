@@ -8,19 +8,20 @@ import { PrivacyPolicyPageComponent } from './PrivacyPolicyPage';
 const { waitFor } = testingLibrary;
 
 describe('PrivacyPolicyPage', () => {
-  it('renders the Fallback page on error', async () => {
+  // YouDu always shows its own policy: the Console asset holds Sharetribe's placeholder
+  it('renders our own policy even if the Console asset fails to load', async () => {
     const errorMessage = 'PrivacyPolicyPage failed';
     let e = new Error(errorMessage);
     e.type = 'error';
     e.name = 'Test';
 
-    const { getByText } = render(
+    const { getByRole } = render(
       <PrivacyPolicyPageComponent pageAssetsData={null} inProgress={false} error={e} />
     );
 
     await waitFor(() => {
-      expect(getByText('Privacy Policy')).toBeInTheDocument();
-      expect(getByText('An error occurred')).toBeInTheDocument();
+      expect(getByRole('heading', { level: 1, name: 'Privacy Policy' })).toBeInTheDocument();
+      expect(getByRole('heading', { name: '1. Data We Process' })).toBeInTheDocument();
     });
   });
 });

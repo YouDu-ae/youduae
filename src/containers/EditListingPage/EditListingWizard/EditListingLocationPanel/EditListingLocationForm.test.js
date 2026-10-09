@@ -11,18 +11,17 @@ const { screen, userEvent, fireEvent } = testingLibrary;
 const noop = () => null;
 
 beforeAll(() => {
-  // Mock window.scroll - otherwise, Jest/JSDOM will print a not-implemented error.
-  window.mapboxgl = { accessToken: 'test' };
-  window.mapboxSdk = () => ({
-    geocoding: {
-      forwardGeocode: () => ({
-        send: () =>
-          Promise.resolve({
-            body: { features: [] },
-          }),
-      }),
+  // YouDu searches addresses with Google Maps Places
+  window.google = {
+    maps: {
+      places: {
+        AutocompleteSessionToken: function AutocompleteSessionToken() {},
+        AutocompleteSuggestion: {
+          fetchAutocompleteSuggestions: () => Promise.resolve({ suggestions: [] }),
+        },
+      },
     },
-  });
+  };
 });
 
 describe('EditListingDeliveryForm', () => {

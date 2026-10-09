@@ -696,7 +696,7 @@ describe('EditListingPage', () => {
       // Tab/form: price
       expect(
         getByRole('textbox', { name: 'EditListingPricingAndStockForm.pricePerProduct' })
-      ).toHaveValue('$55.00');
+      ).toHaveValue('$55');
 
       // Tab/form: stock
       expect(
@@ -909,7 +909,7 @@ describe('EditListingPage', () => {
       // Tab/form: price
       expect(
         getByRole('textbox', { name: 'EditListingPricingAndStockForm.pricePerProduct' })
-      ).toHaveValue('$55.00');
+      ).toHaveValue('$55');
 
       // Tab/form: infinity stock warning
       expect(
@@ -1305,7 +1305,7 @@ describe('EditListingPage', () => {
 
       // Tab/form: price
       expect(getByRole('textbox', { name: 'EditListingPricingForm.pricePerProduct' })).toHaveValue(
-        '$10.00'
+        '$10'
       );
 
       expect(
@@ -1326,7 +1326,7 @@ describe('EditListingPage', () => {
     });
 
     // Tab/form: existing building
-    expect(getByLabelText('EditListingPricingForm.pricePerProduct')).toHaveValue('$12.00');
+    expect(getByLabelText('EditListingPricingForm.pricePerProduct')).toHaveValue('$12');
   });
 
   it('Booking (day): edit flow on availability tab', async () => {
@@ -2560,7 +2560,7 @@ describe('EditListingPage', () => {
 
       // Tab/form: existing address
       expect(getByPlaceholderText('EditListingPricingForm.priceInputPlaceholder')).toHaveValue(
-        '$55.00'
+        '$55'
       );
 
       expect(
