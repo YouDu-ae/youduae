@@ -1,6 +1,7 @@
 const mockTelegram = jest.fn();
 const mockOfferTelegram = jest.fn();
 const mockPush = jest.fn();
+const mockOfferPush = jest.fn();
 const mockReviewPush = jest.fn();
 const mockEmail = jest.fn();
 
@@ -10,6 +11,7 @@ jest.mock('../api/telegram-bot', () => ({
 }));
 jest.mock('../api/send-notification', () => ({
   sendNewMessageNotification: (...args) => mockPush(...args),
+  sendNewOfferNotification: (...args) => mockOfferPush(...args),
   sendReviewNotification: (...args) => mockReviewPush(...args),
 }));
 jest.mock('../api-util/dealEmails', () => ({
@@ -65,6 +67,7 @@ const setup = (
     saveEventCursor: jest.fn(async () => {}),
     hasBlocked: jest.fn(async () => blocked),
     claimReminder: jest.fn(async () => !alreadySent),
+    unhideConversationForAll: jest.fn(async () => 0),
   };
   const integrationSdk = {
     events: { query: jest.fn(async () => ({ data: { data: events, meta: { perPage: 100 } } })) },
@@ -96,8 +99,8 @@ const setup = (
 
 describe('processMessageEvents', () => {
   beforeEach(() => {
-    [mockTelegram, mockOfferTelegram, mockPush, mockReviewPush, mockEmail].forEach(mock =>
-      mock.mockReset().mockResolvedValue(true)
+    [mockTelegram, mockOfferTelegram, mockPush, mockOfferPush, mockReviewPush, mockEmail].forEach(
+      mock => mock.mockReset().mockResolvedValue(true)
     );
   });
 
@@ -136,7 +139,26 @@ describe('processMessageEvents', () => {
     });
     expect(mockTelegram).not.toHaveBeenCalled();
     expect(mockPush).not.toHaveBeenCalled();
+    expect(db.unhideConversationForAll).not.toHaveBeenCalled();
     expect(result.notified).toBe(0);
+  });
+
+  it('brings a hidden conversation back to the chat lists with a new message', async () => {
+    const { run, db } = setup([messageEvent(6, MASTER)]);
+    await run();
+
+    expect(db.unhideConversationForAll).toHaveBeenCalledWith('tx-1');
+  });
+
+  it('still notifies when the conversation cannot be brought back', async () => {
+    const { run, db } = setup([messageEvent(6, MASTER)]);
+    db.unhideConversationForAll.mockRejectedValueOnce(new Error('db down'));
+    const error = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const result = await run();
+    error.mockRestore();
+
+    expect(mockPush).toHaveBeenCalledTimes(1);
+    expect(result).toMatchObject({ notified: 1, failed: 0 });
   });
 
   it('stays silent about messages from someone the recipient blocked', async () => {
@@ -147,6 +169,7 @@ describe('processMessageEvents', () => {
     expect(mockTelegram).not.toHaveBeenCalled();
     expect(mockPush).not.toHaveBeenCalled();
     expect(mockEmail).not.toHaveBeenCalled();
+    expect(db.unhideConversationForAll).not.toHaveBeenCalled();
     expect(result.notified).toBe(0);
   });
 
@@ -195,7 +218,7 @@ describe('processMessageEvents', () => {
     expect(mockEmail).not.toHaveBeenCalled();
   });
 
-  it('tells the task author about a new offer in Telegram', async () => {
+  it('tells the task author about a new offer in Telegram and by push', async () => {
     const { run } = setup([offerEvent(7)]);
     const result = await run();
 
@@ -206,9 +229,35 @@ describe('processMessageEvents', () => {
       offerPrice: '150 AED',
       listingUrl: 'https://youdu.ae/l/listing-1',
     });
+    expect(mockOfferPush).toHaveBeenCalledTimes(1);
+    expect(mockOfferPush).toHaveBeenCalledWith({
+      recipientId: AUTHOR,
+      senderId: MASTER,
+      executorName: 'Ahmad Said',
+      listingTitle: 'Установить выключатель',
+      listingId: 'listing-1',
+      transactionId: 'tx-1',
+      price: '150 AED',
+    });
     expect(mockTelegram).not.toHaveBeenCalled();
+    expect(mockPush).not.toHaveBeenCalled();
     expect(mockEmail).not.toHaveBeenCalled();
     expect(result.notified).toBe(1);
+  });
+
+  it('tells the author about an offer once, even when the poller reads it again', async () => {
+    const { run, db } = setup([offerEvent(7)], { authorVerified: false, alreadySent: true });
+    const result = await run();
+
+    expect(db.claimReminder).toHaveBeenCalledWith({
+      reminderType: 'new-offer',
+      subjectId: 'tx-1',
+      recipientUserId: AUTHOR,
+    });
+    expect(mockOfferTelegram).not.toHaveBeenCalled();
+    expect(mockOfferPush).not.toHaveBeenCalled();
+    expect(mockEmail).not.toHaveBeenCalled();
+    expect(result.notified).toBe(0);
   });
 
   it('e-mails a new offer to an unverified task author as well', async () => {
@@ -234,6 +283,7 @@ describe('processMessageEvents', () => {
 
     expect(db.hasBlocked).toHaveBeenCalledWith(AUTHOR, MASTER);
     expect(mockOfferTelegram).not.toHaveBeenCalled();
+    expect(mockOfferPush).not.toHaveBeenCalled();
     expect(mockEmail).not.toHaveBeenCalled();
     expect(result.notified).toBe(0);
   });

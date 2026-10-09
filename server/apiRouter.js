@@ -62,6 +62,7 @@ const { requireTelegramSecret } = require('./api-util/telegramWebhookAuth');
 const userSafety = require('./api/user-safety');
 const blogArticles = require('./api/blog-articles');
 const viewedTransactions = require('./api/viewed-transactions');
+const conversations = require('./api/conversations');
 const listingId = require('./api/listing-id');
 const supportTickets = require('./api/support-tickets');
 const blogAdmin = require('./api/blog-admin');
@@ -222,6 +223,11 @@ router.post(
   requireUser,
   viewedTransactions.markTransactionsBatchViewed
 );
+
+// Conversations hidden from the app's chat list.
+router.get('/conversations/hidden', requireUser, conversations.getHidden);
+router.post('/conversations/hide', requireUser, conversations.hide);
+router.post('/conversations/unhide', requireUser, conversations.unhide);
 
 // Email OTP verification endpoints
 router.post('/otp/email/send', writeLimiter, sendEmailOtp);

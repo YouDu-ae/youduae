@@ -2,10 +2,12 @@
  * Tells people about new offers and chat messages, whichever side wrote and
  * from wherever — the site, the app or Console.
  *
- * Chat messages go to the recipient only, by Telegram and push. Before this
- * the app asked the server to notify after sending, which reached both parties
- * including the sender, and the site never asked, so replies written on the
- * site notified nobody. Reviews are pushed to the reviewed party the same way.
+ * Chat messages and offers go to the recipient only, by Telegram and push.
+ * Before this the app asked the server to notify after sending, which reached
+ * both parties including the sender, and the site never asked, so replies
+ * written on the site notified nobody. Reviews are pushed to the reviewed party
+ * the same way. A new message also brings a conversation that either party
+ * hid in the app back to their chat lists.
  *
  * E-mail: Sharetribe mails offers, messages and the process letters of later
  * steps (chosen, declined, completed, reviews) only to verified addresses, and
@@ -21,7 +23,11 @@
  */
 
 const { notifyNewMessage, notifyNewOffer } = require('../api/telegram-bot');
-const { sendNewMessageNotification, sendReviewNotification } = require('../api/send-notification');
+const {
+  sendNewMessageNotification,
+  sendNewOfferNotification,
+  sendReviewNotification,
+} = require('../api/send-notification');
 const { sendDealEmail, TRANSITION_LETTERS } = require('../api-util/dealEmails');
 
 const CURSOR_NAME = 'message-notifications';
@@ -114,6 +120,15 @@ const handleMessage = async ({ integrationSdk, message, messageId, rootUrl, db }
     recipientUserId: recipient.id,
   };
   if (db && !(await db.claimReminder(claim))) return 'already-sent';
+  // After the claim, so a replayed message cannot bring back a conversation
+  // that was hidden again since. Failing here must not cost the notice.
+  if (db) {
+    await db
+      .unhideConversationForAll(transactionId)
+      .catch(error =>
+        console.error(`[messages] ${transactionId}: диалог не вернулся в список — ${error.message}`)
+      );
+  }
 
   const senderName = displayName(recipient.sender.user);
   const preview = String(message.attributes?.content || '').slice(0, PREVIEW_LENGTH) || 'Новое сообщение';
@@ -159,17 +174,26 @@ const handleOffer = async ({ integrationSdk, transactionRef, rootUrl, db }) => {
   if (!author || !deal.listing) return 'incomplete';
   if (db && deal.customer && (await db.hasBlocked(author.id, deal.customer.id))) return 'blocked';
 
+  const claim = { reminderType: 'new-offer', subjectId: transactionId, recipientUserId: author.id };
+  if (db && !(await db.claimReminder(claim))) return 'already-sent';
+
   const offer = deal.transaction.attributes.protectedData?.offer || {};
   const listingTitle = deal.listing.attributes.title;
+  const listingId = deal.listing.id?.uuid || deal.listing.id;
   const executorName = displayName(deal.customer?.user);
-  const listingUrl = `${rootUrl}/l/${deal.listing.id?.uuid || deal.listing.id}`;
+  const offerPrice = offer.price ? `${offer.price} ${offer.currency || 'AED'}` : null;
+  const listingUrl = `${rootUrl}/l/${listingId}`;
 
   const deliveries = [
-    notifyNewOffer(author.id, {
-      listingTitle,
+    notifyNewOffer(author.id, { listingTitle, executorName, offerPrice, listingUrl }),
+    sendNewOfferNotification({
+      recipientId: author.id,
+      senderId: deal.customer?.id,
       executorName,
-      offerPrice: offer.price ? `${offer.price} ${offer.currency || 'AED'}` : null,
-      listingUrl,
+      listingTitle,
+      listingId,
+      transactionId,
+      price: offerPrice,
     }),
   ];
   if (needsOwnEmail(author.user)) {

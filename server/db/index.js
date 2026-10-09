@@ -260,6 +260,18 @@ const initDatabase = async () => {
       );
       CREATE INDEX IF NOT EXISTS idx_device_tokens_user ON device_tokens (user_id, updated_at DESC);
 
+      -- Conversations a person removed from their chat list in the app.
+      -- Sharetribe cannot delete a transaction, so the list only hides it,
+      -- and a new message in the conversation brings it back.
+      CREATE TABLE IF NOT EXISTS hidden_conversations (
+        user_id VARCHAR(100) NOT NULL,
+        transaction_id VARCHAR(100) NOT NULL,
+        hidden_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        PRIMARY KEY (user_id, transaction_id)
+      );
+      CREATE INDEX IF NOT EXISTS idx_hidden_conversations_tx
+        ON hidden_conversations (transaction_id);
+
       -- Every Sharetribe event, kept past Sharetribe's 90-day retention.
       -- Append-only: rows are never updated, only removed with the user they
       -- mention when that user deletes their account. user_ids lists every
@@ -1060,6 +1072,43 @@ const removeDeviceTokens = async tokens => {
   await pool.query('DELETE FROM device_tokens WHERE token = ANY($1)', [tokens]);
 };
 
+const hideConversation = async (userId, transactionId) => {
+  await pool.query(
+    `INSERT INTO hidden_conversations (user_id, transaction_id) VALUES ($1, $2)
+     ON CONFLICT (user_id, transaction_id) DO UPDATE SET hidden_at = NOW()`,
+    [userId, transactionId]
+  );
+};
+
+const unhideConversation = async (userId, transactionId) => {
+  await pool.query(
+    'DELETE FROM hidden_conversations WHERE user_id = $1 AND transaction_id = $2',
+    [userId, transactionId]
+  );
+};
+
+/**
+ * When the user hid each of their hidden conversations, as
+ * { transactionId: epochMs }.
+ */
+const getHiddenConversations = async userId => {
+  const result = await pool.query(
+    'SELECT transaction_id, hidden_at FROM hidden_conversations WHERE user_id = $1',
+    [userId]
+  );
+  return Object.fromEntries(
+    result.rows.map(row => [row.transaction_id, new Date(row.hidden_at).getTime()])
+  );
+};
+
+/** Brings a conversation back to the chat list of both parties. */
+const unhideConversationForAll = async transactionId => {
+  const result = await pool.query('DELETE FROM hidden_conversations WHERE transaction_id = $1', [
+    transactionId,
+  ]);
+  return result.rowCount;
+};
+
 const hasVoiceConsent = async (userId, version) => {
   const result = await pool.query(
     `SELECT 1 FROM voice_consents
@@ -1288,6 +1337,7 @@ const deleteUserLocalData = async userId => {
     await client.query('DELETE FROM voice_consents WHERE user_id = $1', [userId]);
     await client.query('DELETE FROM user_blocks WHERE blocker_id = $1 OR blocked_id = $1', [userId]);
     await client.query('DELETE FROM device_tokens WHERE user_id = $1', [userId]);
+    await client.query('DELETE FROM hidden_conversations WHERE user_id = $1', [userId]);
     await client.query('DELETE FROM user_reports WHERE reporter_id = $1 OR reported_id = $1', [
       userId,
     ]);
@@ -1405,6 +1455,11 @@ module.exports = {
   unregisterDeviceToken,
   getDeviceTokens,
   removeDeviceTokens,
+  // Hidden conversations
+  hideConversation,
+  unhideConversation,
+  getHiddenConversations,
+  unhideConversationForAll,
   hasVoiceConsent,
   grantVoiceConsent,
   withdrawVoiceConsent,

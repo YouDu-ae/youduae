@@ -49,7 +49,9 @@ const buildMessage = (notification, data) => ({
   },
   data: stringData({
     ...data,
-    dedupeKey: data.transactionId ? `push_${data.type}_${data.transactionId}` : undefined,
+    dedupeKey:
+      data.dedupeKey ||
+      (data.transactionId ? `push_${data.type}_${data.transactionId}` : undefined),
   }),
   apns: {
     headers: {
@@ -159,6 +161,36 @@ async function sendNewMessageNotification({
 }
 
 /**
+ * A specialist's offer on the recipient's task. The app keeps a single inbox
+ * entry per task for all its offers, so the push updates that entry instead of
+ * adding one per offer.
+ */
+async function sendNewOfferNotification({
+  recipientId,
+  senderId,
+  executorName,
+  listingTitle,
+  listingId,
+  transactionId,
+  price,
+}) {
+  return sendNotificationToUser(
+    recipientId,
+    {
+      title: `Новый отклик на «${listingTitle}»`,
+      body: price ? `${executorName} предлагает ${price}` : `Отклик от ${executorName}`,
+    },
+    {
+      type: 'new_offer',
+      listingId,
+      transactionId,
+      senderUserId: senderId,
+      dedupeKey: `offers_${listingId}`,
+    }
+  );
+}
+
+/**
  * Send notification when executor is selected
  */
 async function sendExecutorSelectedNotification(executorId, taskTitle, listingId, transactionId) {
@@ -226,6 +258,7 @@ async function sendOfferStatusNotification(userId, taskTitle, status) {
 module.exports = {
   sendNotificationToUser,
   sendNewMessageNotification,
+  sendNewOfferNotification,
   sendExecutorSelectedNotification,
   sendReviewNotification,
   sendOfferStatusNotification,

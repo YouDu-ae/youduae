@@ -14,6 +14,7 @@ jest.mock('../db', () => ({
 const db = require('../db');
 const {
   sendNewMessageNotification,
+  sendNewOfferNotification,
   sendReviewNotification,
   sendNotificationToUser,
 } = require('./send-notification');
@@ -137,6 +138,51 @@ describe('send-notification', () => {
 
     expect(mockSend).not.toHaveBeenCalled();
     expect(result).toEqual({ success: false, reason: 'No device tokens' });
+  });
+
+  it("files an offer under the app's single inbox entry for the task", async () => {
+    mockSend.mockResolvedValue(response(ok()));
+
+    await sendNewOfferNotification({
+      recipientId: 'author-1',
+      senderId: 'master-1',
+      executorName: 'Ahmad Said',
+      listingTitle: 'Установить выключатель',
+      listingId: 'listing-1',
+      transactionId: 'tx-1',
+      price: '150 AED',
+    });
+
+    const message = mockSend.mock.calls[0][0];
+    expect(message.notification).toEqual({
+      title: 'Новый отклик на «Установить выключатель»',
+      body: 'Ahmad Said предлагает 150 AED',
+    });
+    expect(message.data).toEqual({
+      type: 'new_offer',
+      listingId: 'listing-1',
+      transactionId: 'tx-1',
+      senderUserId: 'master-1',
+      recipientUserId: 'author-1',
+      dedupeKey: 'offers_listing-1',
+    });
+    expect(message.apns.payload.aps.threadId).toBe('tx-1');
+  });
+
+  it('names the specialist when an offer has no price', async () => {
+    mockSend.mockResolvedValue(response(ok()));
+
+    await sendNewOfferNotification({
+      recipientId: 'author-1',
+      senderId: 'master-1',
+      executorName: 'Ahmad Said',
+      listingTitle: 'Установить выключатель',
+      listingId: 'listing-1',
+      transactionId: 'tx-1',
+      price: null,
+    });
+
+    expect(mockSend.mock.calls[0][0].notification.body).toBe('Отклик от Ahmad Said');
   });
 
   it('does not reveal a first review before the recipient leaves theirs', async () => {
