@@ -73,6 +73,21 @@ describe('InboxPage', () => {
     const currentUserProvider = createCurrentUser('provider-user-id');
     const currentUserCustomer = createCurrentUser('customer-user-id');
 
+    // Status subtabs replace the separate orders and sales tabs
+    const expectStatusSubtabs = (tab, messagePrefix) => {
+      expect(screen.queryByRole('link', { name: 'InboxPage.ordersTabTitle' })).toBeNull();
+      expect(screen.queryByRole('link', { name: 'InboxPage.salesTabTitle' })).toBeNull();
+
+      [
+        ['activeTabTitle', 'active'],
+        ['needReviewTabTitle', 'need-review'],
+        ['completedTabTitle', 'completed'],
+      ].forEach(([titleKey, subtab]) => {
+        const link = screen.getByRole('link', { name: `${messagePrefix}${titleKey}` });
+        expect(link.getAttribute('href')).toContain(`/inbox/${tab}?subtab=${subtab}`);
+      });
+    };
+
     // ORDERS
     it('has tabs and inbox items for orders on InboxPage', async () => {
       const order1 = createTransaction({
@@ -153,15 +168,7 @@ describe('InboxPage', () => {
       });
 
       await waitFor(() => {
-        // Has links to orders tab
-        const ordersTabTitle = screen.getByRole('link', { name: 'InboxPage.ordersTabTitle' });
-        expect(ordersTabTitle).toBeInTheDocument();
-        expect(ordersTabTitle.getAttribute('href')).toContain('/inbox/orders');
-
-        // Has links to sales tab
-        const salesTabTitle = screen.getByRole('link', { name: 'InboxPage.salesTabTitle' });
-        expect(salesTabTitle).toBeInTheDocument();
-        expect(salesTabTitle.getAttribute('href')).toContain('/inbox/sales');
+        expectStatusSubtabs('orders', 'InboxPage.customer.');
 
         // Has 2 items
         const items = screen.queryAllByRole('link', { name: /listing1/i });
@@ -250,15 +257,7 @@ describe('InboxPage', () => {
       });
 
       await waitFor(() => {
-        // Has links to orders tab
-        const ordersTabTitle = screen.getByRole('link', { name: 'InboxPage.ordersTabTitle' });
-        expect(ordersTabTitle).toBeInTheDocument();
-        expect(ordersTabTitle.getAttribute('href')).toContain('/inbox/orders');
-
-        // Has links to sales tab
-        const salesTabTitle = screen.getByRole('link', { name: 'InboxPage.salesTabTitle' });
-        expect(salesTabTitle).toBeInTheDocument();
-        expect(salesTabTitle.getAttribute('href')).toContain('/inbox/sales');
+        expectStatusSubtabs('sales', 'InboxPage.');
 
         // Has 2 items
         const items = screen.queryAllByRole('link', { name: /listing1/i });

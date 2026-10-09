@@ -229,11 +229,7 @@ exports[`InboxPage InboxItem: default-booking process with "day" check booking: 
   >
     <div
       class="rowNotificationDot"
-    >
-      <div
-        class="notificationDot"
-      />
-    </div>
+    />
     <div
       class="itemUsername"
     >
@@ -2787,11 +2783,7 @@ exports[`InboxPage InboxItem: default-purchase process with "item" InboxItem wit
   >
     <div
       class="rowNotificationDot"
-    >
-      <div
-        class="notificationDot"
-      />
-    </div>
+    />
     <div
       class="itemUsername"
     >
@@ -3221,11 +3213,7 @@ exports[`InboxPage InboxItem: default-purchase process with "item" check purchas
   >
     <div
       class="rowNotificationDot"
-    >
-      <div
-        class="notificationDot"
-      />
-    </div>
+    />
     <div
       class="itemUsername"
     >
