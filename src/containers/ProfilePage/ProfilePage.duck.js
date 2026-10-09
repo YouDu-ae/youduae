@@ -231,14 +231,18 @@ export const queryUserListings = (userId, config, ownProfileOnly = false) => (
   // Add timestamp to prevent SDK caching
   const cacheBuster = Date.now();
 
-  return sdk.listings
-    .query({
-      author_id: userId,
-      states: listingStates,
-      ...queryParams,
-      // Force fresh data by adding metadata param
-      meta_cacheBuster: cacheBuster,
-    })
+  // Without viewing rights, users can only read their own listings
+  const listingsPromise = ownProfileOnly
+    ? sdk.ownListings.query({ states: listingStates, ...queryParams })
+    : sdk.listings.query({
+        author_id: userId,
+        states: listingStates,
+        ...queryParams,
+        // Force fresh data by adding metadata param
+        meta_cacheBuster: cacheBuster,
+      });
+
+  return listingsPromise
     .then(response => {
       const listings = response?.data?.data || [];
       

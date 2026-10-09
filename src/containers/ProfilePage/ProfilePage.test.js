@@ -139,30 +139,36 @@ describe('ProfilePage', () => {
     expect(screen.getByText('I am a great cook!')).toBeInTheDocument();
   });
 
+  // YouDu takes user fields from configUser.js and ignores the ones in Console
   it('Check that custom user information is shown correctly', async () => {
+    const initialState = getInitialState();
+    const { userId: user } = initialState.marketplaceData.entities.user;
+    user.attributes.profile.publicData = {
+      ...user.attributes.profile.publicData,
+      userType: 'customer',
+      website: 'example.com',
+    };
+
     let rendered = {};
     await act(async () => {
       rendered = render(<ProfilePage {...props} />, {
-        initialState: getInitialState(),
+        initialState,
         config,
       });
     });
-    const { getByRole } = rendered;
-    // Show custom fields correctly
-    expect(getByRole('heading', { name: 'ProfilePage.detailsTitle' })).toBeInTheDocument();
-    expect(getByRole('heading', { name: 'Dietary preferences' })).toBeInTheDocument();
-    expect(getByRole('heading', { name: 'Description of your kitchen' })).toBeInTheDocument();
+    const { getByRole, queryByRole } = rendered;
 
-    expect(screen.getByText('Favorite cuisine')).toBeInTheDocument();
-    expect(screen.getByText('Italian')).toBeInTheDocument();
-    expect(screen.getByText('Can you cook?')).toBeInTheDocument();
-    expect(screen.getByText('ProfilePage.detailNo')).toBeInTheDocument();
-    expect(screen.getByText('How many cookbooks do you have')).toBeInTheDocument();
-    expect(screen.getByText('10')).toBeInTheDocument();
-    expect(screen.getByText('This is a kitchen description!')).toBeInTheDocument();
+    // A specialist's website links out
+    expect(getByRole('heading', { name: 'ProfileSettingsForm.socialWebsite' })).toBeInTheDocument();
+    expect(getByRole('link', { name: 'example.com' })).toHaveAttribute(
+      'href',
+      'https://example.com'
+    );
 
-    // For attributes with displayInProfile: false, do not show the attribute
-    expect(screen.queryByText('Not shown in profile')).toBeNull();
+    // Fields defined only in Console are not shown
+    expect(queryByRole('heading', { name: 'ProfilePage.detailsTitle' })).toBeNull();
+    expect(screen.queryByText('Favorite cuisine')).toBeNull();
+    expect(screen.queryByText('This is a kitchen description!')).toBeNull();
   });
 
   it('Check that listing information is shown correctly', async () => {
@@ -174,14 +180,7 @@ describe('ProfilePage', () => {
     });
 
     expect(
-      screen.getByText((content, element) => {
-        const text = element?.textContent || content;
-        return (
-          text === 'ProfilePage.openListingsTitle' ||
-          text.includes('Active jobs') ||
-          text.includes('Текущие задания')
-        );
-      })
+      screen.getByRole('heading', { name: 'ProfilePage.openListingsTitle' })
     ).toBeInTheDocument();
     expect(screen.getByText('l1 title')).toBeInTheDocument();
     expect(screen.getByText('ListingCard.price')).toBeInTheDocument();
@@ -365,12 +364,18 @@ describe('Duck', () => {
         currentUserShowRequest(),
         queryListingsRequest(currentUser.id),
         showUserRequest(currentUser.id),
+        queryCompletedWorksRequest(currentUser.id.uuid),
         currentUserShowSuccess(currentUser),
         addMarketplaceEntities(fakeResponse([listing])),
         queryListingsSuccess(userListingRefs),
         authInfoRequest(),
         authInfoSuccess({}),
+        queryCompletedWorksSuccess(currentUser.id.uuid, completedWorks, false),
       ]);
+      expect(global.fetch).toHaveBeenCalledWith(
+        `http://localhost/api/user-completed-transactions?userId=${currentUser.id.uuid}`,
+        {}
+      );
     });
   });
 });
