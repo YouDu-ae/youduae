@@ -755,6 +755,7 @@ const confirmDeclineOffer = async () => {
           titleClassName={css.orderTitle}
           listing={listing}
           isOwnListing={isOwnSale}
+          currentUser={currentUser}
           lineItemUnitType={lineItemUnitType}
           title={listingTitle}
           titleDesktop={

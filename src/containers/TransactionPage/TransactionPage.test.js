@@ -205,16 +205,16 @@ describe('TransactionPage', () => {
       ).toHaveLength(expectedLength);
       expect(screen.queryAllByText('OrderBreakdown.baseUnitQuantity')).toHaveLength(expectedLength);
       expect(screen.queryAllByText('OrderBreakdown.subTotal')).toHaveLength(expectedLength);
-      expect(screen.queryAllByText('$10.00')).toHaveLength(expectedLength * 2);
+      expect(screen.queryAllByText('$10')).toHaveLength(expectedLength * 2);
 
       // Order breakdown: refund?
       const expectedLengthReversal = isReversal ? 2 : 0;
       expect(screen.queryAllByText('OrderBreakdown.refund')).toHaveLength(expectedLengthReversal);
-      expect(screen.queryAllByText('-$10.00')).toHaveLength(expectedLengthReversal);
+      expect(screen.queryAllByText('-$10')).toHaveLength(expectedLengthReversal);
 
       // Order breakdown: commission
       expect(screen.queryAllByText('OrderBreakdown.commission')).toHaveLength(expectedLength);
-      expect(screen.queryAllByText('-$1.00')).toHaveLength(expectedLength);
+      expect(screen.queryAllByText('-$1')).toHaveLength(expectedLength);
 
       // Order breakdown: commission refund?
       expect(screen.queryAllByText('OrderBreakdown.refundProviderFee')).toHaveLength(
@@ -349,18 +349,18 @@ describe('TransactionPage', () => {
       expect(screen.queryAllByText('OrderBreakdown.subTotal')).toHaveLength(
         isReversal ? expectedLength : 0
       );
-      expect(screen.queryAllByText('$10.00')).toHaveLength(
+      expect(screen.queryAllByText('$10')).toHaveLength(
         isReversal ? expectedLength * 3 : expectedLength * 2
       ); // base, subtotal, total
 
       // Order breakdown: refund?
       const expectedLengthReversal = isReversal ? 2 : 0;
       expect(screen.queryAllByText('OrderBreakdown.refund')).toHaveLength(expectedLengthReversal);
-      expect(screen.queryAllByText('-$10.00')).toHaveLength(expectedLengthReversal);
+      expect(screen.queryAllByText('-$10')).toHaveLength(expectedLengthReversal);
 
       // Order breakdown: commission (customer should no see this)
       expect(screen.queryAllByText('OrderBreakdown.commission')).toHaveLength(0);
-      expect(screen.queryAllByText('-$1.00')).toHaveLength(0);
+      expect(screen.queryAllByText('-$1')).toHaveLength(0);
 
       // Order breakdown: commission refund? (customer should no see this)
       expect(screen.queryAllByText('OrderBreakdown.refundProviderFee')).toHaveLength(0);
@@ -515,16 +515,16 @@ describe('TransactionPage', () => {
 
       expect(screen.queryAllByText('OrderBreakdown.baseUnitDay')).toHaveLength(expectedLength);
       expect(screen.queryAllByText('OrderBreakdown.subTotal')).toHaveLength(expectedLength);
-      expect(screen.queryAllByText('$10.00')).toHaveLength(expectedLength * 2);
+      expect(screen.queryAllByText('$10')).toHaveLength(expectedLength * 2);
 
       // Order breakdown: refund?
       const expectedLengthReversal = isReversal ? 2 : 0;
       expect(screen.queryAllByText('OrderBreakdown.refund')).toHaveLength(expectedLengthReversal);
-      expect(screen.queryAllByText('-$10.00')).toHaveLength(expectedLengthReversal);
+      expect(screen.queryAllByText('-$10')).toHaveLength(expectedLengthReversal);
 
       // Order breakdown: commission
       expect(screen.queryAllByText('OrderBreakdown.commission')).toHaveLength(expectedLength);
-      expect(screen.queryAllByText('-$1.00')).toHaveLength(expectedLength);
+      expect(screen.queryAllByText('-$1')).toHaveLength(expectedLength);
 
       // Order breakdown: commission refund?
       expect(screen.queryAllByText('OrderBreakdown.refundProviderFee')).toHaveLength(
@@ -539,7 +539,7 @@ describe('TransactionPage', () => {
         : 'OrderBreakdown.providerTotalDefault';
       const expectedTotal = isReversal ? expectedLengthReversal : expectedLength;
       expect(screen.queryAllByText(total)).toHaveLength(expectedTotal);
-      expect(screen.queryAllByText('$9.00')).toHaveLength(expectedTotal);
+      expect(screen.queryAllByText('$9')).toHaveLength(expectedTotal);
 
       // A note about commission (customer should no see this)
       expect(screen.queryAllByText('OrderBreakdown.commissionFeeNote')).toHaveLength(
@@ -687,18 +687,18 @@ describe('TransactionPage', () => {
       expect(screen.queryAllByText('OrderBreakdown.subTotal')).toHaveLength(
         isReversal ? expectedLength : 0
       );
-      expect(screen.queryAllByText('$10.00')).toHaveLength(
+      expect(screen.queryAllByText('$10')).toHaveLength(
         isReversal ? expectedLength * 3 : expectedLength * 2
       ); // base, subtotal, total
 
       // Order breakdown: refund?
       const expectedLengthReversal = isReversal ? 2 : 0;
       expect(screen.queryAllByText('OrderBreakdown.refund')).toHaveLength(expectedLengthReversal);
-      expect(screen.queryAllByText('-$10.00')).toHaveLength(expectedLengthReversal);
+      expect(screen.queryAllByText('-$10')).toHaveLength(expectedLengthReversal);
 
       // Order breakdown: commission (customer should no see this)
       expect(screen.queryAllByText('OrderBreakdown.commission')).toHaveLength(0);
-      expect(screen.queryAllByText('-$1.00')).toHaveLength(0);
+      expect(screen.queryAllByText('-$1')).toHaveLength(0);
 
       // Order breakdown: commission refund? (customer should no see this)
       expect(screen.queryAllByText('OrderBreakdown.refundProviderFee')).toHaveLength(0);
@@ -850,16 +850,16 @@ describe('TransactionPage', () => {
 
       expect(screen.queryAllByText('OrderBreakdown.baseUnitHour')).toHaveLength(expectedLength);
       expect(screen.queryAllByText('OrderBreakdown.subTotal')).toHaveLength(expectedLength);
-      expect(screen.queryAllByText('$30.00')).toHaveLength(expectedLength * 2);
+      expect(screen.queryAllByText('$30')).toHaveLength(expectedLength * 2);
 
       // Order breakdown: refund?
       const expectedLengthReversal = isReversal ? 2 : 0;
       expect(screen.queryAllByText('OrderBreakdown.refund')).toHaveLength(expectedLengthReversal);
-      expect(screen.queryAllByText('-$30.00')).toHaveLength(expectedLengthReversal);
+      expect(screen.queryAllByText('-$30')).toHaveLength(expectedLengthReversal);
 
       // Order breakdown: commission
       expect(screen.queryAllByText('OrderBreakdown.commission')).toHaveLength(expectedLength);
-      expect(screen.queryAllByText('-$1.00')).toHaveLength(expectedLength);
+      expect(screen.queryAllByText('-$1')).toHaveLength(expectedLength);
 
       // Order breakdown: commission refund?
       expect(screen.queryAllByText('OrderBreakdown.refundProviderFee')).toHaveLength(
@@ -874,7 +874,7 @@ describe('TransactionPage', () => {
         : 'OrderBreakdown.providerTotalDefault';
       const expectedTotal = isReversal ? expectedLengthReversal : expectedLength;
       expect(screen.queryAllByText(total)).toHaveLength(expectedTotal);
-      expect(screen.queryAllByText('$9.00')).toHaveLength(expectedTotal);
+      expect(screen.queryAllByText('$9')).toHaveLength(expectedTotal);
 
       // A note about commission (customer should no see this)
       expect(screen.queryAllByText('OrderBreakdown.commissionFeeNote')).toHaveLength(
@@ -1022,18 +1022,18 @@ describe('TransactionPage', () => {
       // expect(screen.queryAllByText('OrderBreakdown.subTotal')).toHaveLength(
       //   isReversal ? expectedLength : 0
       // );
-      // expect(screen.queryAllByText('$30.00')).toHaveLength(
+      // expect(screen.queryAllByText('$30')).toHaveLength(
       //   isReversal ? expectedLength * 3 : expectedLength * 2
       // ); // base, subtotal, total
 
       // Order breakdown: refund?
       const expectedLengthReversal = isReversal ? 2 : 0;
       expect(screen.queryAllByText('OrderBreakdown.refund')).toHaveLength(expectedLengthReversal);
-      expect(screen.queryAllByText('-$30.00')).toHaveLength(expectedLengthReversal);
+      expect(screen.queryAllByText('-$30')).toHaveLength(expectedLengthReversal);
 
       // Order breakdown: commission (customer should no see this)
       expect(screen.queryAllByText('OrderBreakdown.commission')).toHaveLength(0);
-      expect(screen.queryAllByText('-$1.00')).toHaveLength(0);
+      expect(screen.queryAllByText('-$1')).toHaveLength(0);
 
       // Order breakdown: commission refund? (customer should no see this)
       expect(screen.queryAllByText('OrderBreakdown.refundProviderFee')).toHaveLength(0);
@@ -1462,9 +1462,13 @@ describe('TransactionPage', () => {
         getProcess(processName)
       );
 
+      // Only specialists get the order button; in YouDu their userType is 'customer'
+      const currentUser = createCurrentUser(customerId);
+      currentUser.attributes.profile.publicData = { userType: 'customer' };
+
       const props = {
         ...panelBaseProps,
-        currentUser: createCurrentUser(customerId),
+        currentUser,
         transaction: inquiry,
         transactionRole,
         nextTransitions,
