@@ -17,6 +17,7 @@ jest.mock('../api-util/unreadConversations', () => ({
 
 const db = require('../db');
 const {
+  clearBadge,
   sendBadgeUpdate,
   sendNewMessageNotification,
   sendNewOfferNotification,
@@ -305,6 +306,30 @@ describe('send-notification', () => {
 
       expect(mockSend).not.toHaveBeenCalled();
       expect(result).toEqual({ success: false, reason: 'Unread count failed' });
+    });
+  });
+
+  describe('clearBadge', () => {
+    it('clears the icon of a phone that followed the count', async () => {
+      mockSend.mockResolvedValue(response(ok()));
+
+      const result = await clearBadge(device('token-gone', { badge: true }));
+
+      expect(mockSend.mock.calls[0][0]).toEqual({
+        apns: {
+          headers: { 'apns-priority': '10', 'apns-push-type': 'alert' },
+          payload: { aps: { badge: 0 } },
+        },
+        tokens: ['token-gone'],
+      });
+      expect(result).toEqual({ success: true });
+    });
+
+    it('leaves alone a phone the server never set a badge on', async () => {
+      await clearBadge(device('token-old'));
+      await clearBadge(device('token-android', { platform: 'android', badge: true }));
+
+      expect(mockSend).not.toHaveBeenCalled();
     });
   });
 });

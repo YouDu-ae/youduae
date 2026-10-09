@@ -1,4 +1,5 @@
 const db = require('../db');
+const { sendBadgeUpdate, clearBadge } = require('./send-notification');
 
 const MAX_TOKEN_LENGTH = 4096;
 
@@ -12,7 +13,8 @@ const MAX_TOKEN_LENGTH = 4096;
  *
  * `badge: true` comes from builds that report what was read
  * (/api/viewed-transactions); the icon badge on those phones then follows the
- * server's unread count (api-util/unreadConversations).
+ * server's unread count (api-util/unreadConversations), from registration
+ * until sign-out clears it.
  */
 module.exports = async (req, res) => {
   const { token, platform, unregister, badge } = req.body || {};
@@ -23,7 +25,10 @@ module.exports = async (req, res) => {
 
   try {
     if (unregister === true || unregister === 'true') {
-      await db.unregisterDeviceToken(token);
+      const removed = await db.unregisterDeviceToken(token);
+      if (removed) {
+        clearBadge({ token, ...removed });
+      }
       console.log('✅ Device token unregistered');
       return res
         .status(200)
@@ -35,12 +40,16 @@ module.exports = async (req, res) => {
       return res.status(401).json({ error: 'Authorization required' }).end();
     }
 
+    const followsBadge = badge === true || badge === 'true';
     await db.registerDeviceToken({
       userId: req.authUserId,
       token,
       platform: String(platform || 'unknown').slice(0, 20),
-      badge: badge === true || badge === 'true',
+      badge: followsBadge,
     });
+    if (followsBadge) {
+      sendBadgeUpdate(req.authUserId);
+    }
     console.log('✅ Device token registered for user:', req.authUserId);
     return res
       .status(200)

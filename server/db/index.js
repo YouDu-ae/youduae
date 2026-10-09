@@ -1073,8 +1073,13 @@ const registerDeviceToken = async ({ userId, token, platform, badge = false }) =
   );
 };
 
+/** Returns the dropped install as { platform, badge }, or null if it was not known. */
 const unregisterDeviceToken = async token => {
-  await pool.query('DELETE FROM device_tokens WHERE token = $1', [token]);
+  const result = await pool.query(
+    'DELETE FROM device_tokens WHERE token = $1 RETURNING platform, badge',
+    [token]
+  );
+  return result.rows[0] || null;
 };
 
 /** The user's app installs as [{ token, platform, badge }], newest first. */

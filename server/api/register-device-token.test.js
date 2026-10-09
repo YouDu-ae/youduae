@@ -1,9 +1,14 @@
 jest.mock('../db', () => ({
   registerDeviceToken: jest.fn(async () => {}),
-  unregisterDeviceToken: jest.fn(async () => {}),
+  unregisterDeviceToken: jest.fn(async () => null),
+}));
+jest.mock('./send-notification', () => ({
+  sendBadgeUpdate: jest.fn(),
+  clearBadge: jest.fn(),
 }));
 
 const db = require('../db');
+const { sendBadgeUpdate, clearBadge } = require('./send-notification');
 const registerDeviceToken = require('./register-device-token');
 
 const call = async (body, authUserId = null) => {
@@ -19,6 +24,8 @@ describe('POST /api/register-device-token', () => {
   beforeEach(() => {
     db.registerDeviceToken.mockClear();
     db.unregisterDeviceToken.mockClear();
+    sendBadgeUpdate.mockClear();
+    clearBadge.mockClear();
     jest.spyOn(console, 'log').mockImplementation(() => {});
   });
 
@@ -35,13 +42,15 @@ describe('POST /api/register-device-token', () => {
       platform: 'ios',
       badge: false,
     });
+    expect(sendBadgeUpdate).not.toHaveBeenCalled();
     expect(res.status).toHaveBeenCalledWith(200);
   });
 
-  it("lets a build that reports reads follow the server's unread badge", async () => {
+  it("lets a build that reports reads follow the server's unread badge from the start", async () => {
     await call({ token: 'fcm-1', platform: 'ios', badge: true }, 'user-1');
 
     expect(db.registerDeviceToken).toHaveBeenCalledWith(expect.objectContaining({ badge: true }));
+    expect(sendBadgeUpdate).toHaveBeenCalledWith('user-1');
   });
 
   it('refuses to bind a token without a sign-in', async () => {
@@ -56,7 +65,16 @@ describe('POST /api/register-device-token', () => {
 
     expect(db.unregisterDeviceToken).toHaveBeenCalledWith('fcm-1');
     expect(db.registerDeviceToken).not.toHaveBeenCalled();
+    expect(clearBadge).not.toHaveBeenCalled();
     expect(res.status).toHaveBeenCalledWith(200);
+  });
+
+  it('clears the icon badge of the phone that signs out', async () => {
+    db.unregisterDeviceToken.mockResolvedValueOnce({ platform: 'ios', badge: true });
+
+    await call({ token: 'fcm-1', unregister: true });
+
+    expect(clearBadge).toHaveBeenCalledWith({ token: 'fcm-1', platform: 'ios', badge: true });
   });
 
   it('rejects a request without a token', async () => {

@@ -80,6 +80,13 @@ const withBadge = (message, badge) => ({
 // an iOS thing; Android launchers keep their own.
 const followsBadge = device => device.badge && device.platform === 'ios';
 
+const badgeMessage = badge => ({
+  apns: {
+    headers: { 'apns-priority': '10', 'apns-push-type': 'alert' },
+    payload: { aps: { badge } },
+  },
+});
+
 /**
  * Sends one message to the tokens, with one retry for a failed request or for
  * tokens Firebase could not take for a moment, and forgets the tokens Firebase
@@ -198,17 +205,31 @@ async function sendBadgeUpdate(userId, options = {}) {
       return { success: false, reason: 'Unread count failed' };
     }
 
-    const message = {
-      apns: {
-        headers: { 'apns-priority': '10', 'apns-push-type': 'alert' },
-        payload: { aps: { badge } },
-      },
-    };
-    const sent = await deliver(message, devices.map(device => device.token));
+    const sent = await deliver(badgeMessage(badge), devices.map(device => device.token));
     console.log(`🔢 Badge ${badge} sent to ${sent}/${devices.length} devices for user ${userId}`);
     return { success: sent > 0, sent, badge };
   } catch (error) {
     console.error('❌ Badge update error:', error.message);
+    return { success: false, reason: error.message };
+  }
+}
+
+/**
+ * Clears the icon badge on a phone that signs out: it gets no more pushes, so
+ * it would keep the last count for good.
+ *
+ * @param {Object} device the dropped install, { token, platform, badge }
+ */
+async function clearBadge(device) {
+  if (!admin.apps.length || !followsBadge(device)) {
+    return { success: false };
+  }
+
+  try {
+    const sent = await deliver(badgeMessage(0), [device.token]);
+    return { success: sent > 0 };
+  } catch (error) {
+    console.error('❌ Badge clear error:', error.message);
     return { success: false, reason: error.message };
   }
 }
@@ -339,6 +360,7 @@ async function sendOfferStatusNotification(userId, taskTitle, status) {
 module.exports = {
   sendNotificationToUser,
   sendBadgeUpdate,
+  clearBadge,
   sendNewMessageNotification,
   sendNewOfferNotification,
   sendExecutorSelectedNotification,
