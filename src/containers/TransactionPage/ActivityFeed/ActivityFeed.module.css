@@ -45,6 +45,11 @@
   }
 }
 
+.messageContentWrapper {
+  /* Lets long file names shrink instead of widening the message */
+  min-width: 0;
+}
+
 .messageHeader {
   display: flex;
   align-items: center;
@@ -96,6 +101,51 @@
     text-decoration: none;
     background-color: var(--marketplaceColorDark);
   }
+}
+
+.messageFiles,
+.ownMessageFiles {
+  composes: textSmall from global;
+
+  margin: 6px 0 0 0;
+  padding: 8.5px 14px 8.5px 14px;
+  border-radius: 8px;
+  box-shadow: var(--boxShadow);
+  background-color: var(--colorWhite);
+
+  @media (--viewportMedium) {
+    padding: 8px 14px 8px 14px;
+  }
+}
+
+.messageFiles {
+  width: fit-content;
+  max-width: 100%;
+}
+
+.ownMessageFiles {
+  clear: both;
+  float: right;
+  max-width: 100%;
+  background-color: var(--marketplaceColor);
+  color: var(--colorWhite);
+}
+
+.ownMessageUnsent {
+  background-color: var(--colorGrey600);
+  color: var(--colorGrey100);
+}
+
+.ownMessageNote {
+  composes: marketplaceMessageDateFontStyles from global;
+
+  margin: 4px 0 0 0;
+  text-align: right;
+  color: var(--colorGrey600);
+}
+
+.ownMessageNoteFailed {
+  color: var(--colorFail);
 }
 
 .messageDate,

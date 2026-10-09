@@ -12,6 +12,7 @@ import {
 } from '../../util/dates';
 import { isTransactionsTransitionInvalidTransition, storableError } from '../../util/errors';
 import { transactionLineItems } from '../../util/api';
+import { messageHasPendingFiles } from '../../util/fileHelpers';
 import * as log from '../../util/log';
 import {
   updatedEntities,
@@ -32,8 +33,11 @@ import { markTransactionAsViewed } from '../../util/transactionNotifications';
 const { UUID } = sdkTypes;
 
 const MESSAGES_PAGE_SIZE = 100;
+const MESSAGE_FILE_INCLUDES = ['publicFileAttachments', 'publicFileAttachments.file'];
 const REVIEW_TX_INCLUDES = ['reviews', 'reviews.author', 'reviews.subject'];
 const MINUTE_IN_MS = 1000 * 60;
+const FILE_POLL_MAX_ATTEMPTS = 30;
+const FILE_POLL_INTERVAL_MS = 1000;
 
 // Day-based time slots queries are cached for 1 minute.
 const removeOutdatedDateData = timeSlotsForDate => {
@@ -65,6 +69,12 @@ export const TRANSITION_ERROR = 'app/TransactionPage/TRANSITION_ERROR';
 export const FETCH_MESSAGES_REQUEST = 'app/TransactionPage/FETCH_MESSAGES_REQUEST';
 export const FETCH_MESSAGES_SUCCESS = 'app/TransactionPage/FETCH_MESSAGES_SUCCESS';
 export const FETCH_MESSAGES_ERROR = 'app/TransactionPage/FETCH_MESSAGES_ERROR';
+
+export const UPDATE_MESSAGE_FILES = 'app/TransactionPage/UPDATE_MESSAGE_FILES';
+
+export const DOWNLOAD_FILE_REQUEST = 'app/TransactionPage/DOWNLOAD_FILE_REQUEST';
+export const DOWNLOAD_FILE_SUCCESS = 'app/TransactionPage/DOWNLOAD_FILE_SUCCESS';
+export const DOWNLOAD_FILE_ERROR = 'app/TransactionPage/DOWNLOAD_FILE_ERROR';
 
 export const SEND_MESSAGE_REQUEST = 'app/TransactionPage/SEND_MESSAGE_REQUEST';
 export const SEND_MESSAGE_SUCCESS = 'app/TransactionPage/SEND_MESSAGE_SUCCESS';
@@ -105,6 +115,9 @@ const initialState = {
   totalMessagePages: 0,
   oldestMessagePageFetched: 0,
   messages: [],
+  fileDownloads: {
+    // [fileAttachmentId.uuid]: { inProgress: bool, error: null | storable-error, downloadUrl: null | string }
+  },
   initialMessageFailedToTransaction: null,
   savePaymentMethodFailed: false,
   sendMessageInProgress: false,
@@ -202,6 +215,49 @@ export default function transactionPageReducer(state = initialState, action = {}
     }
     case FETCH_MESSAGES_ERROR:
       return { ...state, fetchMessagesInProgress: false, fetchMessagesError: payload };
+
+    case UPDATE_MESSAGE_FILES:
+      return {
+        ...state,
+        messages: state.messages.map(m =>
+          m.id.uuid === payload.id.uuid
+            ? { ...m, publicFileAttachments: payload.publicFileAttachments }
+            : m
+        ),
+      };
+
+    case DOWNLOAD_FILE_REQUEST:
+      return {
+        ...state,
+        fileDownloads: {
+          ...state.fileDownloads,
+          [payload.uuid]: { inProgress: true, error: null, downloadUrl: null },
+        },
+      };
+    case DOWNLOAD_FILE_SUCCESS:
+      return {
+        ...state,
+        fileDownloads: {
+          ...state.fileDownloads,
+          [payload.fileAttachmentId.uuid]: {
+            inProgress: false,
+            error: null,
+            downloadUrl: payload.downloadUrl,
+          },
+        },
+      };
+    case DOWNLOAD_FILE_ERROR:
+      return {
+        ...state,
+        fileDownloads: {
+          ...state.fileDownloads,
+          [payload.fileAttachmentId.uuid]: {
+            inProgress: false,
+            error: payload.error,
+            downloadUrl: null,
+          },
+        },
+      };
 
     case SEND_MESSAGE_REQUEST:
       return {
@@ -344,6 +400,22 @@ const fetchMessagesSuccess = (messages, pagination) => ({
   payload: { messages, ...pagination },
 });
 const fetchMessagesError = e => ({ type: FETCH_MESSAGES_ERROR, error: true, payload: e });
+
+const updateMessageFiles = message => ({ type: UPDATE_MESSAGE_FILES, payload: message });
+
+const downloadFileRequest = fileAttachmentId => ({
+  type: DOWNLOAD_FILE_REQUEST,
+  payload: fileAttachmentId,
+});
+const downloadFileSuccess = (fileAttachmentId, downloadUrl) => ({
+  type: DOWNLOAD_FILE_SUCCESS,
+  payload: { fileAttachmentId, downloadUrl },
+});
+const downloadFileError = (fileAttachmentId, e) => ({
+  type: DOWNLOAD_FILE_ERROR,
+  error: true,
+  payload: { fileAttachmentId, error: e },
+});
 
 const sendMessageRequest = () => ({ type: SEND_MESSAGE_REQUEST });
 const sendMessageSuccess = () => ({ type: SEND_MESSAGE_SUCCESS });
@@ -703,6 +775,53 @@ export const makeTransition = (txId, transitionName, params) => (dispatch, getSt
     });
 };
 
+// Message ids whose file scan is being polled, so that refetching messages doesn't start another poll
+const messagesPollingFiles = new Set();
+
+// The other party sees a message with files only after the security scan is done,
+// and the page doesn't refetch messages by itself.
+const pollMessageFiles = (txId, messageId) => (dispatch, getState, sdk) => {
+  if (typeof window === 'undefined' || messagesPollingFiles.has(messageId.uuid)) {
+    return Promise.resolve();
+  }
+  messagesPollingFiles.add(messageId.uuid);
+
+  const isTransactionShown = () =>
+    getState().TransactionPage.transactionRef?.id?.uuid === txId.uuid;
+  const queryMessage = () =>
+    sdk.messages
+      .query({ transaction_id: txId, ids: [messageId], include: MESSAGE_FILE_INCLUDES })
+      .then(response => {
+        const [message] = denormalisedResponseEntities(response);
+        if (message) {
+          dispatch(updateMessageFiles(message));
+        }
+        return messageHasPendingFiles(message);
+      });
+
+  const poll = (attempt, delayMs) =>
+    delay(delayMs).then(() => {
+      if (attempt >= FILE_POLL_MAX_ATTEMPTS || !isTransactionShown()) {
+        return null;
+      }
+      // Don't query the API while the browser tab is in the background
+      if (document.hidden) {
+        return poll(attempt + 1, delayMs);
+      }
+      return queryMessage().then(hasPendingFiles =>
+        hasPendingFiles ? poll(attempt + 1, Math.min(delayMs * 2, MINUTE_IN_MS)) : null
+      );
+    });
+
+  return poll(0, FILE_POLL_INTERVAL_MS)
+    .catch(e => {
+      log.error(e, 'poll-message-files-failed', { messageId: messageId.uuid });
+    })
+    .finally(() => {
+      messagesPollingFiles.delete(messageId.uuid);
+    });
+};
+
 const fetchMessages = (txId, page, config) => (dispatch, getState, sdk) => {
   const paging = { page, perPage: MESSAGES_PAGE_SIZE };
   dispatch(fetchMessagesRequest());
@@ -710,7 +829,7 @@ const fetchMessages = (txId, page, config) => (dispatch, getState, sdk) => {
   return sdk.messages
     .query({
       transaction_id: txId,
-      include: ['sender', 'sender.profileImage'],
+      include: ['sender', 'sender.profileImage', ...MESSAGE_FILE_INCLUDES],
       ...getImageVariants(config.layout.listingImage),
       ...paging,
     })
@@ -722,6 +841,10 @@ const fetchMessages = (txId, page, config) => (dispatch, getState, sdk) => {
 
       // Original fetchMessages call succeeded
       dispatch(fetchMessagesSuccess(messages, pagination));
+
+      messages
+        .filter(messageHasPendingFiles)
+        .forEach(message => dispatch(pollMessageFiles(txId, message.id)));
 
       // Check if totalItems has changed between fetched pagination pages
       // if totalItems has changed, fetch first page again to include new incoming messages.
@@ -753,6 +876,24 @@ export const fetchMoreMessages = (txId, config) => (dispatch, getState, sdk) => 
   const nextPage = hasMoreOldMessages ? oldestMessagePageFetched + 1 : oldestMessagePageFetched;
 
   return dispatch(fetchMessages(txId, nextPage, config));
+};
+
+// Download URLs are temporary, so they are fetched only when the user asks for the file.
+export const downloadFile = fileAttachmentId => (dispatch, getState, sdk) => {
+  dispatch(downloadFileRequest(fileAttachmentId));
+
+  return sdk.fileDownloads
+    .create({ fileAttachmentId })
+    .then(response => {
+      const downloadUrl = response.data.data.attributes.url;
+      dispatch(downloadFileSuccess(fileAttachmentId, downloadUrl));
+      // Browsers may block a window opened after an API call; the feed then offers a link instead.
+      window.open(downloadUrl, '_blank', 'noopener,noreferrer');
+    })
+    .catch(e => {
+      dispatch(downloadFileError(fileAttachmentId, storableError(e)));
+      log.error(e, 'download-file-failed', { fileAttachmentId: fileAttachmentId.uuid });
+    });
 };
 
 export const sendMessage = (txId, message, config) => (dispatch, getState, sdk) => {

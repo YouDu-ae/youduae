@@ -10,13 +10,15 @@ import {
   createListing,
   createTransaction,
 } from '../../../util/testData';
+import { types as sdkTypes } from '../../../util/sdkLoader';
 import { TX_TRANSITION_ACTOR_CUSTOMER, getProcess } from '../../../transactions/transaction';
 
 import { ActivityFeed } from './ActivityFeed';
 
 const processTransitions = getProcess('default-purchase')?.transitions;
 
-const { screen, within } = testingLibrary;
+const { UUID } = sdkTypes;
+const { screen, within, userEvent } = testingLibrary;
 const noop = () => null;
 
 export const createTxTransition = options => {
@@ -204,5 +206,140 @@ describe('ActivityFeed', () => {
     );
 
     expect(screen.getAllByText('Добрый день пишу по поводу столешницы')).toHaveLength(1);
+  });
+});
+
+describe('ActivityFeed file attachments', () => {
+  const customer = createUser('specialist');
+  const provider = createUser('task-author');
+  const transaction = createTransaction({
+    id: 'tx-files',
+    customer,
+    provider,
+    listing: createListing('listing'),
+    transitions: [],
+  });
+
+  const createFileAttachment = (id, fileAttributes = {}) => ({
+    id: new UUID(id),
+    type: 'fileAttachment',
+    attributes: { scope: 'public', deleted: false },
+    file: {
+      id: new UUID(`file-${id}`),
+      type: 'file',
+      attributes: {
+        name: 'estimate.pdf',
+        size: 250000,
+        state: 'available',
+        deleted: false,
+        ...fileAttributes,
+      },
+    },
+  });
+
+  const messageWithFiles = (id, sender, content, fileAttachments) =>
+    createMessage(
+      id,
+      { content, createdAt: new Date(Date.UTC(2023, 10, 9, 8, 12)) },
+      { sender, publicFileAttachments: fileAttachments }
+    );
+
+  const renderFeed = (messages, props = {}) =>
+    render(
+      <ActivityFeed
+        messages={messages}
+        transaction={transaction}
+        stateData={{ processName: 'default-purchase', processState: 'inquiry' }}
+        currentUser={createCurrentUser('task-author')}
+        hasOlderMessages={false}
+        fetchMessagesInProgress={false}
+        onOpenReviewModal={noop}
+        onShowOlderMessages={noop}
+        onDownloadFile={noop}
+        marketplaceName="YouDu"
+        intl={fakeIntl}
+        {...props}
+      />
+    );
+
+  it('shows the file of the other party and downloads it on click', async () => {
+    const onDownloadFile = jest.fn();
+    const fileAttachment = createFileAttachment('att-1');
+    renderFeed([messageWithFiles('msg-1', customer, 'Смета во вложении', [fileAttachment])], {
+      onDownloadFile,
+    });
+
+    expect(screen.getByText('Смета во вложении')).toBeInTheDocument();
+    expect(screen.getByText('estimate')).toBeInTheDocument();
+    expect(screen.getByText('.pdf')).toBeInTheDocument();
+    expect(screen.getByText(/^250\s?kB$/)).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: 'FileAttachments.downloadFile' }));
+    expect(onDownloadFile).toHaveBeenCalledWith(fileAttachment.id);
+  });
+
+  it('offers a link when the browser did not open the file, and tells when fetching it failed', () => {
+    const opened = createFileAttachment('att-opened', { name: 'photo.jpg' });
+    const failed = createFileAttachment('att-failed', { name: 'plan.png' });
+    renderFeed([messageWithFiles('msg-1', customer, 'Фото', [opened, failed])], {
+      fileDownloads: {
+        'att-opened': { inProgress: false, error: null, downloadUrl: 'https://files.test/photo' },
+        'att-failed': { inProgress: false, error: { status: 500 }, downloadUrl: null },
+      },
+    });
+
+    expect(screen.getByText('FileAttachments.downloadFileFallback')).toBeInTheDocument();
+    expect(screen.getByText('FileAttachments.downloadFileFailed')).toBeInTheDocument();
+  });
+
+  it('hides messages of the other party until their files have passed the security scan', () => {
+    renderFeed([
+      messageWithFiles('msg-pending', customer, 'Проверяется', [
+        createFileAttachment('att-pending', { state: 'pendingVerification' }),
+      ]),
+      messageWithFiles('msg-failed', customer, 'Не прошло', [
+        createFileAttachment('att-failed', { state: 'verificationFailed' }),
+      ]),
+      messageWithFiles('msg-text', customer, 'Обычное сообщение', undefined),
+    ]);
+
+    expect(screen.getByText('Обычное сообщение')).toBeInTheDocument();
+    expect(screen.queryByText('Проверяется')).not.toBeInTheDocument();
+    expect(screen.queryByText('Не прошло')).not.toBeInTheDocument();
+  });
+
+  it('tells the sender that the message waits for the security scan or was not sent', () => {
+    renderFeed([
+      messageWithFiles('msg-pending', provider, 'Проверяется', [
+        createFileAttachment('att-pending', { state: 'pendingVerification' }),
+      ]),
+      messageWithFiles('msg-failed', provider, 'Не прошло', [
+        createFileAttachment('att-failed', { state: 'verificationFailed' }),
+      ]),
+    ]);
+
+    expect(screen.getByText('Проверяется')).toBeInTheDocument();
+    expect(screen.getByText('FileAttachments.fileVerifying')).toBeInTheDocument();
+    expect(screen.getByText('Message.pendingVerificationNote')).toBeInTheDocument();
+    expect(screen.getByText('Не прошло')).toBeInTheDocument();
+    expect(screen.getByText('FileAttachments.fileSecurityCheckFailed')).toBeInTheDocument();
+    expect(screen.getByText('Message.securityCheckFailedNote')).toBeInTheDocument();
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
+  });
+
+  it('shows deleted files and the notice when the marketplace has disabled files', () => {
+    const { unmount } = renderFeed([
+      messageWithFiles('msg-1', customer, 'Удалённый файл', [
+        createFileAttachment('att-deleted', { deleted: true }),
+      ]),
+    ]);
+    expect(screen.getByText('FileAttachments.fileDeleted')).toBeInTheDocument();
+    unmount();
+
+    renderFeed([messageWithFiles('msg-2', customer, 'Смета', [createFileAttachment('att-2')])], {
+      allowFiles: false,
+    });
+    expect(screen.getByText('TransactionPage.messageFilesDisabled')).toBeInTheDocument();
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
 });

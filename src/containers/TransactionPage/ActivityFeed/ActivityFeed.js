@@ -5,6 +5,7 @@ import classNames from 'classnames';
 import { FormattedMessage, useIntl } from '../../../util/reactIntl';
 import { richText } from '../../../util/richText';
 import { formatDateWithProximity } from '../../../util/dates';
+import { messageHasFailedFiles, messageHasPendingFiles } from '../../../util/fileHelpers';
 import { propTypes } from '../../../util/types';
 import { isVerifiedUser } from '../../../util/userHelpers';
 import {
@@ -18,6 +19,7 @@ import {
 import { Avatar, InlineTextButton, ReviewRating, UserDisplayName, VerificationBadge } from '../../../components';
 
 import { stateDataShape } from '../TransactionPage.stateData';
+import FileAttachments from '../FileAttachments/FileAttachments';
 
 import css from './ActivityFeed.module.css';
 
@@ -29,10 +31,11 @@ const MIN_LENGTH_FOR_LONG_WORDS = 20;
  * @param {propTypes.message} props.message - The message
  * @param {string} props.formattedDate - The formatted date
  * @param {Object} props.intl - The intl object for translations
+ * @param {Object} props.fileProps - Props for the FileAttachments of the message
  * @returns {JSX.Element} The Message component
  */
 const Message = props => {
-  const { message, formattedDate, intl } = props;
+  const { message, formattedDate, intl, fileProps } = props;
   const content = richText(message.attributes.content, {
     linkify: true,
     longWordMinLength: MIN_LENGTH_FOR_LONG_WORDS,
@@ -43,12 +46,18 @@ const Message = props => {
   return (
     <div className={css.message}>
       <Avatar className={css.avatar} user={message.sender} />
-      <div>
+      <div className={css.messageContentWrapper}>
         <div className={css.messageHeader}>
           <UserDisplayName user={message.sender} intl={intl} />
           <VerificationBadge isVerified={senderVerified} />
         </div>
         <p className={css.messageContent}>{content}</p>
+        <FileAttachments
+          className={css.messageFiles}
+          fileAttachments={message.publicFileAttachments}
+          intl={intl}
+          {...fileProps}
+        />
         <p className={css.messageDate}>{formattedDate}</p>
       </div>
     </div>
@@ -60,21 +69,41 @@ const Message = props => {
  * @param {Object} props - The props
  * @param {propTypes.message} props.message - The message
  * @param {string} props.formattedDate - The formatted date
+ * @param {Object} props.intl - The intl object for translations
+ * @param {Object} props.fileProps - Props for the FileAttachments of the message
  * @returns {JSX.Element} The OwnMessage component
  */
 const OwnMessage = props => {
-  const { message, formattedDate } = props;
+  const { message, formattedDate, intl, fileProps } = props;
   const content = richText(message.attributes.content, {
     linkify: true,
     linkClass: css.ownMessageContentLink,
     longWordMinLength: MIN_LENGTH_FOR_LONG_WORDS,
   });
+  const hasFailedFiles = messageHasFailedFiles(message);
+  const hasPendingFiles = messageHasPendingFiles(message);
+  const unsentClass = { [css.ownMessageUnsent]: hasFailedFiles || hasPendingFiles };
 
   return (
     <div className={css.ownMessage}>
       <div className={css.ownMessageContentWrapper}>
-        <p className={css.ownMessageContent}>{content}</p>
+        <p className={classNames(css.ownMessageContent, unsentClass)}>{content}</p>
+        <FileAttachments
+          className={classNames(css.ownMessageFiles, unsentClass)}
+          fileAttachments={message.publicFileAttachments}
+          intl={intl}
+          {...fileProps}
+        />
       </div>
+      {hasFailedFiles ? (
+        <p className={classNames(css.ownMessageNote, css.ownMessageNoteFailed)}>
+          <FormattedMessage id="Message.securityCheckFailedNote" />
+        </p>
+      ) : hasPendingFiles ? (
+        <p className={css.ownMessageNote}>
+          <FormattedMessage id="Message.pendingVerificationNote" />
+        </p>
+      ) : null}
       <p className={css.ownMessageDate}>{formattedDate}</p>
     </div>
   );
@@ -275,6 +304,10 @@ const organizedItems = (messages, transitions, hideOldTransitions) => {
  * @param {boolean} props.fetchMessagesInProgress - Whether the fetch messages is in progress
  * @param {Function} props.onOpenReviewModal - The on open review modal function
  * @param {Function} props.onShowOlderMessages - The on show older messages function
+ * @param {boolean} [props.allowFiles] - False when the marketplace has disabled message files
+ * @param {Object} [props.fileDownloads] - Download states by fileAttachment uuid
+ * @param {Function} [props.onDownloadFile] - Called with the fileAttachment id
+ * @param {string} [props.marketplaceName] - The marketplace name
  * @returns {JSX.Element} The ActivityFeed component
  */
 export const ActivityFeed = props => {
@@ -290,6 +323,10 @@ export const ActivityFeed = props => {
     fetchMessagesInProgress,
     onOpenReviewModal,
     onShowOlderMessages,
+    allowFiles = true,
+    fileDownloads,
+    onDownloadFile,
+    marketplaceName,
   } = props;
   const classes = classNames(rootClassName || css.root, className);
   const processName = stateData.processName;
@@ -313,13 +350,24 @@ export const ActivityFeed = props => {
     hideOldTransitions
   );
 
+  const fileProps = { allowFiles, fileDownloads, onDownloadFile, marketplaceName };
+
   const messageListItem = message => {
     const formattedDate = formatDateWithProximity(message.attributes.createdAt, intl, todayString);
     const isOwnMessage = currentUser?.id && message?.sender?.id?.uuid === currentUser.id?.uuid;
+    // A message counts as sent only after its files have passed the security scan
+    if (!isOwnMessage && (messageHasPendingFiles(message) || messageHasFailedFiles(message))) {
+      return null;
+    }
     const messageComponent = isOwnMessage ? (
-      <OwnMessage message={message} formattedDate={formattedDate} />
+      <OwnMessage
+        message={message}
+        formattedDate={formattedDate}
+        intl={intl}
+        fileProps={fileProps}
+      />
     ) : (
-      <Message message={message} formattedDate={formattedDate} intl={intl} />
+      <Message message={message} formattedDate={formattedDate} intl={intl} fileProps={fileProps} />
     );
 
     return (

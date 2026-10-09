@@ -62,6 +62,7 @@ import {
   fetchMoreMessages,
   fetchTimeSlots,
   fetchTransactionLineItems,
+  downloadFile,
 } from './TransactionPage.duck';
 import { fetchCurrentUserNotifications } from '../../ducks/user.duck';
 import css from './TransactionPage.module.css';
@@ -167,8 +168,10 @@ export const TransactionPageComponent = props => {
     totalMessagePages,
     oldestMessagePageFetched,
     fetchTransactionError,
+    fileDownloads,
     history,
     messages,
+    onDownloadFile,
     onManageDisableScrolling,
     onSendMessage,
     onSendReview,
@@ -743,6 +746,10 @@ const confirmDeclineOffer = async () => {
             onOpenReviewModal={onOpenReviewModal}
             onShowOlderMessages={() => onShowMoreMessages(transaction.id, config)}
             fetchMessagesInProgress={fetchMessagesInProgress}
+            allowFiles={!config.accessControl?.marketplace?.fileUploadAndDownloadDisabled}
+            fileDownloads={fileDownloads}
+            onDownloadFile={onDownloadFile}
+            marketplaceName={config.marketplaceName}
           />
         </>
       }
@@ -945,6 +952,7 @@ const mapStateToProps = state => {
     totalMessagePages,
     oldestMessagePageFetched,
     messages,
+    fileDownloads,
     initialMessageFailedToTransaction,
     savePaymentMethodFailed,
     sendMessageInProgress,
@@ -975,6 +983,7 @@ const mapStateToProps = state => {
     totalMessagePages,
     oldestMessagePageFetched,
     messages,
+    fileDownloads,
     initialMessageFailedToTransaction,
     savePaymentMethodFailed,
     sendMessageInProgress,
@@ -996,6 +1005,7 @@ const mapDispatchToProps = dispatch => {
     onTransition: (txId, transitionName, params) =>
       dispatch(makeTransition(txId, transitionName, params)),
     onShowMoreMessages: (txId, config) => dispatch(fetchMoreMessages(txId, config)),
+    onDownloadFile: fileAttachmentId => dispatch(downloadFile(fileAttachmentId)),
     onSendMessage: (txId, message, config) => dispatch(sendMessage(txId, message, config)),
     onManageDisableScrolling: (componentId, disableScrolling) =>
       dispatch(manageDisableScrolling(componentId, disableScrolling)),

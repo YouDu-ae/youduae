@@ -1,0 +1,107 @@
+@import '../../../styles/customMediaQueries.css';
+
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  /* Messages preserve newlines, which would add gaps between the files */
+  white-space: normal;
+}
+
+.downloadable {
+  min-width: 0;
+}
+
+.file {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.downloadButton {
+  /* Reset native button styles */
+  appearance: none;
+  background: none;
+  border: none;
+  margin: 0;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+
+  &:hover .fileName {
+    text-decoration: underline;
+  }
+
+  &:disabled {
+    cursor: default;
+  }
+}
+
+.icon {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.fileName {
+  display: flex;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.fileNameBeginning {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fileNameEnding {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.status {
+  flex-shrink: 0;
+  white-space: nowrap;
+  opacity: 0.8;
+}
+
+.fileWithStatus {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.statusText {
+  opacity: 0.8;
+}
+
+.note {
+  composes: marketplaceTinyFontStyles from global;
+
+  margin: 4px 0 0 22px;
+
+  @media (--viewportMedium) {
+    margin: 4px 0 0 22px;
+  }
+}
+
+.noteLink {
+  color: inherit;
+  text-decoration: underline;
+  font-weight: var(--fontWeightBold);
+
+  &:hover {
+    color: inherit;
+    text-decoration: none;
+  }
+}
+
+.filesDisabled {
+  margin: 0;
+}
