@@ -36,10 +36,43 @@ export const restructureListingTypes = listingTypes => {
 // 3) Приводим hosted listingFields к плоской структуре
 export const restructureListingFields = listingFields => {
   if (!Array.isArray(listingFields)) return [];
-  return listingFields.map(f => {
-    const { key, scope, includeForListingTypes, schemaType, ...rest } = f || {};
-    return { key, scope, includeForListingTypes, schemaType, ...rest };
-  });
+  return listingFields
+    .map(f => {
+      const {
+        key,
+        scope,
+        schemaType,
+        enumOptions,
+        label,
+        filterConfig = {},
+        showConfig = {},
+        saveConfig = {},
+        numberConfig = {},
+        categoryConfig = {},
+        ...rest
+      } = f || {};
+      // Console may leave the filter, display and form labels empty
+      const defaultLabel = label || key;
+      const enumOptionsMaybe = ['enum', 'multi-enum'].includes(schemaType) ? { enumOptions } : {};
+      const numberConfigMaybe = schemaType === 'long' ? { numberConfig } : {};
+      const { required: isRequired, ...restSaveConfig } = saveConfig;
+
+      return key
+        ? {
+            key,
+            scope,
+            schemaType,
+            ...enumOptionsMaybe,
+            ...numberConfigMaybe,
+            filterConfig: { ...filterConfig, label: filterConfig.label || defaultLabel },
+            showConfig: { ...showConfig, label: showConfig.label || defaultLabel },
+            saveConfig: { ...restSaveConfig, isRequired, label: saveConfig.label || defaultLabel },
+            categoryConfig,
+            ...rest,
+          }
+        : null;
+    })
+    .filter(Boolean);
 };
 
 // 4) Простой union по ключу: при совпадении ключа выигрывает элемент из второго массива
