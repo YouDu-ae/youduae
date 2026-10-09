@@ -106,7 +106,12 @@ module.exports = (req, res) => {
               });
               console.log('📱 Telegram: Accept notification sent to:', customerId);
 
-              await sendExecutorSelectedNotification(customerId, listingTitle, listingId);
+              await sendExecutorSelectedNotification(
+                customerId,
+                listingTitle,
+                listingId,
+                transactionId
+              );
             }
           }
         } catch (notifyError) {

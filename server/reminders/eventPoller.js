@@ -1,9 +1,10 @@
 /**
- * Reads Sharetribe's event log once a minute. Consumers react to what happens
- * outside our code — task approvals and account deletions in Console, deals
- * completed on the site, chat messages from anywhere — and the archive keeps
- * every event past Sharetribe's 90-day retention. Each consumer keeps its own place in event_cursors, so one of
- * them failing or lagging does not hold up the others.
+ * Reads Sharetribe's event log once a minute, and every 15 seconds for chat
+ * messages. Consumers react to what happens outside our code — task approvals
+ * and account deletions in Console, deals completed on the site, chat
+ * messages from anywhere — and the archive keeps every event past
+ * Sharetribe's 90-day retention. Each consumer keeps its own place in
+ * event_cursors, so one of them failing or lagging does not hold up the others.
  */
 
 const db = require('../db');
@@ -20,8 +21,12 @@ const { processMessageEvents } = require('./messageNotifications');
 // sweep would feel broken. Two queries a minute are far below the API limit.
 const POLL_INTERVAL_MS = 60 * 1000;
 
-// Long enough for the dyno to finish booting and serve traffic first.
-const STARTUP_DELAY_MS = 2 * 60 * 1000;
+// Chat and review pushes wait for this poll. Sharetribe asks integrations that
+// need a quick reaction not to poll more often than every 10–30 seconds.
+const MESSAGE_POLL_INTERVAL_MS = 15 * 1000;
+
+// Pushes written during a restart wait this long, so it stays short.
+const STARTUP_DELAY_MS = 20 * 1000;
 
 // A backlog after downtime is drained in one tick, but never unboundedly.
 const MAX_PAGES_PER_TICK = 10;
@@ -50,6 +55,7 @@ const buildConsumers = integrationSdk =>
     {
       name: 'messages',
       enabled: process.env.MESSAGE_NOTIFICATION_POLLER !== 'false',
+      intervalMs: MESSAGE_POLL_INTERVAL_MS,
       run: () => processMessageEvents({ integrationSdk, db }),
       isWorthLogging: result => result.notified > 0 || result.failed > 0,
     },
@@ -59,10 +65,53 @@ const buildConsumers = integrationSdk =>
       run: () => processArchiveEvents({ integrationSdk, db }),
       isWorthLogging: result => result.archived > 0,
     },
-  ].filter(consumer => consumer.enabled);
+  ]
+    .filter(consumer => consumer.enabled)
+    .map(consumer => ({ intervalMs: POLL_INTERVAL_MS, ...consumer }));
 
 let timers = [];
-let running = false;
+
+const drain = async consumer => {
+  try {
+    for (let page = 0; page < MAX_PAGES_PER_TICK; page++) {
+      const result = await consumer.run();
+      if (consumer.isWorthLogging(result)) {
+        console.log(`[${consumer.name}] итог:`, JSON.stringify(result));
+      }
+      if (!result.fullPage) break;
+    }
+  } catch (error) {
+    // A broken consumer must never take the web server down with it.
+    console.error(`[${consumer.name}] сбой опроса:`, error.message);
+  }
+};
+
+/**
+ * One loop per interval, so a slow sweep of the minute loop, such as telling
+ * every specialist about an approved task, never holds back a chat push.
+ */
+const startLoop = (consumers, intervalMs) => {
+  let running = false;
+  const tick = async () => {
+    // A slow tick must not stack up behind itself.
+    if (running) return;
+    running = true;
+    try {
+      for (const consumer of consumers) {
+        await drain(consumer);
+      }
+    } finally {
+      running = false;
+    }
+  };
+
+  timers.push(
+    setTimeout(() => {
+      tick();
+      timers.push(setInterval(tick, intervalMs));
+    }, STARTUP_DELAY_MS)
+  );
+};
 
 const startEventPoller = () => {
   const integrationSdk = createIntegrationSdk();
@@ -77,42 +126,14 @@ const startEventPoller = () => {
     return;
   }
 
-  const drain = async consumer => {
-    try {
-      for (let page = 0; page < MAX_PAGES_PER_TICK; page++) {
-        const result = await consumer.run();
-        if (consumer.isWorthLogging(result)) {
-          console.log(`[${consumer.name}] итог:`, JSON.stringify(result));
-        }
-        if (!result.fullPage) break;
-      }
-    } catch (error) {
-      // A broken consumer must never take the web server down with it.
-      console.error(`[${consumer.name}] сбой опроса:`, error.message);
-    }
-  };
-
-  const tick = async () => {
-    // A slow tick must not stack up behind itself.
-    if (running) return;
-    running = true;
-    try {
-      for (const consumer of consumers) {
-        await drain(consumer);
-      }
-    } finally {
-      running = false;
-    }
-  };
-
-  const startup = setTimeout(() => {
-    tick();
-    timers.push(setInterval(tick, POLL_INTERVAL_MS));
-  }, STARTUP_DELAY_MS);
-
-  timers.push(startup);
+  const intervals = [...new Set(consumers.map(c => c.intervalMs))];
+  intervals.forEach(intervalMs =>
+    startLoop(consumers.filter(c => c.intervalMs === intervalMs), intervalMs)
+  );
   console.log(
-    `[events] опрос событий запущен, раз в минуту: ${consumers.map(c => c.name).join(', ')}`
+    `[events] опрос событий запущен: ${consumers
+      .map(c => `${c.name} раз в ${c.intervalMs / 1000} с`)
+      .join(', ')}`
   );
 };
 

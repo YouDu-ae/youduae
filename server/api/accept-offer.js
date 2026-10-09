@@ -58,7 +58,12 @@ module.exports = async (req, res) => {
 
         if (customerId) {
           // Push notification (FCM)
-          await sendExecutorSelectedNotification(customerId, listingTitle, listingId);
+          await sendExecutorSelectedNotification(
+            customerId,
+            listingTitle,
+            listingId,
+            transactionId
+          );
           console.log('📤 Push notification sent to executor:', customerId);
           
           // Telegram notification

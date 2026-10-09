@@ -1,6 +1,7 @@
 const mockTelegram = jest.fn();
 const mockOfferTelegram = jest.fn();
 const mockPush = jest.fn();
+const mockReviewPush = jest.fn();
 const mockEmail = jest.fn();
 
 jest.mock('../api/telegram-bot', () => ({
@@ -9,6 +10,7 @@ jest.mock('../api/telegram-bot', () => ({
 }));
 jest.mock('../api/send-notification', () => ({
   sendNewMessageNotification: (...args) => mockPush(...args),
+  sendReviewNotification: (...args) => mockReviewPush(...args),
 }));
 jest.mock('../api-util/dealEmails', () => ({
   ...jest.requireActual('../api-util/dealEmails'),
@@ -54,11 +56,15 @@ const user = (id, displayName, emailVerified) => ({
   attributes: { email: `${id}@example.com`, emailVerified, profile: { displayName } },
 });
 
-const setup = (events, { authorVerified = true, masterVerified = true, blocked = false } = {}) => {
+const setup = (
+  events,
+  { authorVerified = true, masterVerified = true, blocked = false, alreadySent = false } = {}
+) => {
   const db = {
     getOrStartEventCursor: jest.fn(async () => ({ sequenceId: 5, updatedAt: new Date() })),
     saveEventCursor: jest.fn(async () => {}),
     hasBlocked: jest.fn(async () => blocked),
+    claimReminder: jest.fn(async () => !alreadySent),
   };
   const integrationSdk = {
     events: { query: jest.fn(async () => ({ data: { data: events, meta: { perPage: 100 } } })) },
@@ -90,7 +96,7 @@ const setup = (events, { authorVerified = true, masterVerified = true, blocked =
 
 describe('processMessageEvents', () => {
   beforeEach(() => {
-    [mockTelegram, mockOfferTelegram, mockPush, mockEmail].forEach(mock =>
+    [mockTelegram, mockOfferTelegram, mockPush, mockReviewPush, mockEmail].forEach(mock =>
       mock.mockReset().mockResolvedValue(true)
     );
   });
@@ -105,9 +111,32 @@ describe('processMessageEvents', () => {
       messagePreview: 'Правильно ли я понял?',
       conversationUrl: 'https://youdu.ae/sale/tx-1',
     });
-    expect(mockPush).toHaveBeenCalledWith(AUTHOR, 'Ahmad Said', 'Правильно ли я понял?', 'tx-1');
+    expect(mockPush).toHaveBeenCalledTimes(1);
+    expect(mockPush).toHaveBeenCalledWith({
+      recipientId: AUTHOR,
+      senderId: MASTER,
+      senderName: 'Ahmad Said',
+      preview: 'Правильно ли я понял?',
+      transactionId: 'tx-1',
+      messageId: 'msg-6',
+      messageCreatedAt: '2026-09-26T13:59:00.000Z',
+    });
     expect(result.notified).toBe(1);
     expect(db.saveEventCursor).toHaveBeenCalledWith(CURSOR_NAME, 6);
+  });
+
+  it('notifies about a message once, even when the poller reads it again', async () => {
+    const { run, db } = setup([messageEvent(6, MASTER)], { alreadySent: true });
+    const result = await run();
+
+    expect(db.claimReminder).toHaveBeenCalledWith({
+      reminderType: 'chat-message',
+      subjectId: 'msg-6',
+      recipientUserId: AUTHOR,
+    });
+    expect(mockTelegram).not.toHaveBeenCalled();
+    expect(mockPush).not.toHaveBeenCalled();
+    expect(result.notified).toBe(0);
   });
 
   it('stays silent about messages from someone the recipient blocked', async () => {
@@ -263,6 +292,46 @@ describe('processMessageEvents', () => {
     ]);
     await run();
     expect(mockEmail).not.toHaveBeenCalled();
+    expect(mockReviewPush).not.toHaveBeenCalled();
+  });
+
+  it("pushes the author's first review to the specialist, still hidden", async () => {
+    const { run } = setup([transitioned(8, 'transition/review-1-by-provider')]);
+    const result = await run();
+
+    expect(mockReviewPush).toHaveBeenCalledWith({
+      recipientId: MASTER,
+      reviewerId: AUTHOR,
+      reviewerName: 'Alex',
+      transactionId: 'tx-1',
+      published: false,
+    });
+    expect(mockEmail).not.toHaveBeenCalled();
+    expect(result.notified).toBe(1);
+  });
+
+  it('tells the task author that both reviews are published', async () => {
+    const { run } = setup([transitioned(8, 'transition/review-2-by-customer')]);
+    await run();
+
+    expect(mockReviewPush).toHaveBeenCalledWith(
+      expect.objectContaining({ recipientId: AUTHOR, reviewerName: 'Ahmad Said', published: true })
+    );
+  });
+
+  it('pushes a review once, even when the poller reads it again', async () => {
+    const { run, db } = setup([transitioned(8, 'transition/review-1-by-customer')], {
+      alreadySent: true,
+    });
+    const result = await run();
+
+    expect(db.claimReminder).toHaveBeenCalledWith({
+      reminderType: 'review-push',
+      subjectId: 'tx-1:transition/review-1-by-customer',
+      recipientUserId: AUTHOR,
+    });
+    expect(mockReviewPush).not.toHaveBeenCalled();
+    expect(result.notified).toBe(0);
   });
 
   it('stays quiet about events hours old, as after an outage', async () => {

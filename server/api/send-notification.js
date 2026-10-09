@@ -1,5 +1,5 @@
 const admin = require('firebase-admin');
-const sharetribeIntegrationSdk = require('sharetribe-flex-integration-sdk');
+const db = require('../db');
 
 // Initialize Firebase Admin (only once)
 if (!admin.apps.length) {
@@ -19,6 +19,52 @@ if (!admin.apps.length) {
   }
 }
 
+// Firebase will never deliver to these again: the app was removed, or the
+// phone signed out and deleted its token.
+const DEAD_TOKEN_CODES = new Set([
+  'messaging/registration-token-not-registered',
+  'messaging/invalid-registration-token',
+]);
+const TRANSIENT_CODES = new Set(['messaging/server-unavailable', 'messaging/internal-error']);
+const RETRY_DELAY_MS = 1000;
+
+const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+// FCM accepts only string values in data.
+const stringData = data =>
+  Object.fromEntries(
+    Object.entries(data)
+      .filter(([, value]) => value !== undefined && value !== null && value !== '')
+      .map(([key, value]) => [key, String(value)])
+  );
+
+/**
+ * No badge: the server does not know how many conversations are unread, and
+ * iOS leaves the icon badge as it is when the payload has none.
+ */
+const buildMessage = (notification, data) => ({
+  notification: {
+    title: notification.title,
+    body: notification.body,
+  },
+  data: stringData({
+    ...data,
+    dedupeKey: data.transactionId ? `push_${data.type}_${data.transactionId}` : undefined,
+  }),
+  apns: {
+    headers: {
+      'apns-priority': '10',
+      'apns-push-type': 'alert',
+    },
+    payload: {
+      aps: {
+        sound: 'default',
+        ...(data.transactionId ? { threadId: String(data.transactionId) } : {}),
+      },
+    },
+  },
+});
+
 /**
  * Send push notification to a user
  * Used internally by other endpoints
@@ -29,76 +75,55 @@ async function sendNotificationToUser(userId, notification, data = {}) {
     return { success: false, reason: 'Firebase not configured' };
   }
 
-  const integrationClientId = process.env.INTEGRATION_API_CLIENT_ID;
-  const integrationClientSecret = process.env.INTEGRATION_API_CLIENT_SECRET;
-
-  if (!integrationClientId || !integrationClientSecret) {
-    console.warn('Integration API credentials not configured');
-    return { success: false, reason: 'Integration API not configured' };
-  }
-
   try {
-    const integrationSdk = sharetribeIntegrationSdk.createInstance({
-      clientId: integrationClientId,
-      clientSecret: integrationClientSecret,
-    });
-    
-    // Get user's device tokens from privateData
-    const userRes = await integrationSdk.users.show({ 
-      id: userId,
-      include: ['profileImage'],
-    });
-    
-    const user = userRes.data.data;
-    const privateData = user.attributes.profile.privateData || {};
-    const deviceTokens = privateData.deviceTokens || [];
-
-    if (deviceTokens.length === 0) {
+    const tokens = await db.getDeviceTokens(userId);
+    if (tokens.length === 0) {
       console.log(`No device tokens for user ${userId}`);
       return { success: false, reason: 'No device tokens' };
     }
 
-    // Send to all user's devices
-    const tokens = deviceTokens.map(t => t.token);
-    
-    const message = {
-      notification: {
-        title: notification.title,
-        body: notification.body,
-      },
-      data: {
-        ...data,
-        click_action: 'FLUTTER_NOTIFICATION_CLICK',
-      },
-      tokens,
-      apns: {
-        payload: {
-          aps: {
-            sound: 'default',
-            badge: 1,
-          },
-        },
-      },
-    };
+    const message = buildMessage(notification, { ...data, recipientUserId: userId });
+    let pending = tokens;
+    let sent = 0;
+    const failures = [];
 
-    const response = await admin.messaging().sendEachForMulticast(message);
-    
-    console.log(`📤 Sent notification to ${response.successCount}/${tokens.length} devices for user ${userId}`);
-    
-    // Remove failed tokens
-    if (response.failureCount > 0) {
-      const failedTokens = [];
-      response.responses.forEach((resp, idx) => {
-        if (!resp.success) {
-          failedTokens.push(tokens[idx]);
+    // One retry, for a failed request or for tokens Firebase could not take
+    // for a moment.
+    for (let attempt = 0; attempt < 2 && pending.length > 0; attempt++) {
+      if (attempt > 0) await sleep(RETRY_DELAY_MS);
+      let response;
+      try {
+        response = await admin.messaging().sendEachForMulticast({ ...message, tokens: pending });
+      } catch (error) {
+        if (attempt > 0) throw error;
+        continue;
+      }
+      sent += response.successCount;
+      const retry = [];
+      response.responses.forEach((result, idx) => {
+        if (result.success) return;
+        const code = result.error?.code;
+        if (attempt === 0 && TRANSIENT_CODES.has(code)) {
+          retry.push(pending[idx]);
+        } else {
+          failures.push({ token: pending[idx], code });
         }
       });
-      
-      // TODO: Clean up failed tokens from user's privateData
-      console.log(`Failed tokens: ${failedTokens.length}`);
+      pending = retry;
     }
 
-    return { success: true, sent: response.successCount };
+    const dead = failures.filter(f => DEAD_TOKEN_CODES.has(f.code)).map(f => f.token);
+    if (dead.length > 0) {
+      await db.removeDeviceTokens(dead);
+    }
+
+    console.log(`📤 Sent notification to ${sent}/${tokens.length} devices for user ${userId}`);
+    if (failures.length > 0) {
+      const codes = [...new Set(failures.map(f => f.code))].join(', ');
+      console.log(`Failed tokens: ${failures.length} (${codes}), removed as dead: ${dead.length}`);
+    }
+
+    return { success: sent > 0, sent };
   } catch (error) {
     console.error('❌ Send notification error:', error.message);
     return { success: false, reason: error.message };
@@ -108,16 +133,27 @@ async function sendNotificationToUser(userId, notification, data = {}) {
 /**
  * Send notification for new message
  */
-async function sendNewMessageNotification(recipientId, senderName, messagePreview, transactionId) {
+async function sendNewMessageNotification({
+  recipientId,
+  senderId,
+  senderName,
+  preview,
+  transactionId,
+  messageId,
+  messageCreatedAt,
+}) {
   return sendNotificationToUser(
     recipientId,
     {
       title: `Новое сообщение от ${senderName}`,
-      body: messagePreview.substring(0, 100),
+      body: preview.substring(0, 100),
     },
     {
       type: 'message',
       transactionId,
+      messageId,
+      messageCreatedAt,
+      senderUserId: senderId,
     }
   );
 }
@@ -125,7 +161,7 @@ async function sendNewMessageNotification(recipientId, senderName, messagePrevie
 /**
  * Send notification when executor is selected
  */
-async function sendExecutorSelectedNotification(executorId, taskTitle, listingId) {
+async function sendExecutorSelectedNotification(executorId, taskTitle, listingId, transactionId) {
   return sendNotificationToUser(
     executorId,
     {
@@ -135,23 +171,32 @@ async function sendExecutorSelectedNotification(executorId, taskTitle, listingId
     {
       type: 'executor_selected',
       listingId,
+      transactionId,
     }
   );
 }
 
 /**
- * Send notification when new review is received
+ * A review of the recipient. A first review stays hidden until the recipient
+ * leaves theirs, so neither push reveals the rating.
  */
-async function sendNewReviewNotification(userId, reviewerName, rating) {
-  const stars = '⭐'.repeat(Math.round(rating));
+async function sendReviewNotification({
+  recipientId,
+  reviewerId,
+  reviewerName,
+  transactionId,
+  published,
+}) {
+  const notification = published
+    ? { title: 'Отзывы опубликованы', body: `${reviewerName} ответил(а) на ваш отзыв.` }
+    : { title: `Новый отзыв от ${reviewerName}`, body: 'Оставьте свой отзыв, чтобы увидеть его.' };
   return sendNotificationToUser(
-    userId,
-    {
-      title: 'Новый отзыв',
-      body: `Отзыв от ${reviewerName} ${stars}`,
-    },
+    recipientId,
+    notification,
     {
       type: 'review',
+      transactionId,
+      senderUserId: reviewerId,
     }
   );
 }
@@ -178,26 +223,10 @@ async function sendOfferStatusNotification(userId, taskTitle, status) {
   );
 }
 
-// Export functions for use in other endpoints
 module.exports = {
   sendNotificationToUser,
   sendNewMessageNotification,
   sendExecutorSelectedNotification,
-  sendNewReviewNotification,
+  sendReviewNotification,
   sendOfferStatusNotification,
-};
-
-// Also export as HTTP endpoint for testing
-module.exports.handler = async (req, res) => {
-  const { userId, title, body, data } = req.body;
-
-  if (!userId || !title || !body) {
-    return res.status(400).json({ 
-      error: 'userId, title, and body are required' 
-    }).end();
-  }
-
-  const result = await sendNotificationToUser(userId, { title, body }, data || {});
-  
-  res.status(200).json(result).end();
 };

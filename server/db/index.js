@@ -248,6 +248,18 @@ const initDatabase = async () => {
         PRIMARY KEY (blocker_id, blocked_id)
       );
 
+      -- Push tokens of the app installs. A token belongs to one account at a
+      -- time: when another account signs in on the same phone the row moves
+      -- to it, so the previous account's pushes stop reaching that phone.
+      CREATE TABLE IF NOT EXISTS device_tokens (
+        token TEXT PRIMARY KEY,
+        user_id VARCHAR(100) NOT NULL,
+        platform VARCHAR(20),
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+      CREATE INDEX IF NOT EXISTS idx_device_tokens_user ON device_tokens (user_id, updated_at DESC);
+
       -- Every Sharetribe event, kept past Sharetribe's 90-day retention.
       -- Append-only: rows are never updated, only removed with the user they
       -- mention when that user deletes their account. user_ids lists every
@@ -1008,6 +1020,46 @@ const hasBlocked = async (blockerId, blockedId) => {
   return result.rowCount > 0;
 };
 
+const MAX_DEVICE_TOKENS_PER_USER = 5;
+
+/**
+ * Bind a push token to the account signed in on that phone, taking it away
+ * from whichever account had it before. An account keeps its five most
+ * recently registered tokens.
+ */
+const registerDeviceToken = async ({ userId, token, platform }) => {
+  await pool.query(
+    `INSERT INTO device_tokens (token, user_id, platform) VALUES ($1, $2, $3)
+     ON CONFLICT (token) DO UPDATE
+       SET user_id = EXCLUDED.user_id, platform = EXCLUDED.platform, updated_at = NOW()`,
+    [token, userId, platform]
+  );
+  await pool.query(
+    `DELETE FROM device_tokens
+     WHERE user_id = $1 AND token NOT IN (
+       SELECT token FROM device_tokens WHERE user_id = $1 ORDER BY updated_at DESC LIMIT $2
+     )`,
+    [userId, MAX_DEVICE_TOKENS_PER_USER]
+  );
+};
+
+const unregisterDeviceToken = async token => {
+  await pool.query('DELETE FROM device_tokens WHERE token = $1', [token]);
+};
+
+const getDeviceTokens = async userId => {
+  const result = await pool.query(
+    'SELECT token FROM device_tokens WHERE user_id = $1 ORDER BY updated_at DESC',
+    [userId]
+  );
+  return result.rows.map(row => row.token);
+};
+
+const removeDeviceTokens = async tokens => {
+  if (tokens.length === 0) return;
+  await pool.query('DELETE FROM device_tokens WHERE token = ANY($1)', [tokens]);
+};
+
 const hasVoiceConsent = async (userId, version) => {
   const result = await pool.query(
     `SELECT 1 FROM voice_consents
@@ -1235,6 +1287,7 @@ const deleteUserLocalData = async userId => {
     await client.query('DELETE FROM voice_sessions WHERE user_id = $1', [userId]);
     await client.query('DELETE FROM voice_consents WHERE user_id = $1', [userId]);
     await client.query('DELETE FROM user_blocks WHERE blocker_id = $1 OR blocked_id = $1', [userId]);
+    await client.query('DELETE FROM device_tokens WHERE user_id = $1', [userId]);
     await client.query('DELETE FROM user_reports WHERE reporter_id = $1 OR reported_id = $1', [
       userId,
     ]);
@@ -1347,6 +1400,11 @@ module.exports = {
   setUserBlocked,
   getBlockedUserIds,
   hasBlocked,
+  // Push device tokens
+  registerDeviceToken,
+  unregisterDeviceToken,
+  getDeviceTokens,
+  removeDeviceTokens,
   hasVoiceConsent,
   grantVoiceConsent,
   withdrawVoiceConsent,

@@ -5,7 +5,7 @@
  * Chat messages go to the recipient only, by Telegram and push. Before this
  * the app asked the server to notify after sending, which reached both parties
  * including the sender, and the site never asked, so replies written on the
- * site notified nobody.
+ * site notified nobody. Reviews are pushed to the reviewed party the same way.
  *
  * E-mail: Sharetribe mails offers, messages and the process letters of later
  * steps (chosen, declined, completed, reviews) only to verified addresses, and
@@ -21,7 +21,7 @@
  */
 
 const { notifyNewMessage, notifyNewOffer } = require('../api/telegram-bot');
-const { sendNewMessageNotification } = require('../api/send-notification');
+const { sendNewMessageNotification, sendReviewNotification } = require('../api/send-notification');
 const { sendDealEmail, TRANSITION_LETTERS } = require('../api-util/dealEmails');
 
 const CURSOR_NAME = 'message-notifications';
@@ -32,10 +32,16 @@ const MAX_AGE_MS = 6 * 60 * 60 * 1000;
 // The opening message of an offer is written right after the offer itself.
 const OFFER_MESSAGE_WINDOW_MS = 2 * 60 * 1000;
 
-const idOf = ref => {
-  const id = ref?.data?.id;
-  return id?.uuid || id || null;
+// The second review publishes both; a first one stays hidden until then.
+const REVIEW_TRANSITIONS = {
+  'transition/review-1-by-provider': { published: false },
+  'transition/review-1-by-customer': { published: false },
+  'transition/review-2-by-provider': { published: true },
+  'transition/review-2-by-customer': { published: true },
 };
+
+const uuidOf = id => id?.uuid || id || null;
+const idOf = ref => uuidOf(ref?.data?.id);
 
 const displayName = user =>
   user?.attributes?.profile?.displayName || user?.attributes?.profile?.firstName || 'Пользователь';
@@ -84,10 +90,10 @@ const deliver = async (transactionId, deliveries) => {
     .forEach(r => console.error(`[messages] ${transactionId}: доставка не удалась — ${r.reason?.message}`));
 };
 
-const handleMessage = async ({ integrationSdk, message, rootUrl, db }) => {
+const handleMessage = async ({ integrationSdk, message, messageId, rootUrl, db }) => {
   const transactionId = idOf(message?.relationships?.transaction);
   const senderId = idOf(message?.relationships?.sender);
-  if (!transactionId || !senderId) return 'incomplete';
+  if (!transactionId || !senderId || !messageId) return 'incomplete';
 
   const deal = await loadDeal(integrationSdk, transactionId);
   const recipient = recipientOf(deal, senderId);
@@ -100,13 +106,30 @@ const handleMessage = async ({ integrationSdk, message, rootUrl, db }) => {
     return 'offer-text';
   }
 
+  // The cursor moves only after a whole page, so a crash halfway through or a
+  // second poller would replay messages; the claim keeps each to one notice.
+  const claim = {
+    reminderType: 'chat-message',
+    subjectId: messageId,
+    recipientUserId: recipient.id,
+  };
+  if (db && !(await db.claimReminder(claim))) return 'already-sent';
+
   const senderName = displayName(recipient.sender.user);
   const preview = String(message.attributes?.content || '').slice(0, PREVIEW_LENGTH) || 'Новое сообщение';
   const url = conversationUrl(rootUrl, transactionId, recipient.role);
 
   const deliveries = [
     notifyNewMessage(recipient.id, { senderName, messagePreview: preview, conversationUrl: url }),
-    sendNewMessageNotification(recipient.id, senderName, preview, transactionId),
+    sendNewMessageNotification({
+      recipientId: recipient.id,
+      senderId,
+      senderName,
+      preview,
+      transactionId,
+      messageId,
+      messageCreatedAt: new Date(sentAt).toISOString(),
+    }),
   ];
   if (needsOwnEmail(recipient.user)) {
     deliveries.push(
@@ -166,7 +189,11 @@ const handleOffer = async ({ integrationSdk, transactionRef, rootUrl, db }) => {
   return 'notified';
 };
 
-const handleTransition = async ({ integrationSdk, transactionRef, rootUrl }) => {
+/**
+ * A letter about a deal step for an unverified address, and a push to whoever
+ * was just reviewed.
+ */
+const handleTransition = async ({ integrationSdk, transactionRef, rootUrl, db }) => {
   const transition = transactionRef?.attributes?.lastTransition;
   const spec = TRANSITION_LETTERS[transition];
   if (!spec) return 'no-letter';
@@ -175,29 +202,60 @@ const handleTransition = async ({ integrationSdk, transactionRef, rootUrl }) => 
   const deal = await loadDeal(integrationSdk, transactionId);
   const recipient = deal[spec.to];
   const other = deal[spec.to === 'customer' ? 'provider' : 'customer'];
-  if (!recipient || !needsOwnEmail(recipient.user)) return 'sharetribe-mails';
+  if (!recipient) return 'incomplete';
 
-  await sendDealEmail('transition', recipient.user.attributes.email, {
-    transition,
-    recipientName: displayName(recipient.user),
-    otherName: displayName(other?.user),
-    listingTitle: deal.listing?.attributes?.title || 'Задание',
-    transactionId,
-  });
+  const deliveries = [];
+  const review = REVIEW_TRANSITIONS[transition];
+  const claim = {
+    reminderType: 'review-push',
+    subjectId: `${transactionId}:${transition}`,
+    recipientUserId: recipient.id,
+  };
+  if (review && (!db || (await db.claimReminder(claim)))) {
+    deliveries.push(
+      sendReviewNotification({
+        recipientId: recipient.id,
+        reviewerId: other?.id,
+        reviewerName: displayName(other?.user),
+        transactionId,
+        published: review.published,
+      })
+    );
+  }
+  if (needsOwnEmail(recipient.user)) {
+    deliveries.push(
+      sendDealEmail('transition', recipient.user.attributes.email, {
+        transition,
+        recipientName: displayName(recipient.user),
+        otherName: displayName(other?.user),
+        listingTitle: deal.listing?.attributes?.title || 'Задание',
+        transactionId,
+      })
+    );
+  }
+  if (deliveries.length === 0) return 'sharetribe-mails';
+
+  await deliver(transactionId, deliveries);
   return 'notified';
 };
 
 const handleEvent = ({ integrationSdk, event, rootUrl, now, db }) => {
-  const { eventType, resource, createdAt } = event.attributes;
+  const { eventType, resource, resourceId, createdAt } = event.attributes;
   if (now - new Date(createdAt).getTime() > MAX_AGE_MS) return 'stale';
   if (eventType === 'message/created') {
-    return handleMessage({ integrationSdk, message: resource, rootUrl, db });
+    return handleMessage({
+      integrationSdk,
+      message: resource,
+      messageId: uuidOf(resourceId),
+      rootUrl,
+      db,
+    });
   }
   if (eventType === 'transaction/initiated') {
     return handleOffer({ integrationSdk, transactionRef: resource, rootUrl, db });
   }
   if (eventType === 'transaction/transitioned') {
-    return handleTransition({ integrationSdk, transactionRef: resource, rootUrl });
+    return handleTransition({ integrationSdk, transactionRef: resource, rootUrl, db });
   }
   return 'ignored';
 };

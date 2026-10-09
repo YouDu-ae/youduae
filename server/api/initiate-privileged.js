@@ -60,7 +60,13 @@ module.exports = (req, res) => {
         },
       };
 
-      console.log('🔍 initiate-privileged: calling SDK with body:', JSON.stringify(body, null, 2));
+      // Only the shape: params carry the offer comment and price, which must
+      // not end up in production logs.
+      console.log('🔍 initiate-privileged: calling SDK with body:', JSON.stringify({
+        transition: body.transition,
+        processAlias: body.processAlias,
+        paramsKeys: Object.keys(body.params || {}),
+      }));
 
       if (isSpeculative) {
         return trustedSdk.transactions.initiateSpeculative(body, queryParams);

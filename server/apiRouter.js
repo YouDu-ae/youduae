@@ -45,7 +45,6 @@ const acceptOffer = require('./api/accept-offer');
 const declineOffer = require('./api/decline-offer');
 const completeTransaction = require('./api/complete-transaction');
 const registerDeviceToken = require('./api/register-device-token');
-const { handler: sendNotification } = require('./api/send-notification');
 const notifyNewMessage = require('./api/notify-new-message');
 const notifyNewReview = require('./api/notify-new-review');
 const notifyPortfolioModeration = require('./api/notify-portfolio-moderation');
@@ -159,8 +158,7 @@ router.get('/listing-responses', expensiveLimiter, attachUser, listingResponses)
 router.post('/accept-offer', acceptOffer);
 router.post('/decline-offer', declineOffer);
 router.post('/complete-transaction', completeTransaction);
-router.post('/register-device-token', registerDeviceToken);
-router.post('/send-notification', writeLimiter, sendNotification);
+router.post('/register-device-token', attachUser, registerDeviceToken);
 router.post('/notify-new-message', notifyNewMessage);
 router.post('/notify-new-review', notifyNewReview);
 router.post('/notify-portfolio-moderation', writeLimiter, requireUser, notifyPortfolioModeration);
