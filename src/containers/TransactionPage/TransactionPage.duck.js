@@ -27,6 +27,7 @@ import {
 import { addMarketplaceEntities, getMarketplaceEntities } from '../../ducks/marketplaceData.duck';
 import { fetchCurrentUserNotifications } from '../../ducks/user.duck';
 import { trackMessageSent, trackReviewSubmitted } from '../../analytics/plausibleEvents';
+import { markTransactionAsViewed } from '../../util/transactionNotifications';
 
 const { UUID } = sdkTypes;
 
@@ -776,9 +777,13 @@ export const sendMessage = (txId, message, config) => (dispatch, getState, sdk) 
     .send({ transactionId: txId, content: message })
     .then(response => {
       const messageId = response.data.data.id;
+      const transactionId = txId?.uuid || txId;
+
+      // The page marks the conversation read only when it loads, so a reply to
+      // messages that came in while it was open would leave them unread.
+      markTransactionAsViewed(transactionId, getState().user?.currentUser?.id?.uuid);
 
       // Send push notification to recipient (fire and forget)
-      const transactionId = txId?.uuid || txId;
       fetch('/api/notify-new-message', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
