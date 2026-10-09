@@ -68,6 +68,8 @@ const setup = (
     hasBlocked: jest.fn(async () => blocked),
     claimReminder: jest.fn(async () => !alreadySent),
     unhideConversationForAll: jest.fn(async () => 0),
+    recordReceivedMessage: jest.fn(async () => {}),
+    setReceivedMessageTransition: jest.fn(async () => {}),
   };
   const integrationSdk = {
     events: { query: jest.fn(async () => ({ data: { data: events, meta: { perPage: 100 } } })) },
@@ -77,6 +79,7 @@ const setup = (
           data: {
             attributes: {
               createdAt: new Date(DEAL_CREATED),
+              lastTransition: 'transition/accept-offer',
               protectedData: { offer: { price: 150, currency: 'AED', comment: 'Сделаю сегодня' } },
             },
             relationships: {
@@ -140,7 +143,35 @@ describe('processMessageEvents', () => {
     expect(mockTelegram).not.toHaveBeenCalled();
     expect(mockPush).not.toHaveBeenCalled();
     expect(db.unhideConversationForAll).not.toHaveBeenCalled();
+    expect(db.recordReceivedMessage).not.toHaveBeenCalled();
     expect(result.notified).toBe(0);
+  });
+
+  it('counts the message as unread for the recipient before the push goes out', async () => {
+    const { run, db } = setup([messageEvent(6, MASTER)]);
+    await run();
+
+    expect(db.recordReceivedMessage).toHaveBeenCalledWith({
+      userId: AUTHOR,
+      transactionId: 'tx-1',
+      senderId: MASTER,
+      sentAt: Date.parse('2026-09-26T13:59:00Z'),
+      lastTransition: 'transition/accept-offer',
+    });
+    expect(db.recordReceivedMessage.mock.invocationCallOrder[0]).toBeLessThan(
+      mockPush.mock.invocationCallOrder[0]
+    );
+  });
+
+  it('still notifies when the message cannot be counted', async () => {
+    const { run, db } = setup([messageEvent(6, MASTER)]);
+    db.recordReceivedMessage.mockRejectedValueOnce(new Error('db down'));
+    const error = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const result = await run();
+    error.mockRestore();
+
+    expect(mockPush).toHaveBeenCalledTimes(1);
+    expect(result).toMatchObject({ notified: 1, failed: 0 });
   });
 
   it('brings a hidden conversation back to the chat lists with a new message', async () => {
@@ -170,6 +201,7 @@ describe('processMessageEvents', () => {
     expect(mockPush).not.toHaveBeenCalled();
     expect(mockEmail).not.toHaveBeenCalled();
     expect(db.unhideConversationForAll).not.toHaveBeenCalled();
+    expect(db.recordReceivedMessage).not.toHaveBeenCalled();
     expect(result.notified).toBe(0);
   });
 
@@ -216,6 +248,7 @@ describe('processMessageEvents', () => {
     expect(result.notified).toBe(0);
     expect(mockTelegram).not.toHaveBeenCalled();
     expect(mockEmail).not.toHaveBeenCalled();
+    expect(db.recordReceivedMessage).not.toHaveBeenCalled();
   });
 
   it('tells the task author about a new offer in Telegram and by push', async () => {
@@ -343,6 +376,19 @@ describe('processMessageEvents', () => {
     await run();
     expect(mockEmail).not.toHaveBeenCalled();
     expect(mockReviewPush).not.toHaveBeenCalled();
+  });
+
+  it('keeps the unread count in step with the deal, with a letter or without', async () => {
+    const { run, db } = setup([
+      transitioned(8, 'transition/accept-offer'),
+      transitioned(9, 'transition/expire-review-period'),
+    ]);
+    await run();
+
+    expect(db.setReceivedMessageTransition.mock.calls).toEqual([
+      ['tx-1', 'transition/accept-offer'],
+      ['tx-1', 'transition/expire-review-period'],
+    ]);
   });
 
   it("pushes the author's first review to the specialist, still hidden", async () => {

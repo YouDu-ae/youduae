@@ -9,6 +9,7 @@
 
 const sharetribeIntegrationSdk = require('sharetribe-flex-integration-sdk');
 const db = require('../db');
+const { sendBadgeUpdate } = require('./send-notification');
 
 // Initialize Integration SDK
 const getIntegrationSdk = () => {
@@ -33,6 +34,8 @@ const SAVE_ATTEMPTS = 3;
  * privateData merges only on the top level, so the map is read, changed and
  * written as one value; when two marks overlap Sharetribe answers 409 to one
  * of them, and that one starts over from a fresh read.
+ *
+ * @returns {Promise<{viewedAt: number, viewedTransactions: Object}>} the saved map
  */
 const saveViewedTransactions = async (integrationSdk, userId, transactionIds) => {
   for (let attempt = 1; ; attempt++) {
@@ -57,7 +60,7 @@ const saveViewedTransactions = async (integrationSdk, userId, transactionIds) =>
         id: userId,
         privateData: { viewedTransactions },
       });
-      return now;
+      return { viewedAt: now, viewedTransactions };
     } catch (error) {
       if (error.status !== 409 || attempt >= SAVE_ATTEMPTS) {
         throw error;
@@ -116,12 +119,16 @@ const markTransactionViewed = async (req, res) => {
   
   try {
     const integrationSdk = getIntegrationSdk();
-    const now = await saveViewedTransactions(integrationSdk, userId, [transactionId]);
+    const { viewedAt, viewedTransactions } = await saveViewedTransactions(integrationSdk, userId, [
+      transactionId,
+    ]);
+    // The answer does not wait for the phones.
+    sendBadgeUpdate(userId, { viewedTransactions });
 
     res.json({
       success: true,
       transactionId,
-      viewedAt: now,
+      viewedAt,
     });
   } catch (error) {
     console.error('Error marking transaction viewed:', error.message);
@@ -143,12 +150,17 @@ const markTransactionsBatchViewed = async (req, res) => {
   
   try {
     const integrationSdk = getIntegrationSdk();
-    const now = await saveViewedTransactions(integrationSdk, userId, transactionIds);
+    const { viewedAt, viewedTransactions } = await saveViewedTransactions(
+      integrationSdk,
+      userId,
+      transactionIds
+    );
+    sendBadgeUpdate(userId, { viewedTransactions });
 
     res.json({
       success: true,
       count: transactionIds.length,
-      viewedAt: now,
+      viewedAt,
     });
   } catch (error) {
     console.error('Error marking transactions batch viewed:', error.message);

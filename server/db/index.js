@@ -259,6 +259,9 @@ const initDatabase = async () => {
         updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       );
       CREATE INDEX IF NOT EXISTS idx_device_tokens_user ON device_tokens (user_id, updated_at DESC);
+      -- Set by app builds that tell the server what was read; only their icon
+      -- badge follows the server's unread count, older builds get no badge.
+      ALTER TABLE device_tokens ADD COLUMN IF NOT EXISTS badge BOOLEAN NOT NULL DEFAULT FALSE;
 
       -- Conversations a person removed from their chat list in the app.
       -- Sharetribe cannot delete a transaction, so the list only hides it,
@@ -271,6 +274,20 @@ const initDatabase = async () => {
       );
       CREATE INDEX IF NOT EXISTS idx_hidden_conversations_tx
         ON hidden_conversations (transaction_id);
+
+      -- The latest message each person received in a deal, and the deal's
+      -- current step: with their read marks, the unread count for the app's
+      -- icon badge. The event poller writes a message here before its push
+      -- goes out; the event archive would lag up to a minute behind.
+      CREATE TABLE IF NOT EXISTS received_messages (
+        user_id VARCHAR(100) NOT NULL,
+        transaction_id VARCHAR(100) NOT NULL,
+        sender_id VARCHAR(100) NOT NULL,
+        received_at TIMESTAMPTZ NOT NULL,
+        last_transition VARCHAR(100),
+        PRIMARY KEY (user_id, transaction_id)
+      );
+      CREATE INDEX IF NOT EXISTS idx_received_messages_tx ON received_messages (transaction_id);
 
       -- Every Sharetribe event, kept past Sharetribe's 90-day retention.
       -- Append-only: rows are never updated, only removed with the user they
@@ -1039,12 +1056,13 @@ const MAX_DEVICE_TOKENS_PER_USER = 5;
  * from whichever account had it before. An account keeps its five most
  * recently registered tokens.
  */
-const registerDeviceToken = async ({ userId, token, platform }) => {
+const registerDeviceToken = async ({ userId, token, platform, badge = false }) => {
   await pool.query(
-    `INSERT INTO device_tokens (token, user_id, platform) VALUES ($1, $2, $3)
+    `INSERT INTO device_tokens (token, user_id, platform, badge) VALUES ($1, $2, $3, $4)
      ON CONFLICT (token) DO UPDATE
-       SET user_id = EXCLUDED.user_id, platform = EXCLUDED.platform, updated_at = NOW()`,
-    [token, userId, platform]
+       SET user_id = EXCLUDED.user_id, platform = EXCLUDED.platform, badge = EXCLUDED.badge,
+           updated_at = NOW()`,
+    [token, userId, platform, badge]
   );
   await pool.query(
     `DELETE FROM device_tokens
@@ -1059,12 +1077,13 @@ const unregisterDeviceToken = async token => {
   await pool.query('DELETE FROM device_tokens WHERE token = $1', [token]);
 };
 
+/** The user's app installs as [{ token, platform, badge }], newest first. */
 const getDeviceTokens = async userId => {
   const result = await pool.query(
-    'SELECT token FROM device_tokens WHERE user_id = $1 ORDER BY updated_at DESC',
+    'SELECT token, platform, badge FROM device_tokens WHERE user_id = $1 ORDER BY updated_at DESC',
     [userId]
   );
-  return result.rows.map(row => row.token);
+  return result.rows.map(({ token, platform, badge }) => ({ token, platform, badge }));
 };
 
 const removeDeviceTokens = async tokens => {
@@ -1107,6 +1126,53 @@ const unhideConversationForAll = async transactionId => {
     transactionId,
   ]);
   return result.rowCount;
+};
+
+const recordReceivedMessage = async ({
+  userId,
+  transactionId,
+  senderId,
+  sentAt,
+  lastTransition,
+}) => {
+  await pool.query(
+    `INSERT INTO received_messages (user_id, transaction_id, sender_id, received_at, last_transition)
+     VALUES ($1, $2, $3, $4, $5)
+     ON CONFLICT (user_id, transaction_id) DO UPDATE SET
+       sender_id = EXCLUDED.sender_id,
+       received_at = GREATEST(received_messages.received_at, EXCLUDED.received_at),
+       last_transition = EXCLUDED.last_transition`,
+    [userId, transactionId, senderId, new Date(sentAt), lastTransition]
+  );
+};
+
+const setReceivedMessageTransition = async (transactionId, lastTransition) => {
+  await pool.query('UPDATE received_messages SET last_transition = $2 WHERE transaction_id = $1', [
+    transactionId,
+    lastTransition,
+  ]);
+};
+
+/**
+ * The deals where someone the user has not blocked wrote to them within the
+ * last 90 days, as [{ transactionId, receivedAt: epochMs, lastTransition }].
+ * Read marks older than that are dropped (viewed-transactions), so an older
+ * message would look unread for good.
+ */
+const getReceivedMessages = async userId => {
+  const result = await pool.query(
+    `SELECT transaction_id, received_at, last_transition FROM received_messages r
+     WHERE user_id = $1 AND received_at > NOW() - INTERVAL '90 days'
+       AND NOT EXISTS (
+         SELECT 1 FROM user_blocks b WHERE b.blocker_id = r.user_id AND b.blocked_id = r.sender_id
+       )`,
+    [userId]
+  );
+  return result.rows.map(row => ({
+    transactionId: row.transaction_id,
+    receivedAt: new Date(row.received_at).getTime(),
+    lastTransition: row.last_transition,
+  }));
 };
 
 const hasVoiceConsent = async (userId, version) => {
@@ -1338,6 +1404,9 @@ const deleteUserLocalData = async userId => {
     await client.query('DELETE FROM user_blocks WHERE blocker_id = $1 OR blocked_id = $1', [userId]);
     await client.query('DELETE FROM device_tokens WHERE user_id = $1', [userId]);
     await client.query('DELETE FROM hidden_conversations WHERE user_id = $1', [userId]);
+    await client.query('DELETE FROM received_messages WHERE user_id = $1 OR sender_id = $1', [
+      userId,
+    ]);
     await client.query('DELETE FROM user_reports WHERE reporter_id = $1 OR reported_id = $1', [
       userId,
     ]);
@@ -1460,6 +1529,10 @@ module.exports = {
   unhideConversation,
   getHiddenConversations,
   unhideConversationForAll,
+  // Unread count
+  recordReceivedMessage,
+  setReceivedMessageTransition,
+  getReceivedMessages,
   hasVoiceConsent,
   grantVoiceConsent,
   withdrawVoiceConsent,

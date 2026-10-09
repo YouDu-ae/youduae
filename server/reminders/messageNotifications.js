@@ -7,7 +7,8 @@
  * both parties including the sender, and the site never asked, so replies
  * written on the site notified nobody. Reviews are pushed to the reviewed party
  * the same way. A new message also brings a conversation that either party
- * hid in the app back to their chat lists.
+ * hid in the app back to their chat lists, and is noted for the recipient's
+ * unread count, the app's icon badge (api-util/unreadConversations).
  *
  * E-mail: Sharetribe mails offers, messages and the process letters of later
  * steps (chosen, declined, completed, reviews) only to verified addresses, and
@@ -128,6 +129,20 @@ const handleMessage = async ({ integrationSdk, message, messageId, rootUrl, db }
       .catch(error =>
         console.error(`[messages] ${transactionId}: диалог не вернулся в список — ${error.message}`)
       );
+    // Before the push, whose icon badge counts this message.
+    await db
+      .recordReceivedMessage({
+        userId: recipient.id,
+        transactionId,
+        senderId,
+        sentAt,
+        lastTransition: deal.transaction.attributes.lastTransition,
+      })
+      .catch(error =>
+        console.error(
+          `[messages] ${transactionId}: сообщение не попало в счётчик — ${error.message}`
+        )
+      );
   }
 
   const senderName = displayName(recipient.sender.user);
@@ -219,10 +234,21 @@ const handleOffer = async ({ integrationSdk, transactionRef, rootUrl, db }) => {
  */
 const handleTransition = async ({ integrationSdk, transactionRef, rootUrl, db }) => {
   const transition = transactionRef?.attributes?.lastTransition;
+  const transactionId = transactionRef?.id?.uuid || transactionRef?.id;
+  // The unread count follows the step, since the app shows chats only at some.
+  if (db && transactionId && transition) {
+    await db
+      .setReceivedMessageTransition(transactionId, transition)
+      .catch(error =>
+        console.error(
+          `[messages] ${transactionId}: шаг сделки не попал в счётчик — ${error.message}`
+        )
+      );
+  }
+
   const spec = TRANSITION_LETTERS[transition];
   if (!spec) return 'no-letter';
 
-  const transactionId = transactionRef.id?.uuid || transactionRef.id;
   const deal = await loadDeal(integrationSdk, transactionId);
   const recipient = deal[spec.to];
   const other = deal[spec.to === 'customer' ? 'provider' : 'customer'];

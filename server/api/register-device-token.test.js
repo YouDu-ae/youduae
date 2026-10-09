@@ -33,8 +33,15 @@ describe('POST /api/register-device-token', () => {
       userId: 'user-1',
       token: 'fcm-1',
       platform: 'ios',
+      badge: false,
     });
     expect(res.status).toHaveBeenCalledWith(200);
+  });
+
+  it("lets a build that reports reads follow the server's unread badge", async () => {
+    await call({ token: 'fcm-1', platform: 'ios', badge: true }, 'user-1');
+
+    expect(db.registerDeviceToken).toHaveBeenCalledWith(expect.objectContaining({ badge: true }));
   });
 
   it('refuses to bind a token without a sign-in', async () => {

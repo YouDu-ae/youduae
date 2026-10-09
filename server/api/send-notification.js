@@ -1,5 +1,6 @@
 const admin = require('firebase-admin');
 const db = require('../db');
+const { getUnreadConversations } = require('../api-util/unreadConversations');
 
 // Initialize Firebase Admin (only once)
 if (!admin.apps.length) {
@@ -39,8 +40,8 @@ const stringData = data =>
   );
 
 /**
- * No badge: the server does not know how many conversations are unread, and
- * iOS leaves the icon badge as it is when the payload has none.
+ * No badge here: iOS leaves the icon badge as it is when the payload has none,
+ * and only phones that follow the server's count get one (withBadge).
  */
 const buildMessage = (notification, data) => ({
   notification: {
@@ -67,6 +68,72 @@ const buildMessage = (notification, data) => ({
   },
 });
 
+const withBadge = (message, badge) => ({
+  ...message,
+  apns: {
+    ...message.apns,
+    payload: { ...message.apns.payload, aps: { ...message.apns.payload.aps, badge } },
+  },
+});
+
+// Registered by a build that tells the server what was read. Icon badges are
+// an iOS thing; Android launchers keep their own.
+const followsBadge = device => device.badge && device.platform === 'ios';
+
+/**
+ * Sends one message to the tokens, with one retry for a failed request or for
+ * tokens Firebase could not take for a moment, and forgets the tokens Firebase
+ * reports as gone.
+ */
+const deliver = async (message, tokens) => {
+  let pending = tokens;
+  let sent = 0;
+  const failures = [];
+
+  for (let attempt = 0; attempt < 2 && pending.length > 0; attempt++) {
+    if (attempt > 0) await sleep(RETRY_DELAY_MS);
+    let response;
+    try {
+      response = await admin.messaging().sendEachForMulticast({ ...message, tokens: pending });
+    } catch (error) {
+      if (attempt > 0) throw error;
+      continue;
+    }
+    sent += response.successCount;
+    const retry = [];
+    response.responses.forEach((result, idx) => {
+      if (result.success) return;
+      const code = result.error?.code;
+      if (attempt === 0 && TRANSIENT_CODES.has(code)) {
+        retry.push(pending[idx]);
+      } else {
+        failures.push({ token: pending[idx], code });
+      }
+    });
+    pending = retry;
+  }
+
+  const dead = failures.filter(f => DEAD_TOKEN_CODES.has(f.code)).map(f => f.token);
+  if (dead.length > 0) {
+    await db.removeDeviceTokens(dead);
+  }
+  if (failures.length > 0) {
+    const codes = [...new Set(failures.map(f => f.code))].join(', ');
+    console.log(`Failed tokens: ${failures.length} (${codes}), removed as dead: ${dead.length}`);
+  }
+  return sent;
+};
+
+const countUnread = async (userId, options) => {
+  try {
+    return (await getUnreadConversations(userId, options)).length;
+  } catch (error) {
+    // No badge rather than a wrong one, and never at the cost of the push.
+    console.error(`Unread count failed for user ${userId}: ${error.message}`);
+    return null;
+  }
+};
+
 /**
  * Send push notification to a user
  * Used internally by other endpoints
@@ -78,56 +145,70 @@ async function sendNotificationToUser(userId, notification, data = {}) {
   }
 
   try {
-    const tokens = await db.getDeviceTokens(userId);
-    if (tokens.length === 0) {
+    const devices = await db.getDeviceTokens(userId);
+    if (devices.length === 0) {
       console.log(`No device tokens for user ${userId}`);
       return { success: false, reason: 'No device tokens' };
     }
 
     const message = buildMessage(notification, { ...data, recipientUserId: userId });
-    let pending = tokens;
+    const badgeDevices = devices.filter(followsBadge);
+    const badge = badgeDevices.length > 0 ? await countUnread(userId) : null;
+    const groups =
+      badge === null
+        ? [[message, devices]]
+        : [
+            [withBadge(message, badge), badgeDevices],
+            [message, devices.filter(device => !followsBadge(device))],
+          ];
+
     let sent = 0;
-    const failures = [];
-
-    // One retry, for a failed request or for tokens Firebase could not take
-    // for a moment.
-    for (let attempt = 0; attempt < 2 && pending.length > 0; attempt++) {
-      if (attempt > 0) await sleep(RETRY_DELAY_MS);
-      let response;
-      try {
-        response = await admin.messaging().sendEachForMulticast({ ...message, tokens: pending });
-      } catch (error) {
-        if (attempt > 0) throw error;
-        continue;
+    for (const [groupMessage, group] of groups) {
+      if (group.length > 0) {
+        sent += await deliver(groupMessage, group.map(device => device.token));
       }
-      sent += response.successCount;
-      const retry = [];
-      response.responses.forEach((result, idx) => {
-        if (result.success) return;
-        const code = result.error?.code;
-        if (attempt === 0 && TRANSIENT_CODES.has(code)) {
-          retry.push(pending[idx]);
-        } else {
-          failures.push({ token: pending[idx], code });
-        }
-      });
-      pending = retry;
     }
 
-    const dead = failures.filter(f => DEAD_TOKEN_CODES.has(f.code)).map(f => f.token);
-    if (dead.length > 0) {
-      await db.removeDeviceTokens(dead);
-    }
-
-    console.log(`📤 Sent notification to ${sent}/${tokens.length} devices for user ${userId}`);
-    if (failures.length > 0) {
-      const codes = [...new Set(failures.map(f => f.code))].join(', ');
-      console.log(`Failed tokens: ${failures.length} (${codes}), removed as dead: ${dead.length}`);
-    }
-
+    console.log(`📤 Sent notification to ${sent}/${devices.length} devices for user ${userId}`);
     return { success: sent > 0, sent };
   } catch (error) {
     console.error('❌ Send notification error:', error.message);
+    return { success: false, reason: error.message };
+  }
+}
+
+/**
+ * Sets the icon badge on the user's phones that follow the server's count,
+ * without showing anything: after something was read, hidden or brought back.
+ *
+ * @param {Object} [options.viewedTransactions] read marks just saved
+ */
+async function sendBadgeUpdate(userId, options = {}) {
+  if (!admin.apps.length) {
+    return { success: false, reason: 'Firebase not configured' };
+  }
+
+  try {
+    const devices = (await db.getDeviceTokens(userId)).filter(followsBadge);
+    if (devices.length === 0) {
+      return { success: false, reason: 'No badge devices' };
+    }
+    const badge = await countUnread(userId, options);
+    if (badge === null) {
+      return { success: false, reason: 'Unread count failed' };
+    }
+
+    const message = {
+      apns: {
+        headers: { 'apns-priority': '10', 'apns-push-type': 'alert' },
+        payload: { aps: { badge } },
+      },
+    };
+    const sent = await deliver(message, devices.map(device => device.token));
+    console.log(`🔢 Badge ${badge} sent to ${sent}/${devices.length} devices for user ${userId}`);
+    return { success: sent > 0, sent, badge };
+  } catch (error) {
+    console.error('❌ Badge update error:', error.message);
     return { success: false, reason: error.message };
   }
 }
@@ -257,6 +338,7 @@ async function sendOfferStatusNotification(userId, taskTitle, status) {
 
 module.exports = {
   sendNotificationToUser,
+  sendBadgeUpdate,
   sendNewMessageNotification,
   sendNewOfferNotification,
   sendExecutorSelectedNotification,

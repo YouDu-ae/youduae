@@ -224,10 +224,11 @@ router.post(
   viewedTransactions.markTransactionsBatchViewed
 );
 
-// Conversations hidden from the app's chat list.
+// The app's chat list: hidden conversations and the unread count.
 router.get('/conversations/hidden', requireUser, conversations.getHidden);
 router.post('/conversations/hide', requireUser, conversations.hide);
 router.post('/conversations/unhide', requireUser, conversations.unhide);
+router.get('/conversations/unread', requireUser, conversations.getUnread);
 
 // Email OTP verification endpoints
 router.post('/otp/email/send', writeLimiter, sendEmailOtp);

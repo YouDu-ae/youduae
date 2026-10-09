@@ -4,13 +4,21 @@ const mockDb = {
   getHiddenConversations: jest.fn(),
 };
 const mockShow = jest.fn();
+const mockUnread = jest.fn();
+const mockBadgeUpdate = jest.fn();
 
 jest.mock('../db', () => mockDb);
 jest.mock('../reminders/context', () => ({
   createIntegrationSdk: () => ({ transactions: { show: (...args) => mockShow(...args) } }),
 }));
+jest.mock('../api-util/unreadConversations', () => ({
+  getUnreadConversations: (...args) => mockUnread(...args),
+}));
+jest.mock('./send-notification', () => ({
+  sendBadgeUpdate: (...args) => mockBadgeUpdate(...args),
+}));
 
-const { getHidden, hide, unhide } = require('./conversations');
+const { getHidden, hide, unhide, getUnread } = require('./conversations');
 
 const ME = '6913d262-48d2-44fb-a02a-7dbd8de0e4dc';
 const OTHER = '6ab3061e-9d17-48fc-bba9-27a6052a1518';
@@ -41,6 +49,8 @@ describe('hidden conversations', () => {
   beforeEach(() => {
     Object.values(mockDb).forEach(fn => fn.mockReset());
     mockShow.mockReset();
+    mockUnread.mockReset();
+    mockBadgeUpdate.mockReset();
     mockDb.getHiddenConversations.mockResolvedValue(HIDDEN);
     jest.spyOn(console, 'error').mockImplementation(() => {});
   });
@@ -56,6 +66,7 @@ describe('hidden conversations', () => {
 
     expect(mockShow).toHaveBeenCalledWith({ id: TX, include: ['customer', 'provider'] });
     expect(mockDb.hideConversation).toHaveBeenCalledWith(ME, TX);
+    expect(mockBadgeUpdate).toHaveBeenCalledWith(ME);
     expect(result).toEqual({ status: 200, body: { hiddenConversations: HIDDEN } });
   });
 
@@ -66,6 +77,7 @@ describe('hidden conversations', () => {
 
     expect(result.status).toBe(404);
     expect(mockDb.hideConversation).not.toHaveBeenCalled();
+    expect(mockBadgeUpdate).not.toHaveBeenCalled();
   });
 
   it('answers 404 for a conversation Sharetribe does not know', async () => {
@@ -98,6 +110,7 @@ describe('hidden conversations', () => {
 
     expect(mockDb.unhideConversation).toHaveBeenCalledWith(ME, TX);
     expect(mockShow).not.toHaveBeenCalled();
+    expect(mockBadgeUpdate).toHaveBeenCalledWith(ME);
     expect(result).toEqual({ status: 200, body: { hiddenConversations: {} } });
   });
 
@@ -106,5 +119,31 @@ describe('hidden conversations', () => {
 
     expect(mockDb.getHiddenConversations).toHaveBeenCalledWith(ME);
     expect(result).toEqual({ status: 200, body: { hiddenConversations: HIDDEN } });
+  });
+});
+
+describe('unread conversations', () => {
+  beforeEach(() => {
+    mockUnread.mockReset();
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    console.error.mockRestore();
+  });
+
+  it('answers with the count the icon badge shows, and which conversations make it', async () => {
+    mockUnread.mockResolvedValue([TX]);
+
+    const result = await call(getUnread);
+
+    expect(mockUnread).toHaveBeenCalledWith(ME);
+    expect(result).toEqual({ status: 200, body: { unreadCount: 1, unreadTransactionIds: [TX] } });
+  });
+
+  it('answers 500 when the count cannot be made', async () => {
+    mockUnread.mockRejectedValue(new Error('Integration API down'));
+
+    expect((await call(getUnread)).status).toBe(500);
   });
 });

@@ -11,7 +11,9 @@ jest.mock('sharetribe-flex-integration-sdk', () => ({
 }));
 
 jest.mock('../db', () => ({ getLastIncomingMessageTimes: jest.fn() }));
+jest.mock('./send-notification', () => ({ sendBadgeUpdate: jest.fn(async () => ({})) }));
 
+const { sendBadgeUpdate } = require('./send-notification');
 const { markTransactionViewed, markTransactionsBatchViewed } = require('./viewed-transactions');
 
 const USER_ID = '6a7c8e37-0000-4000-8000-000000000001';
@@ -35,6 +37,7 @@ describe('viewed-transactions', () => {
     process.env.INTEGRATION_API_CLIENT_SECRET = 'secret';
     mockShow.mockReset();
     mockUpdateProfile.mockReset();
+    sendBadgeUpdate.mockClear();
     jest.spyOn(console, 'error').mockImplementation(() => {});
   });
 
@@ -50,6 +53,24 @@ describe('viewed-transactions', () => {
 
     expect(res.status).not.toHaveBeenCalled();
     expect(Object.keys(savedMap(0)).sort()).toEqual(['tx-new', 'tx-old']);
+  });
+
+  it('updates the icon badge from the marks it just saved', async () => {
+    mockShow.mockResolvedValue(showResponse({}));
+    mockUpdateProfile.mockResolvedValue({});
+
+    await call(markTransactionViewed, { transactionId: 'tx-new' });
+
+    expect(sendBadgeUpdate).toHaveBeenCalledWith(USER_ID, { viewedTransactions: savedMap(0) });
+  });
+
+  it('leaves the badge alone when the mark was not saved', async () => {
+    mockShow.mockResolvedValue(showResponse({}));
+    mockUpdateProfile.mockRejectedValue(Object.assign(new Error('Bad'), { status: 400 }));
+
+    await call(markTransactionViewed, { transactionId: 'tx-new' });
+
+    expect(sendBadgeUpdate).not.toHaveBeenCalled();
   });
 
   it('starts over from a fresh read when an overlapping mark wins', async () => {
@@ -94,5 +115,6 @@ describe('viewed-transactions', () => {
 
     expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ count: 2 }));
     expect(Object.keys(savedMap(0)).sort()).toEqual(['tx-a', 'tx-b']);
+    expect(sendBadgeUpdate).toHaveBeenCalledWith(USER_ID, { viewedTransactions: savedMap(0) });
   });
 });

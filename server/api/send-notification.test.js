@@ -1,4 +1,5 @@
 const mockSend = jest.fn();
+const mockUnread = jest.fn();
 
 jest.mock('firebase-admin', () => ({
   apps: [{}],
@@ -10,9 +11,13 @@ jest.mock('../db', () => ({
   getDeviceTokens: jest.fn(),
   removeDeviceTokens: jest.fn(async () => {}),
 }));
+jest.mock('../api-util/unreadConversations', () => ({
+  getUnreadConversations: (...args) => mockUnread(...args),
+}));
 
 const db = require('../db');
 const {
+  sendBadgeUpdate,
   sendNewMessageNotification,
   sendNewOfferNotification,
   sendReviewNotification,
@@ -25,6 +30,7 @@ const response = (...responses) => ({
   successCount: responses.filter(r => r.success).length,
   responses,
 });
+const device = (token, extra = {}) => ({ token, platform: 'ios', badge: false, ...extra });
 
 const chatMessage = {
   recipientId: 'author-1',
@@ -39,13 +45,16 @@ const chatMessage = {
 describe('send-notification', () => {
   beforeEach(() => {
     mockSend.mockReset();
-    db.getDeviceTokens.mockReset().mockResolvedValue(['token-1']);
+    mockUnread.mockReset().mockResolvedValue([]);
+    db.getDeviceTokens.mockReset().mockResolvedValue([device('token-1')]);
     db.removeDeviceTokens.mockClear();
     jest.spyOn(console, 'log').mockImplementation(() => {});
+    jest.spyOn(console, 'error').mockImplementation(() => {});
   });
 
   afterEach(() => {
     console.log.mockRestore();
+    console.error.mockRestore();
   });
 
   it('names the message, its sender and recipient, and groups pushes by conversation', async () => {
@@ -75,7 +84,7 @@ describe('send-notification', () => {
     expect(result).toEqual({ success: true, sent: 1 });
   });
 
-  it('sends no fixed badge and no Flutter click action', async () => {
+  it('sends no badge to a build that does not report reads, and no Flutter click action', async () => {
     mockSend.mockResolvedValue(response(ok()));
 
     await sendNewMessageNotification(chatMessage);
@@ -83,10 +92,48 @@ describe('send-notification', () => {
     const message = mockSend.mock.calls[0][0];
     expect(message.apns.payload.aps).not.toHaveProperty('badge');
     expect(message.data).not.toHaveProperty('click_action');
+    expect(mockUnread).not.toHaveBeenCalled();
+  });
+
+  it('puts the unread count on the icon of phones that follow it', async () => {
+    db.getDeviceTokens.mockResolvedValue([
+      device('token-new', { badge: true }),
+      device('token-old'),
+      device('token-android', { platform: 'android', badge: true }),
+    ]);
+    mockUnread.mockResolvedValue(['tx-1', 'tx-2']);
+    mockSend.mockImplementation(async ({ tokens }) => response(...tokens.map(ok)));
+
+    const result = await sendNewMessageNotification(chatMessage);
+
+    expect(mockUnread).toHaveBeenCalledWith('author-1', undefined);
+    expect(mockSend).toHaveBeenCalledTimes(2);
+    const [withBadge, without] = mockSend.mock.calls.map(([message]) => message);
+    expect(withBadge.tokens).toEqual(['token-new']);
+    expect(withBadge.apns.payload.aps).toEqual({ sound: 'default', threadId: 'tx-1', badge: 2 });
+    expect(without.tokens).toEqual(['token-old', 'token-android']);
+    expect(without.apns.payload.aps).not.toHaveProperty('badge');
+    expect(result).toEqual({ success: true, sent: 3 });
+  });
+
+  it('still sends the push, without a badge, when the count fails', async () => {
+    db.getDeviceTokens.mockResolvedValue([
+      device('token-new', { badge: true }),
+      device('token-old'),
+    ]);
+    mockUnread.mockRejectedValue(new Error('Integration API down'));
+    mockSend.mockResolvedValue(response(ok(), ok()));
+
+    const result = await sendNewMessageNotification(chatMessage);
+
+    expect(mockSend).toHaveBeenCalledTimes(1);
+    expect(mockSend.mock.calls[0][0].tokens).toEqual(['token-new', 'token-old']);
+    expect(mockSend.mock.calls[0][0].apns.payload.aps).not.toHaveProperty('badge');
+    expect(result).toEqual({ success: true, sent: 2 });
   });
 
   it('forgets the tokens Firebase reports as gone', async () => {
-    db.getDeviceTokens.mockResolvedValue(['token-1', 'token-gone']);
+    db.getDeviceTokens.mockResolvedValue([device('token-1'), device('token-gone')]);
     mockSend.mockResolvedValue(
       response(ok(), failed('messaging/registration-token-not-registered'))
     );
@@ -108,7 +155,7 @@ describe('send-notification', () => {
   });
 
   it('retries once a token Firebase could not take for a moment', async () => {
-    db.getDeviceTokens.mockResolvedValue(['token-1', 'token-2']);
+    db.getDeviceTokens.mockResolvedValue([device('token-1'), device('token-2')]);
     mockSend
       .mockResolvedValueOnce(response(ok(), failed('messaging/server-unavailable')))
       .mockResolvedValueOnce(response(ok()));
@@ -206,6 +253,58 @@ describe('send-notification', () => {
       transactionId: 'tx-1',
       senderUserId: 'author-1',
       recipientUserId: 'master-1',
+    });
+  });
+
+  describe('sendBadgeUpdate', () => {
+    it('sets the icon badge silently on the phones that follow the count', async () => {
+      const viewedTransactions = { 'tx-1': Date.now() };
+      db.getDeviceTokens.mockResolvedValue([
+        device('token-new', { badge: true }),
+        device('token-old'),
+      ]);
+      mockUnread.mockResolvedValue(['tx-2']);
+      mockSend.mockResolvedValue(response(ok()));
+
+      const result = await sendBadgeUpdate('author-1', { viewedTransactions });
+
+      expect(mockUnread).toHaveBeenCalledWith('author-1', { viewedTransactions });
+      expect(mockSend).toHaveBeenCalledTimes(1);
+      expect(mockSend.mock.calls[0][0]).toEqual({
+        apns: {
+          headers: { 'apns-priority': '10', 'apns-push-type': 'alert' },
+          payload: { aps: { badge: 1 } },
+        },
+        tokens: ['token-new'],
+      });
+      expect(result).toEqual({ success: true, sent: 1, badge: 1 });
+    });
+
+    it('clears the badge when nothing is left unread', async () => {
+      db.getDeviceTokens.mockResolvedValue([device('token-new', { badge: true })]);
+      mockSend.mockResolvedValue(response(ok()));
+
+      await sendBadgeUpdate('author-1');
+
+      expect(mockSend.mock.calls[0][0].apns.payload.aps).toEqual({ badge: 0 });
+    });
+
+    it('neither counts nor sends for phones that do not follow the count', async () => {
+      const result = await sendBadgeUpdate('author-1');
+
+      expect(mockUnread).not.toHaveBeenCalled();
+      expect(mockSend).not.toHaveBeenCalled();
+      expect(result).toEqual({ success: false, reason: 'No badge devices' });
+    });
+
+    it('sends nothing when the count fails', async () => {
+      db.getDeviceTokens.mockResolvedValue([device('token-new', { badge: true })]);
+      mockUnread.mockRejectedValue(new Error('db down'));
+
+      const result = await sendBadgeUpdate('author-1');
+
+      expect(mockSend).not.toHaveBeenCalled();
+      expect(result).toEqual({ success: false, reason: 'Unread count failed' });
     });
   });
 });
