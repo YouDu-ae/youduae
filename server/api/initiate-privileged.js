@@ -7,15 +7,43 @@ const {
   fetchCommission,
 } = require('../api-util/sdk');
 
+class OfferAlreadySent extends Error {
+  constructor(transactionId) {
+    super('The specialist has already made an offer on this task');
+    this.transactionId = transactionId;
+  }
+}
+
+// In memory, so it covers a single web dyno.
+const offersInProgress = new Map();
+
+/**
+ * Offers to one task go one at a time, so a second click or tab cannot slip in
+ * between the check for an earlier offer and the new one.
+ */
+const oneAtATime = (listingId, task) => {
+  const previous = offersInProgress.get(listingId) || Promise.resolve();
+  const run = previous.then(task);
+  const done = run.then(() => {}, () => {});
+  offersInProgress.set(listingId, done);
+  done.then(() => {
+    if (offersInProgress.get(listingId) === done) {
+      offersInProgress.delete(listingId);
+    }
+  });
+  return run;
+};
+
 module.exports = (req, res) => {
   const { isSpeculative, orderData, bodyParams, queryParams } = req.body;
+  const listingId = bodyParams?.params?.listingId;
 
   const sdk = getSdk(req, res);
   let lineItems = null;
 
-  const listingPromise = () => sdk.listings.show({ id: bodyParams?.params?.listingId });
+  const listingPromise = () => sdk.listings.show({ id: listingId });
 
-  Promise.all([listingPromise(), fetchCommission(sdk)])
+  const initiate = () => Promise.all([listingPromise(), fetchCommission(sdk)])
     .then(([showListingResponse, fetchAssetsResponse]) => {
       const listing = showListingResponse.data.data;
       const commissionAsset = fetchAssetsResponse.data.data[0];
@@ -72,7 +100,22 @@ module.exports = (req, res) => {
         return trustedSdk.transactions.initiateSpeculative(body, queryParams);
       }
       return trustedSdk.transactions.initiate(body, queryParams);
-    })
+    });
+
+  // One offer per specialist and task, as check-my-offer reports it to the form.
+  const isOffer = bodyParams?.transition === 'transition/inquire' && !isSpeculative && !!listingId;
+  const initiateFirstOffer = () =>
+    oneAtATime(listingId, () =>
+      sdk.transactions.query({ listingId, only: 'order', perPage: 1 }).then(response => {
+        const earlier = response?.data?.data?.[0];
+        if (earlier) {
+          throw new OfferAlreadySent(earlier.id.uuid);
+        }
+        return initiate();
+      })
+    );
+
+  return (isOffer ? initiateFirstOffer() : initiate())
     .then(apiResponse => {
       const { status, statusText, data } = apiResponse;
       console.log('✅ initiate-privileged: success, status =', status);
@@ -100,6 +143,15 @@ module.exports = (req, res) => {
         .end();
     })
     .catch(e => {
+      if (e instanceof OfferAlreadySent) {
+        console.log(
+          `🛑 initiate-privileged: second offer to ${listingId} refused, earlier is ${e.transactionId}`
+        );
+        return res
+          .status(409)
+          .json({ error: 'offer_already_sent', transactionId: e.transactionId })
+          .end();
+      }
       console.error('❌ initiate-privileged error:', e);
       handleError(res, e);
     });

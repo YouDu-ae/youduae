@@ -1,5 +1,5 @@
 // src/components/OfferForm.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
 import { initiatePrivileged, checkMyOffer } from '../util/api';
 import { NamedLink, TelegramConnectPrompt } from '../components';
@@ -41,6 +41,8 @@ export default function OfferForm({
   const [alreadySent, setAlreadySent] = useState(false);
   const [offerStatus, setOfferStatus] = useState(null); // pending, accepted, declined, completed
   const [transactionId, setTransactionId] = useState(null); // ID транзакции для ссылки на чат
+  // A second click can land before the disabled button is rendered.
+  const submittingRef = useRef(false);
 
   // Проверяем, не отправлял ли пользователь уже отклик на этот листинг.
   // Гостю и тем, кто не может откликаться, форма не показывается — проверять нечего.
@@ -77,6 +79,9 @@ export default function OfferForm({
 
   const onSubmit = async e => {
     e.preventDefault();
+    if (submittingRef.current) {
+      return;
+    }
     setErr(null);
     setOk(false);
 
@@ -90,6 +95,7 @@ export default function OfferForm({
       return;
     }
 
+    submittingRef.current = true;
     setSubmitting(true);
     try {
       const currency = 'AED';
@@ -148,12 +154,24 @@ export default function OfferForm({
     } catch (e2) {
       // eslint-disable-next-line no-console
       console.error('❌ OfferForm error:', e2);
+
+      // The offer may exist although its reply was lost, and the server
+      // refuses a second one, so ask before showing an error.
+      const earlier = await checkMyOffer(listingId).catch(() => null);
+      if (earlier?.data?.hasOffer) {
+        setAlreadySent(true);
+        setOfferStatus(earlier.data.offerStatus || null);
+        setTransactionId(earlier.data.transactionId || null);
+        return;
+      }
+
       const errorMessage =
         e2?.data?.errors?.[0]?.title ||
         e2?.message ||
         intl.formatMessage({ id: 'OfferForm.unknownError' });
       setErr(intl.formatMessage({ id: 'OfferForm.submitFailed' }, { error: errorMessage }));
     } finally {
+      submittingRef.current = false;
       setSubmitting(false);
     }
   };

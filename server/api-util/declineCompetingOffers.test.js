@@ -17,14 +17,27 @@ const offer = (id, executorId) => ({
 
 // Only the pieces declineCompetingOffers touches, so a test reads as the data
 // it cares about rather than as a transcript of the Sharetribe SDK.
-const fakeSdk = ({ offers, listingId = 'listing-1', declineFails = [] }) => {
+const fakeSdk = ({
+  offers,
+  listingId = 'listing-1',
+  hiredUserId = 'user-1',
+  declineFails = [],
+}) => {
   const declined = [];
+  const related = { listing: listingId, customer: hiredUserId };
 
   return {
     declined,
     transactions: {
-      show: jest.fn(async () => ({
-        data: { data: { relationships: { listing: { data: { id: uuid(listingId) } } } } },
+      // Like Sharetribe, relationships come back only for what `include` names.
+      show: jest.fn(async ({ include = [] }) => ({
+        data: {
+          data: {
+            relationships: Object.fromEntries(
+              include.map(name => [name, { data: { id: uuid(related[name]) } }])
+            ),
+          },
+        },
       })),
       query: jest.fn(async () => ({
         data: {
@@ -65,7 +78,6 @@ describe('declineCompetingOffers', () => {
     const result = await declineCompetingOffers({
       trustedSdk: sdk,
       acceptedTransactionId: 'tx-winner',
-      listingId: 'listing-1',
     });
 
     expect(result).toEqual({ declined: 2, failed: 0 });
@@ -81,7 +93,6 @@ describe('declineCompetingOffers', () => {
     await declineCompetingOffers({
       trustedSdk: sdk,
       acceptedTransactionId: 'tx-winner',
-      listingId: 'listing-1',
     });
 
     expect(sdk.transactions.query).toHaveBeenCalledWith(
@@ -98,7 +109,6 @@ describe('declineCompetingOffers', () => {
     await declineCompetingOffers({
       trustedSdk: sdk,
       acceptedTransactionId: 'tx-winner',
-      listingId: 'listing-1',
     });
 
     expect(mockNotifyOfferDeclined).toHaveBeenCalledTimes(1);
@@ -117,7 +127,6 @@ describe('declineCompetingOffers', () => {
     const result = await declineCompetingOffers({
       trustedSdk: sdk,
       acceptedTransactionId: 'tx-winner',
-      listingId: 'listing-1',
     });
 
     expect(result).toEqual({ declined: 1, failed: 1 });
@@ -131,21 +140,36 @@ describe('declineCompetingOffers', () => {
     const result = await declineCompetingOffers({
       trustedSdk: sdk,
       acceptedTransactionId: 'tx-winner',
-      listingId: 'listing-1',
     });
 
     expect(result).toEqual({ declined: 1, failed: 0 });
   });
 
-  it('looks up the task when the caller does not know it', async () => {
+  it('finds the task from the hired offer', async () => {
     const sdk = fakeSdk({ offers: [offer('tx-winner', 'user-1'), offer('tx-2', 'user-2')] });
 
-    await declineCompetingOffers({ trustedSdk: sdk, acceptedTransactionId: 'tx-winner' });
+    const result = await declineCompetingOffers({
+      trustedSdk: sdk,
+      acceptedTransactionId: 'tx-winner',
+    });
 
-    expect(sdk.transactions.show).toHaveBeenCalledWith({ id: 'tx-winner' });
     expect(sdk.transactions.query).toHaveBeenCalledWith(
       expect.objectContaining({ listingId: 'listing-1' })
     );
+    expect(result).toEqual({ declined: 1, failed: 0 });
+  });
+
+  it('leaves another offer by the hired specialist alone', async () => {
+    const sdk = fakeSdk({
+      offers: [offer('tx-repeat', 'user-1'), offer('tx-2', 'user-2')],
+      hiredUserId: 'user-1',
+    });
+
+    await declineCompetingOffers({ trustedSdk: sdk, acceptedTransactionId: 'tx-winner' });
+
+    expect(sdk.declined).toEqual([{ id: 'tx-2', transition: 'transition/decline-offer' }]);
+    expect(mockNotifyOfferDeclined).toHaveBeenCalledTimes(1);
+    expect(mockNotifyOfferDeclined).toHaveBeenCalledWith('user-2', expect.anything());
   });
 
   it('does nothing when the transaction has no task', async () => {

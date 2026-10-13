@@ -16,9 +16,17 @@ const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
 const uuidOf = ref => ref?.id?.uuid || ref?.uuid || ref || null;
 
-const resolveListingId = async (trustedSdk, transactionId) => {
-  const response = await trustedSdk.transactions.show({ id: transactionId });
-  return uuidOf(response?.data?.data?.relationships?.listing?.data?.id);
+// Sharetribe returns relationships only for what `include` names.
+const loadHire = async (trustedSdk, transactionId) => {
+  const response = await trustedSdk.transactions.show({
+    id: transactionId,
+    include: ['customer', 'listing'],
+  });
+  const relationships = response?.data?.data?.relationships;
+  return {
+    taskId: uuidOf(relationships?.listing?.data?.id),
+    hiredUserId: uuidOf(relationships?.customer?.data?.id),
+  };
 };
 
 /**
@@ -26,13 +34,12 @@ const resolveListingId = async (trustedSdk, transactionId) => {
  * @param {Object} params.trustedSdk    SDK of the task author, who is the only
  *                                      actor allowed to decline.
  * @param {string} params.acceptedTransactionId  The winning offer, left alone.
- * @param {string} [params.listingId]   Saves a lookup when the caller has it.
  * @returns {Promise<{declined: number, failed: number}>}
  */
-const declineCompetingOffers = async ({ trustedSdk, acceptedTransactionId, listingId }) => {
+const declineCompetingOffers = async ({ trustedSdk, acceptedTransactionId }) => {
   const result = { declined: 0, failed: 0 };
 
-  const taskId = listingId || (await resolveListingId(trustedSdk, acceptedTransactionId));
+  const { taskId, hiredUserId } = await loadHire(trustedSdk, acceptedTransactionId);
   if (!taskId) {
     console.warn('⚠️ decline-competing: no listing on transaction', acceptedTransactionId);
     return result;
@@ -53,7 +60,13 @@ const declineCompetingOffers = async ({ trustedSdk, acceptedTransactionId, listi
   const listing = included.find(inc => inc.type === 'listing' && uuidOf(inc.id) === taskId);
   const listingTitle = listing?.attributes?.title || 'Задание';
 
-  const losers = transactions.filter(tx => uuidOf(tx.id) !== acceptedTransactionId);
+  // Another offer by the hired specialist did not lose: declining it would tell
+  // them someone else got the task.
+  const losers = transactions.filter(
+    tx =>
+      uuidOf(tx.id) !== acceptedTransactionId &&
+      uuidOf(tx.relationships?.customer?.data?.id) !== hiredUserId
+  );
 
   console.log(`🧹 decline-competing: ${losers.length} offer(s) to close on listing ${taskId}`);
 
