@@ -224,10 +224,12 @@ router.post(
   viewedTransactions.markTransactionsBatchViewed
 );
 
-// The app's chat list: hidden conversations and the unread count.
+// The app's chat list: hidden and deleted conversations, and the unread count.
 router.get('/conversations/hidden', requireUser, conversations.getHidden);
 router.post('/conversations/hide', requireUser, conversations.hide);
 router.post('/conversations/unhide', requireUser, conversations.unhide);
+router.get('/conversations/deleted', requireUser, conversations.getDeleted);
+router.post('/conversations/delete', requireUser, conversations.deleteHistory);
 router.get('/conversations/unread', requireUser, conversations.getUnread);
 
 // Email OTP verification endpoints

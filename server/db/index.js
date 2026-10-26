@@ -275,6 +275,18 @@ const initDatabase = async () => {
       CREATE INDEX IF NOT EXISTS idx_hidden_conversations_tx
         ON hidden_conversations (transaction_id);
 
+      -- Chats a person deleted in the app: their whole history with another
+      -- person, across every deal. Sharetribe keeps the messages, so the app
+      -- leaves out the ones sent up to deleted_until, and a newer message
+      -- starts a clean chat. The other person's chat stays as it was.
+      CREATE TABLE IF NOT EXISTS deleted_conversations (
+        user_id VARCHAR(100) NOT NULL,
+        counterparty_id VARCHAR(100) NOT NULL,
+        deleted_until TIMESTAMPTZ NOT NULL,
+        deleted_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        PRIMARY KEY (user_id, counterparty_id)
+      );
+
       -- The latest message each person received in a deal, and the deal's
       -- current step: with their read marks, the unread count for the app's
       -- icon badge. The event poller writes a message here before its push
@@ -1125,6 +1137,36 @@ const getHiddenConversations = async userId => {
   );
 };
 
+/**
+ * Deletes the user's history with another person up to `until`. Deleting
+ * again only moves that line forward, so a late request cannot bring back
+ * messages deleted since.
+ */
+const deleteConversationHistory = async (userId, counterpartyId, until) => {
+  await pool.query(
+    `INSERT INTO deleted_conversations (user_id, counterparty_id, deleted_until)
+     VALUES ($1, $2, $3)
+     ON CONFLICT (user_id, counterparty_id) DO UPDATE SET
+       deleted_until = GREATEST(deleted_conversations.deleted_until, EXCLUDED.deleted_until),
+       deleted_at = NOW()`,
+    [userId, counterpartyId, until]
+  );
+};
+
+/**
+ * Up to when the user deleted their history with each person, as
+ * { counterpartyId: epochMs }.
+ */
+const getDeletedConversations = async userId => {
+  const result = await pool.query(
+    'SELECT counterparty_id, deleted_until FROM deleted_conversations WHERE user_id = $1',
+    [userId]
+  );
+  return Object.fromEntries(
+    result.rows.map(row => [row.counterparty_id, new Date(row.deleted_until).getTime()])
+  );
+};
+
 /** Brings a conversation back to the chat list of both parties. */
 const unhideConversationForAll = async transactionId => {
   const result = await pool.query('DELETE FROM hidden_conversations WHERE transaction_id = $1', [
@@ -1160,13 +1202,13 @@ const setReceivedMessageTransition = async (transactionId, lastTransition) => {
 
 /**
  * The deals where someone the user has not blocked wrote to them within the
- * last 90 days, as [{ transactionId, receivedAt: epochMs, lastTransition }].
+ * last 90 days, as [{ transactionId, senderId, receivedAt: epochMs, lastTransition }].
  * Read marks older than that are dropped (viewed-transactions), so an older
  * message would look unread for good.
  */
 const getReceivedMessages = async userId => {
   const result = await pool.query(
-    `SELECT transaction_id, received_at, last_transition FROM received_messages r
+    `SELECT transaction_id, sender_id, received_at, last_transition FROM received_messages r
      WHERE user_id = $1 AND received_at > NOW() - INTERVAL '90 days'
        AND NOT EXISTS (
          SELECT 1 FROM user_blocks b WHERE b.blocker_id = r.user_id AND b.blocked_id = r.sender_id
@@ -1175,6 +1217,7 @@ const getReceivedMessages = async userId => {
   );
   return result.rows.map(row => ({
     transactionId: row.transaction_id,
+    senderId: row.sender_id,
     receivedAt: new Date(row.received_at).getTime(),
     lastTransition: row.last_transition,
   }));
@@ -1409,6 +1452,9 @@ const deleteUserLocalData = async userId => {
     await client.query('DELETE FROM user_blocks WHERE blocker_id = $1 OR blocked_id = $1', [userId]);
     await client.query('DELETE FROM device_tokens WHERE user_id = $1', [userId]);
     await client.query('DELETE FROM hidden_conversations WHERE user_id = $1', [userId]);
+    // Rows naming the user as the other person stay: they are someone else's
+    // choice, and dropping them would bring the history they deleted back.
+    await client.query('DELETE FROM deleted_conversations WHERE user_id = $1', [userId]);
     await client.query('DELETE FROM received_messages WHERE user_id = $1 OR sender_id = $1', [
       userId,
     ]);
@@ -1534,6 +1580,8 @@ module.exports = {
   unhideConversation,
   getHiddenConversations,
   unhideConversationForAll,
+  deleteConversationHistory,
+  getDeletedConversations,
   // Unread count
   recordReceivedMessage,
   setReceivedMessageTransition,

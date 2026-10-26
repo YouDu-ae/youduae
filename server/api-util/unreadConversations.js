@@ -2,11 +2,15 @@
  * Conversations holding a message the user has not read — the number on the
  * app's icon badge.
  *
- * A conversation counts when the other party wrote after the user last opened
- * it, on the site or in the app (viewed-transactions), unless the user has
- * blocked them or hid the conversation since. Only deals at a step where the
- * app shows the chat count; otherwise the badge would point at a conversation
- * the chat list does not have, and nothing could clear it.
+ * A deal counts when the other party wrote after the user last opened it, on
+ * the site or in the app (viewed-transactions), unless the user has blocked
+ * them, hid the deal or deleted their history with that person since. Only
+ * deals at a step where the app shows the chat count; otherwise the badge
+ * would point at a conversation the chat list does not have, and nothing
+ * could clear it.
+ *
+ * The app shows one chat per person across all deals with them, so the badge
+ * counts people: three unread deals with one specialist are one chat.
  */
 
 const db = require('../db');
@@ -38,21 +42,26 @@ const loadViewedTransactions = async userId => {
 /**
  * @param {string} userId
  * @param {Object} [options.viewedTransactions] read marks just saved, so they need no reading back
- * @returns {Promise<string[]>} ids of the unread conversations
+ * @returns {Promise<{transactionIds: string[], counterpartyIds: string[]}>} the unread
+ *   deals, and the people who wrote in them, whose number the badge shows
  */
 const getUnreadConversations = async (userId, { viewedTransactions } = {}) => {
-  const [received, hidden, viewed] = await Promise.all([
+  const [received, hidden, deleted, viewed] = await Promise.all([
     db.getReceivedMessages(userId),
     db.getHiddenConversations(userId),
+    db.getDeletedConversations(userId),
     viewedTransactions || loadViewedTransactions(userId),
   ]);
-  return received
-    .filter(
-      ({ transactionId, receivedAt, lastTransition }) =>
-        CHAT_TRANSITIONS.has(lastTransition) &&
-        receivedAt > Math.max(viewed[transactionId] || 0, hidden[transactionId] || 0)
-    )
-    .map(({ transactionId }) => transactionId);
+  const unread = received.filter(
+    ({ transactionId, senderId, receivedAt, lastTransition }) =>
+      CHAT_TRANSITIONS.has(lastTransition) &&
+      receivedAt >
+        Math.max(viewed[transactionId] || 0, hidden[transactionId] || 0, deleted[senderId] || 0)
+  );
+  return {
+    transactionIds: unread.map(row => row.transactionId),
+    counterpartyIds: [...new Set(unread.map(row => row.senderId))],
+  };
 };
 
 module.exports = { getUnreadConversations, CHAT_TRANSITIONS };

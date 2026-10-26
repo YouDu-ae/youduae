@@ -1,6 +1,7 @@
 const mockDb = {
   getReceivedMessages: jest.fn(),
   getHiddenConversations: jest.fn(),
+  getDeletedConversations: jest.fn(),
 };
 const mockUserShow = jest.fn();
 let mockSdk;
@@ -14,8 +15,14 @@ const USER = 'user-1';
 const T0 = Date.parse('2026-10-09T10:00:00Z');
 const CHAT = 'transition/accept-offer';
 
-const received = (transactionId, receivedAt, lastTransition = CHAT) => ({
+const received = (
   transactionId,
+  receivedAt,
+  lastTransition = CHAT,
+  senderId = `from-${transactionId}`
+) => ({
+  transactionId,
+  senderId,
   receivedAt,
   lastTransition,
 });
@@ -28,6 +35,7 @@ describe('getUnreadConversations', () => {
   beforeEach(() => {
     mockDb.getReceivedMessages.mockReset();
     mockDb.getHiddenConversations.mockReset().mockResolvedValue({});
+    mockDb.getDeletedConversations.mockReset().mockResolvedValue({});
     mockUserShow.mockReset();
     mockSdk = { users: { show: (...args) => mockUserShow(...args) } };
   });
@@ -43,7 +51,40 @@ describe('getUnreadConversations', () => {
       viewedTransactions: { 'tx-new': T0, 'tx-read': T0 },
     });
 
-    expect(unread).toEqual(['tx-new', 'tx-never-opened']);
+    expect(unread.transactionIds).toEqual(['tx-new', 'tx-never-opened']);
+  });
+
+  it('counts a person once however many of their deals are unread', async () => {
+    mockDb.getReceivedMessages.mockResolvedValue([
+      received('tx-1', T0, CHAT, 'master-1'),
+      received('tx-2', T0, CHAT, 'master-1'),
+      received('tx-3', T0, CHAT, 'master-1'),
+      received('tx-4', T0, CHAT, 'master-2'),
+    ]);
+
+    const unread = await getUnreadConversations(USER, { viewedTransactions: {} });
+
+    expect(unread).toEqual({
+      transactionIds: ['tx-1', 'tx-2', 'tx-3', 'tx-4'],
+      counterpartyIds: ['master-1', 'master-2'],
+    });
+  });
+
+  it('leaves out messages up to when the history with their sender was deleted', async () => {
+    mockDb.getReceivedMessages.mockResolvedValue([
+      received('tx-deleted', T0, CHAT, 'master-1'),
+      received('tx-after', T0 + 1000, CHAT, 'master-1'),
+      received('tx-other', T0 - 1000, CHAT, 'master-2'),
+    ]);
+    mockDb.getDeletedConversations.mockResolvedValue({ 'master-1': T0 });
+
+    const unread = await getUnreadConversations(USER, { viewedTransactions: {} });
+
+    expect(mockDb.getDeletedConversations).toHaveBeenCalledWith(USER);
+    expect(unread).toEqual({
+      transactionIds: ['tx-after', 'tx-other'],
+      counterpartyIds: ['master-1', 'master-2'],
+    });
   });
 
   it('leaves out a conversation hidden after its last message', async () => {
@@ -55,7 +96,7 @@ describe('getUnreadConversations', () => {
 
     const unread = await getUnreadConversations(USER, { viewedTransactions: {} });
 
-    expect(unread).toEqual(['tx-back']);
+    expect(unread.transactionIds).toEqual(['tx-back']);
   });
 
   it('leaves out deals at a step where the app shows no chat', async () => {
@@ -68,18 +109,19 @@ describe('getUnreadConversations', () => {
 
     const unread = await getUnreadConversations(USER, { viewedTransactions: {} });
 
-    expect(unread).toEqual(['tx-done', 'tx-reviewed']);
+    expect(unread.transactionIds).toEqual(['tx-done', 'tx-reviewed']);
   });
 
   it('reads the marks from the profile unless they were just saved', async () => {
     mockDb.getReceivedMessages.mockResolvedValue([received('tx-1', T0)]);
     mockUserShow.mockResolvedValue(privateData({ 'tx-1': T0 + 1 }));
 
-    expect(await getUnreadConversations(USER)).toEqual([]);
+    expect((await getUnreadConversations(USER)).transactionIds).toEqual([]);
     expect(mockUserShow).toHaveBeenCalledWith({ id: USER });
 
     mockUserShow.mockClear();
-    expect(await getUnreadConversations(USER, { viewedTransactions: {} })).toEqual(['tx-1']);
+    const unread = await getUnreadConversations(USER, { viewedTransactions: {} });
+    expect(unread.transactionIds).toEqual(['tx-1']);
     expect(mockUserShow).not.toHaveBeenCalled();
   });
 

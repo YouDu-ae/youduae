@@ -46,7 +46,7 @@ const chatMessage = {
 describe('send-notification', () => {
   beforeEach(() => {
     mockSend.mockReset();
-    mockUnread.mockReset().mockResolvedValue([]);
+    mockUnread.mockReset().mockResolvedValue({ transactionIds: [], counterpartyIds: [] });
     db.getDeviceTokens.mockReset().mockResolvedValue([device('token-1')]);
     db.removeDeviceTokens.mockClear();
     jest.spyOn(console, 'log').mockImplementation(() => {});
@@ -96,13 +96,16 @@ describe('send-notification', () => {
     expect(mockUnread).not.toHaveBeenCalled();
   });
 
-  it('puts the unread count on the icon of phones that follow it', async () => {
+  it('puts the number of people with unread messages on the icon of phones that follow it', async () => {
     db.getDeviceTokens.mockResolvedValue([
       device('token-new', { badge: true }),
       device('token-old'),
       device('token-android', { platform: 'android', badge: true }),
     ]);
-    mockUnread.mockResolvedValue(['tx-1', 'tx-2']);
+    mockUnread.mockResolvedValue({
+      transactionIds: ['tx-1', 'tx-2', 'tx-3'],
+      counterpartyIds: ['master-1', 'master-2'],
+    });
     mockSend.mockImplementation(async ({ tokens }) => response(...tokens.map(ok)));
 
     const result = await sendNewMessageNotification(chatMessage);
@@ -264,7 +267,7 @@ describe('send-notification', () => {
         device('token-new', { badge: true }),
         device('token-old'),
       ]);
-      mockUnread.mockResolvedValue(['tx-2']);
+      mockUnread.mockResolvedValue({ transactionIds: ['tx-2'], counterpartyIds: ['master-1'] });
       mockSend.mockResolvedValue(response(ok()));
 
       const result = await sendBadgeUpdate('author-1', { viewedTransactions });

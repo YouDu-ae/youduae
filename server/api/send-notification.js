@@ -133,7 +133,7 @@ const deliver = async (message, tokens) => {
 
 const countUnread = async (userId, options) => {
   try {
-    return (await getUnreadConversations(userId, options)).length;
+    return (await getUnreadConversations(userId, options)).counterpartyIds.length;
   } catch (error) {
     // No badge rather than a wrong one, and never at the cost of the push.
     console.error(`Unread count failed for user ${userId}: ${error.message}`);

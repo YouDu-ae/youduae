@@ -5,14 +5,27 @@
  * GET  /api/conversations/hidden                  → { hiddenConversations }
  * POST /api/conversations/hide    { transactionId } → { hiddenConversations }
  * POST /api/conversations/unhide  { transactionId } → { hiddenConversations }
- * GET  /api/conversations/unread                  → { unreadCount, unreadTransactionIds }
+ * GET  /api/conversations/deleted                 → { deletedConversations }
+ * POST /api/conversations/delete  { counterpartyId, transactionId, until? }
+ *                                                  → { deletedConversations }
+ * GET  /api/conversations/unread
+ *   → { unreadCount, unreadCounterpartyIds, unreadTransactionIds }
  *
  * hiddenConversations is { transactionId: hiddenAtMs }. Sharetribe cannot
  * delete a transaction, so the conversation stays there for the other party
  * and only drops out of this person's list; a new message in it brings it back
  * (server/reminders/messageNotifications.js).
  *
- * The unread count is the one the icon badge shows (api-util/unreadConversations).
+ * deletedConversations is { counterpartyId: deletedUntilMs }: the app's chat
+ * with a person spans all deals with them, and deleting it hides every
+ * message sent up to that time, in all those deals, for this person only.
+ * A later message starts a clean chat. transactionId is any deal between the
+ * two, as proof that they talked; until is the ISO time of the newest message
+ * the person saw, so one that arrived while they were deleting survives. It
+ * defaults to now.
+ *
+ * The unread count is the one the icon badge shows: people, not deals
+ * (api-util/unreadConversations).
  *
  * The acting user always comes from the session (requireUser).
  */
@@ -29,7 +42,8 @@ const uuidOf = ref => {
   return id?.uuid || id || null;
 };
 
-const isParty = async (transactionId, userId) => {
+/** The ids of the deal's two parties; none when Sharetribe does not know it. */
+const partiesOf = async transactionId => {
   const integrationSdk = createIntegrationSdk();
   if (!integrationSdk) throw new Error('Integration API credentials not configured');
   try {
@@ -38,12 +52,15 @@ const isParty = async (transactionId, userId) => {
       include: ['customer', 'provider'],
     });
     const { customer, provider } = response.data.data.relationships || {};
-    return uuidOf(customer) === userId || uuidOf(provider) === userId;
+    return [uuidOf(customer), uuidOf(provider)].filter(Boolean);
   } catch (error) {
-    if (error.status === 404) return false;
+    if (error.status === 404) return [];
     throw error;
   }
 };
+
+const isParty = async (transactionId, userId) =>
+  (await partiesOf(transactionId)).includes(userId);
 
 const validTransactionId = req => {
   const { transactionId } = req.body || {};
@@ -97,14 +114,64 @@ const unhide = async (req, res) => {
   }
 };
 
+const getDeleted = async (req, res) => {
+  try {
+    const deletedConversations = await db.getDeletedConversations(req.authUserId);
+    return res.status(200).json({ deletedConversations });
+  } catch (error) {
+    console.error('❌ get-deleted-conversations failed:', error.message);
+    return res.status(500).json({ error: 'Could not load deleted conversations' });
+  }
+};
+
+const deleteHistory = async (req, res) => {
+  const transactionId = validTransactionId(req);
+  const { counterpartyId, until } = req.body || {};
+  if (!transactionId || !UUID.test(String(counterpartyId || ''))) {
+    return res.status(400).json({ error: 'counterpartyId and transactionId are required' });
+  }
+  const now = Date.now();
+  const seenUntil = until == null ? now : Date.parse(until);
+  if (Number.isNaN(seenUntil)) {
+    return res.status(400).json({ error: 'until must be an ISO date' });
+  }
+  try {
+    // Only someone the user dealt with, so the list cannot fill up with other ids.
+    const parties = await partiesOf(transactionId);
+    if (
+      counterpartyId === req.authUserId ||
+      !parties.includes(req.authUserId) ||
+      !parties.includes(counterpartyId)
+    ) {
+      return res.status(404).json({ error: 'Conversation not found' });
+    }
+    await db.deleteConversationHistory(
+      req.authUserId,
+      counterpartyId,
+      new Date(Math.min(seenUntil, now))
+    );
+    // A deleted chat no longer counts as unread.
+    sendBadgeUpdate(req.authUserId);
+    const deletedConversations = await db.getDeletedConversations(req.authUserId);
+    return res.status(200).json({ deletedConversations });
+  } catch (error) {
+    console.error('❌ delete-conversation failed:', error.message);
+    return res.status(500).json({ error: 'Could not delete the conversation' });
+  }
+};
+
 const getUnread = async (req, res) => {
   try {
-    const unreadTransactionIds = await getUnreadConversations(req.authUserId);
-    return res.status(200).json({ unreadCount: unreadTransactionIds.length, unreadTransactionIds });
+    const { transactionIds, counterpartyIds } = await getUnreadConversations(req.authUserId);
+    return res.status(200).json({
+      unreadCount: counterpartyIds.length,
+      unreadCounterpartyIds: counterpartyIds,
+      unreadTransactionIds: transactionIds,
+    });
   } catch (error) {
     console.error('❌ unread-conversations failed:', error.message);
     return res.status(500).json({ error: 'Could not count unread conversations' });
   }
 };
 
-module.exports = { getHidden, hide, unhide, getUnread };
+module.exports = { getHidden, hide, unhide, getDeleted, deleteHistory, getUnread };
