@@ -1053,6 +1053,8 @@
   "SignupForm.emailOtpSendFailed": "Failed to send code. Please try again.",
   "SignupForm.emailOtpVerifyFailed": "Invalid code. Please try again.",
   "SignupForm.emailOtpWaitMessage": "Please wait {seconds} seconds before resending.",
+  "SignupForm.emailOtpTooManyRequests": "Too many code requests for this address. Try again in {minutes} min.",
+  "SignupForm.emailOtpTooManyAttempts": "Too many incorrect attempts. Request a new code.",
   "SignupForm.sendVerificationCode": "Send verification code",
   "SignupForm.verifyCode": "Verify code",
   "SignupForm.signUp": "Sign up",

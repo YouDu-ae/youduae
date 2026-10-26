@@ -1046,6 +1046,8 @@
   "SignupForm.emailOtpSendFailed": "Не удалось отправить код. Попробуйте ещё раз.",
   "SignupForm.emailOtpVerifyFailed": "Неверный код. Попробуйте ещё раз.",
   "SignupForm.emailOtpWaitMessage": "Подождите {seconds} секунд перед повторной отправкой.",
+  "SignupForm.emailOtpTooManyRequests": "Слишком много запросов кода на этот адрес. Попробуйте через {minutes} мин.",
+  "SignupForm.emailOtpTooManyAttempts": "Слишком много неверных попыток. Запросите новый код.",
   "SignupForm.sendVerificationCode": "Отправить код подтверждения",
   "SignupForm.verifyCode": "Проверить код",
   "SignupForm.signUp": "Зарегистрироваться",

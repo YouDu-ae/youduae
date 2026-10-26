@@ -1,6 +1,7 @@
 const crypto = require('crypto');
 const { SignJWT, jwtVerify } = require('jose');
 const sgMail = require('@sendgrid/mail');
+const { claimEmailOtpSend, countEmailOtpAttempt } = require('../db');
 
 const encodeText = str => {
   if (typeof TextEncoder !== 'undefined') {
@@ -28,6 +29,10 @@ const verifiedTtlSeconds = Number(EMAIL_OTP_VERIFIED_TTL_SECONDS || 1800);
 const fromName = fromNameEnv || 'YouDu';
 const defaultFromEmail = fromEmail || 'noreply@mail.youdu.ae';
 
+const SEND_WINDOW_SECONDS = 60 * 60;
+const MAX_SENDS_PER_WINDOW = 5;
+const MAX_VERIFY_ATTEMPTS = 5;
+
 // Initialize SendGrid
 if (sendgridApiKey) {
   sgMail.setApiKey(sendgridApiKey);
@@ -53,6 +58,12 @@ const configurationError = () => {
 const hashCode = code => {
   const hmac = crypto.createHmac('sha256', otpSecret);
   hmac.update(code);
+  return hmac.digest('base64url');
+};
+
+const emailLimitKey = email => {
+  const hmac = crypto.createHmac('sha256', otpSecret);
+  hmac.update(`send:${email.toLowerCase()}`);
   return hmac.digest('base64url');
 };
 
@@ -160,7 +171,7 @@ const sendEmailViaSendGrid = async (email, html, text, subject) => {
   try {
     const response = await sgMail.send(msg);
     console.log('✅ Email sent successfully via SendGrid:', {
-      recipient: email,
+      recipient: maskEmail(email),
       statusCode: response[0]?.statusCode,
       messageId: response[0]?.headers?.['x-message-id'],
     });
@@ -191,6 +202,18 @@ const sendEmailOtp = async (req, res) => {
     if (!email || typeof email !== 'string' || !emailRegex.test(email)) {
       logOtpEvent('error', 'otp_send_invalid_email', { email });
       res.status(400).json({ error: 'invalidEmail' });
+      return;
+    }
+
+    const waitSeconds = await claimEmailOtpSend(emailLimitKey(email), {
+      cooldownSeconds: resendCooldownSeconds,
+      windowSeconds: SEND_WINDOW_SECONDS,
+      maxPerWindow: MAX_SENDS_PER_WINDOW,
+    });
+    if (waitSeconds > 0) {
+      logOtpEvent('info', 'otp_send_limited', { email, waitSeconds });
+      res.set('Retry-After', String(waitSeconds));
+      res.status(429).json({ error: 'tooManyCodeRequests', retryAfterSeconds: waitSeconds });
       return;
     }
 
@@ -258,6 +281,13 @@ const verifyEmailOtp = async (req, res) => {
     if (payload.purpose !== 'email-otp') {
       logOtpEvent('error', 'otp_verify_invalid_purpose', { email: payload.email });
       res.status(400).json({ error: 'invalidTokenPurpose' });
+      return;
+    }
+
+    const attempts = await countEmailOtpAttempt(payload.jti, new Date(payload.exp * 1000));
+    if (attempts > MAX_VERIFY_ATTEMPTS) {
+      logOtpEvent('error', 'otp_verify_too_many_attempts', { email: payload.email });
+      res.status(429).json({ error: 'tooManyAttempts' });
       return;
     }
 

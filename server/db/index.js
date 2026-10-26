@@ -287,6 +287,21 @@ const initDatabase = async () => {
         PRIMARY KEY (user_id, counterparty_id)
       );
 
+      -- Sign-up code limits. email_key is a keyed hash of the address, so the
+      -- table never holds the address itself.
+      CREATE TABLE IF NOT EXISTS email_otp_sends (
+        email_key VARCHAR(64) PRIMARY KEY,
+        window_start TIMESTAMPTZ NOT NULL,
+        sends INTEGER NOT NULL,
+        last_sent_at TIMESTAMPTZ NOT NULL
+      );
+
+      CREATE TABLE IF NOT EXISTS email_otp_attempts (
+        challenge_id VARCHAR(64) PRIMARY KEY,
+        attempts INTEGER NOT NULL,
+        expires_at TIMESTAMPTZ NOT NULL
+      );
+
       -- The latest message each person received in a deal, and the deal's
       -- current step: with their read marks, the unread count for the app's
       -- icon badge. The event poller writes a message here before its push
@@ -1167,6 +1182,68 @@ const getDeletedConversations = async userId => {
   );
 };
 
+/**
+ * Takes one sign-up code send for an address. Returns 0 when the code may go
+ * out, otherwise how many seconds remain until the next one is allowed: at
+ * least `cooldownSeconds` between codes, and at most `maxPerWindow` codes per
+ * `windowSeconds`.
+ */
+const claimEmailOtpSend = async (emailKey, { cooldownSeconds, windowSeconds, maxPerWindow }) => {
+  await pool.query(
+    `DELETE FROM email_otp_sends WHERE last_sent_at < NOW() - INTERVAL '1 day';
+     DELETE FROM email_otp_attempts WHERE expires_at < NOW();`
+  );
+
+  const params = [emailKey, cooldownSeconds, windowSeconds, maxPerWindow];
+  const claimed = await pool.query(
+    `INSERT INTO email_otp_sends (email_key, window_start, sends, last_sent_at)
+     VALUES ($1, NOW(), 1, NOW())
+     ON CONFLICT (email_key) DO UPDATE SET
+       window_start = CASE
+         WHEN email_otp_sends.window_start <= NOW() - make_interval(secs => $3::int) THEN NOW()
+         ELSE email_otp_sends.window_start END,
+       sends = CASE
+         WHEN email_otp_sends.window_start <= NOW() - make_interval(secs => $3::int) THEN 1
+         ELSE email_otp_sends.sends + 1 END,
+       last_sent_at = NOW()
+     WHERE email_otp_sends.last_sent_at <= NOW() - make_interval(secs => $2::int)
+       AND (email_otp_sends.window_start <= NOW() - make_interval(secs => $3::int)
+            OR email_otp_sends.sends < $4::int)
+     RETURNING sends`,
+    params
+  );
+  if (claimed.rows.length > 0) {
+    return 0;
+  }
+
+  const blocked = await pool.query(
+    `SELECT GREATEST(
+       EXTRACT(EPOCH FROM last_sent_at + make_interval(secs => $2::int) - NOW()),
+       CASE WHEN sends >= $4::int
+         THEN EXTRACT(EPOCH FROM window_start + make_interval(secs => $3::int) - NOW())
+         ELSE 0 END
+     ) AS wait_seconds
+     FROM email_otp_sends WHERE email_key = $1`,
+    params
+  );
+  return Math.max(1, Math.ceil(Number(blocked.rows[0]?.wait_seconds) || 1));
+};
+
+/**
+ * Counts one code check against a sign-up code and returns how many checks it
+ * has had, this one included.
+ */
+const countEmailOtpAttempt = async (challengeId, expiresAt) => {
+  const result = await pool.query(
+    `INSERT INTO email_otp_attempts (challenge_id, attempts, expires_at)
+     VALUES ($1, 1, $2)
+     ON CONFLICT (challenge_id) DO UPDATE SET attempts = email_otp_attempts.attempts + 1
+     RETURNING attempts`,
+    [challengeId, expiresAt]
+  );
+  return result.rows[0].attempts;
+};
+
 /** Brings a conversation back to the chat list of both parties. */
 const unhideConversationForAll = async transactionId => {
   const result = await pool.query('DELETE FROM hidden_conversations WHERE transaction_id = $1', [
@@ -1582,6 +1659,8 @@ module.exports = {
   unhideConversationForAll,
   deleteConversationHistory,
   getDeletedConversations,
+  claimEmailOtpSend,
+  countEmailOtpAttempt,
   // Unread count
   recordReceivedMessage,
   setReceivedMessageTransition,

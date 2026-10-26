@@ -3,7 +3,7 @@ import '@testing-library/jest-dom';
 
 import { renderWithProviders as render, testingLibrary } from '../../../util/testHelpers';
 import { fakeIntl } from '../../../util/testData';
-import { sendEmailOtp } from '../../../util/api';
+import { sendEmailOtp, verifyEmailOtp } from '../../../util/api';
 
 import TermsAndConditions from '../TermsAndConditions/TermsAndConditions';
 import SignupForm from './SignupForm';
@@ -198,6 +198,49 @@ describe('SignupForm', () => {
       expect(sendEmailOtp).toHaveBeenCalledTimes(1);
     });
     expect(screen.queryByText('SignupForm.completeFormBeforeOtp')).toBeNull();
+  });
+
+  it('says when the address has asked for too many codes', async () => {
+    sendEmailOtp.mockRejectedValue(
+      Object.assign(new Error(), { error: 'tooManyCodeRequests', retryAfterSeconds: 300 })
+    );
+    render(
+      <SignupForm
+        intl={fakeIntl}
+        termsAndConditions={termsAndConditions}
+        userTypes={userTypes}
+        userFields={userFields}
+        onSubmit={noop}
+      />
+    );
+
+    await selectSellerAndFillForm();
+    fireEvent.click(screen.getByRole('button', { name: 'SignupForm.sendVerificationCode' }));
+
+    expect(await screen.findByText('SignupForm.emailOtpTooManyRequests')).toBeInTheDocument();
+  });
+
+  it('asks for a new code once a code had too many wrong tries', async () => {
+    verifyEmailOtp.mockRejectedValue(Object.assign(new Error(), { error: 'tooManyAttempts' }));
+    render(
+      <SignupForm
+        intl={fakeIntl}
+        termsAndConditions={termsAndConditions}
+        userTypes={userTypes}
+        userFields={userFields}
+        onSubmit={noop}
+      />
+    );
+
+    await selectSellerAndFillForm();
+    fireEvent.click(screen.getByRole('button', { name: 'SignupForm.sendVerificationCode' }));
+    userEvent.type(
+      await screen.findByRole('textbox', { name: 'SignupForm.emailOtpCodeLabel' }),
+      '123456'
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'SignupForm.verifyCode' }));
+
+    expect(await screen.findByText('SignupForm.emailOtpTooManyAttempts')).toBeInTheDocument();
   });
 
   it('clears the "complete the form" notice once the missing fields are filled', async () => {

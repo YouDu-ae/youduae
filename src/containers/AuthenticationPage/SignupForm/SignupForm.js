@@ -264,10 +264,14 @@ const SignupFormFields = props => {
     } catch (error) {
       console.error('Failed to send email OTP:', error);
       log.error(error, 'signup-otp-send-failed', { email });
+      const minutes = Math.max(1, Math.ceil((error?.retryAfterSeconds || 60) / 60));
       setOtpState(prev => ({
         ...prev,
         sending: false,
-        error: intl.formatMessage({ id: 'SignupForm.emailOtpSendFailed' }),
+        error:
+          error?.error === 'tooManyCodeRequests'
+            ? intl.formatMessage({ id: 'SignupForm.emailOtpTooManyRequests' }, { minutes })
+            : intl.formatMessage({ id: 'SignupForm.emailOtpSendFailed' }),
       }));
     }
   };
@@ -310,7 +314,12 @@ const SignupFormFields = props => {
       setOtpState(prev => ({
         ...prev,
         verifying: false,
-        error: intl.formatMessage({ id: 'SignupForm.emailOtpVerifyFailed' }),
+        error: intl.formatMessage({
+          id:
+            error?.error === 'tooManyAttempts'
+              ? 'SignupForm.emailOtpTooManyAttempts'
+              : 'SignupForm.emailOtpVerifyFailed',
+        }),
       }));
     }
   };

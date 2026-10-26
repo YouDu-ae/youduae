@@ -379,8 +379,6 @@ export const AuthenticationForms = props => {
       },
     };
 
-    console.log('🚀 [SIGNUP] Final params being sent to API:', JSON.stringify(params, null, 2));
-
     return submitSignup(params);
   };
 
