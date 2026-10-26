@@ -167,6 +167,13 @@ const initDatabase = async () => {
       CREATE INDEX IF NOT EXISTS idx_reminder_log_sent
         ON reminder_log (reminder_type, sent_at);
 
+      -- Chat messages whose notice waits until Sharetribe has checked their
+      -- photos, so the recipient never opens one that does not load yet.
+      CREATE TABLE IF NOT EXISTS message_photo_waits (
+        message_id VARCHAR(100) PRIMARY KEY,
+        waiting_since TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+
       -- One row per conversation in the voice task-intake pilot. It is the
       -- per-user daily budget (the IP rate limiter cannot tell users apart),
       -- the proof that a tool call belongs to a session its caller opened, and
@@ -984,6 +991,28 @@ const releaseReminder = async ({ reminderType, subjectId, recipientUserId }) => 
   );
 };
 
+/** A replayed message keeps the time it first started waiting. */
+const waitForMessagePhotos = async messageId => {
+  await pool.query(
+    `INSERT INTO message_photo_waits (message_id) VALUES ($1)
+     ON CONFLICT (message_id) DO NOTHING`,
+    [messageId]
+  );
+};
+
+const getMessagePhotoWaits = async (limit = 50) => {
+  const result = await pool.query(
+    `SELECT message_id, waiting_since FROM message_photo_waits
+     ORDER BY waiting_since LIMIT $1`,
+    [limit]
+  );
+  return result.rows.map(row => ({ messageId: row.message_id, waitingSince: row.waiting_since }));
+};
+
+const stopWaitingForMessagePhotos = async messageId => {
+  await pool.query(`DELETE FROM message_photo_waits WHERE message_id = $1`, [messageId]);
+};
+
 const getReminderStats = async () => {
   const result = await pool.query(
     `SELECT reminder_type,
@@ -1632,6 +1661,9 @@ module.exports = {
   claimReminder,
   releaseReminder,
   getReminderStats,
+  waitForMessagePhotos,
+  getMessagePhotoWaits,
+  stopWaitingForMessagePhotos,
   // Telegram subscriber functions
   upsertTelegramSubscriber,
   updateTelegramSubscriberCategories,

@@ -38,6 +38,10 @@ const PREVIEW_LENGTH = 100;
 const MAX_AGE_MS = 6 * 60 * 60 * 1000;
 // The opening message of an offer is written right after the offer itself.
 const OFFER_MESSAGE_WINDOW_MS = 2 * 60 * 1000;
+// Sharetribe checks each uploaded file before it opens, usually within
+// seconds; a photo still unchecked after this long is taken as lost.
+const PHOTO_WAIT_MS = 30 * 60 * 1000;
+const PHOTO_INCLUDE = ['publicFileAttachments', 'publicFileAttachments.file'];
 
 // The second review publishes both; a first one stays hidden until then.
 const REVIEW_TRANSITIONS = {
@@ -78,6 +82,47 @@ const loadDeal = async (integrationSdk, transactionId) => {
 };
 
 /**
+ * 'none' without photos, 'ready' once every photo opens, 'failed' when one
+ * never will, otherwise 'waiting'.
+ */
+const photoState = (message, included) => {
+  const refs = message?.relationships?.publicFileAttachments?.data || [];
+  if (refs.length === 0) return 'none';
+  const find = (type, id) => included.find(item => item.type === type && uuidOf(item.id) === id);
+  const states = refs.map(ref => {
+    const attachment = find('fileAttachment', uuidOf(ref.id));
+    const file =
+      attachment &&
+      !attachment.attributes?.deleted &&
+      find('file', idOf(attachment.relationships?.file));
+    return file && !file.attributes?.deleted ? file.attributes?.state : 'verificationFailed';
+  });
+  if (states.includes('verificationFailed')) return 'failed';
+  return states.every(state => state === 'available') ? 'ready' : 'waiting';
+};
+
+const loadMessages = async (integrationSdk, messageIds, include) => {
+  const response = await integrationSdk.messages.query({ ids: messageIds.join(','), include });
+  const included = response.data.included || [];
+  return (response.data.data || []).map(message => ({
+    message,
+    messageId: uuidOf(message.id),
+    photos: photoState(message, included),
+  }));
+};
+
+// Without an answer the notice goes out at once, as before photos were checked.
+const photosOf = async (integrationSdk, messageId, log) => {
+  try {
+    const [found] = await loadMessages(integrationSdk, [messageId], PHOTO_INCLUDE);
+    return found?.photos || 'none';
+  } catch (error) {
+    log(`[messages] ${messageId}: фото не проверены — ${error.message}`);
+    return 'none';
+  }
+};
+
+/**
  * Who gets told about a message, or null when there is nobody to tell.
  */
 const recipientOf = (deal, senderId) => {
@@ -95,9 +140,18 @@ const deliver = async (transactionId, deliveries) => {
   results
     .filter(r => r.status === 'rejected')
     .forEach(r => console.error(`[messages] ${transactionId}: доставка не удалась — ${r.reason?.message}`));
+  return results;
 };
 
-const handleMessage = async ({ integrationSdk, message, messageId, rootUrl, db }) => {
+const handleMessage = async ({
+  integrationSdk,
+  message,
+  messageId,
+  rootUrl,
+  db,
+  log = console.log,
+  photosChecked = false,
+}) => {
   const transactionId = idOf(message?.relationships?.transaction);
   const senderId = idOf(message?.relationships?.sender);
   if (!transactionId || !senderId || !messageId) return 'incomplete';
@@ -111,6 +165,15 @@ const handleMessage = async ({ integrationSdk, message, messageId, rootUrl, db }
   const dealCreatedAt = new Date(deal.transaction.attributes.createdAt).getTime();
   if (recipient.role === 'provider' && sentAt - dealCreatedAt <= OFFER_MESSAGE_WINDOW_MS) {
     return 'offer-text';
+  }
+
+  if (!photosChecked) {
+    const photos = await photosOf(integrationSdk, messageId, log);
+    if (photos === 'failed') return 'photo-failed';
+    if (photos === 'waiting') {
+      await db.waitForMessagePhotos(messageId);
+      return 'waiting-for-photo';
+    }
   }
 
   // The cursor moves only after a whole page, so a crash halfway through or a
@@ -149,6 +212,7 @@ const handleMessage = async ({ integrationSdk, message, messageId, rootUrl, db }
   const preview = String(message.attributes?.content || '').slice(0, PREVIEW_LENGTH) || 'Новое сообщение';
   const url = conversationUrl(rootUrl, transactionId, recipient.role);
 
+  let pushedAt = null;
   const deliveries = [
     notifyNewMessage(recipient.id, { senderName, messagePreview: preview, conversationUrl: url }),
     sendNewMessageNotification({
@@ -159,6 +223,8 @@ const handleMessage = async ({ integrationSdk, message, messageId, rootUrl, db }
       transactionId,
       messageId,
       messageCreatedAt: new Date(sentAt).toISOString(),
+    }).finally(() => {
+      pushedAt = Date.now();
     }),
   ];
   if (needsOwnEmail(recipient.user)) {
@@ -172,7 +238,13 @@ const handleMessage = async ({ integrationSdk, message, messageId, rootUrl, db }
       })
     );
   }
-  await deliver(transactionId, deliveries);
+  const [, push] = await deliver(transactionId, deliveries);
+  const accepted = push.status === 'fulfilled' ? push.value?.sent || 0 : 0;
+  const seconds = ((pushedAt - sentAt) / 1000).toFixed(1);
+  const waited = photosChecked ? ' (ждали проверки фото)' : '';
+  log(
+    `[messages] ${messageId}: push через ${seconds} с после сообщения${waited}, FCM принял для ${accepted} устр.`
+  );
   return 'notified';
 };
 
@@ -289,7 +361,7 @@ const handleTransition = async ({ integrationSdk, transactionRef, rootUrl, db })
   return 'notified';
 };
 
-const handleEvent = ({ integrationSdk, event, rootUrl, now, db }) => {
+const handleEvent = ({ integrationSdk, event, rootUrl, now, db, log }) => {
   const { eventType, resource, resourceId, createdAt } = event.attributes;
   if (now - new Date(createdAt).getTime() > MAX_AGE_MS) return 'stale';
   if (eventType === 'message/created') {
@@ -299,6 +371,7 @@ const handleEvent = ({ integrationSdk, event, rootUrl, now, db }) => {
       messageId: uuidOf(resourceId),
       rootUrl,
       db,
+      log,
     });
   }
   if (eventType === 'transaction/initiated') {
@@ -311,10 +384,64 @@ const handleEvent = ({ integrationSdk, event, rootUrl, now, db }) => {
 };
 
 /**
+ * Tells about the messages held back for their photos once Sharetribe has
+ * checked them, with one query a tick for all of them.
+ */
+const processPhotoWaits = async ({ integrationSdk, db, rootUrl, now, log }) => {
+  const waits = await db.getMessagePhotoWaits();
+  if (waits.length === 0) return 0;
+
+  const found = await loadMessages(integrationSdk, waits.map(wait => wait.messageId), [
+    'sender',
+    'transaction',
+    ...PHOTO_INCLUDE,
+  ]);
+  let notified = 0;
+  for (const { messageId, waitingSince } of waits) {
+    const item = found.find(candidate => candidate.messageId === messageId);
+    const photos = item && !item.message.attributes?.deleted ? item.photos : 'failed';
+    if (photos === 'waiting' && now - new Date(waitingSince).getTime() < PHOTO_WAIT_MS) continue;
+
+    await db.stopWaitingForMessagePhotos(messageId);
+    if (photos === 'failed' || photos === 'waiting') {
+      const why =
+        photos === 'failed' ? 'не прошло проверку' : `не проверено за ${PHOTO_WAIT_MS / 60000} мин`;
+      log(`[messages] ${messageId}: фото ${why}, уведомления не будет`);
+      continue;
+    }
+    try {
+      const outcome = await handleMessage({
+        integrationSdk,
+        message: item.message,
+        messageId,
+        rootUrl,
+        db,
+        log,
+        photosChecked: true,
+      });
+      if (outcome === 'notified') notified += 1;
+    } catch (error) {
+      log(`[messages] ${messageId}: сбой — ${error.message}`);
+    }
+  }
+  return notified;
+};
+
+/**
  * @returns {Promise<{events: number, notified: number, failed: number, fullPage: boolean}>}
  */
 const processMessageEvents = async ({ integrationSdk, db, log = console.log, now = Date.now() }) => {
   const rootUrl = process.env.REACT_APP_MARKETPLACE_ROOT_URL || 'https://youdu.ae';
+  const notifiedAfterPhotos = await processPhotoWaits({
+    integrationSdk,
+    db,
+    rootUrl,
+    now,
+    log,
+  }).catch(error => {
+    log(`[messages] ожидание фото: сбой — ${error.message}`);
+    return 0;
+  });
   const cursor = await db.getOrStartEventCursor(CURSOR_NAME);
   const position =
     cursor.sequenceId !== null
@@ -323,11 +450,16 @@ const processMessageEvents = async ({ integrationSdk, db, log = console.log, now
 
   const response = await integrationSdk.events.query({ ...position, eventTypes: EVENT_TYPES });
   const events = response?.data?.data || [];
-  const result = { events: events.length, notified: 0, failed: 0, fullPage: false };
+  const result = {
+    events: events.length,
+    notified: notifiedAfterPhotos,
+    failed: 0,
+    fullPage: false,
+  };
 
   for (const event of events) {
     try {
-      const outcome = await handleEvent({ integrationSdk, event, rootUrl, now, db });
+      const outcome = await handleEvent({ integrationSdk, event, rootUrl, now, db, log });
       if (outcome === 'notified') result.notified += 1;
     } catch (error) {
       // One deal that cannot be read must not hold up the others.
