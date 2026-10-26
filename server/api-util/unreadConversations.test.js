@@ -64,10 +64,24 @@ describe('getUnreadConversations', () => {
 
     const unread = await getUnreadConversations(USER, { viewedTransactions: {} });
 
-    expect(unread).toEqual({
+    expect(unread).toMatchObject({
       transactionIds: ['tx-1', 'tx-2', 'tx-3', 'tx-4'],
       counterpartyIds: ['master-1', 'master-2'],
     });
+  });
+
+  it('pairs each unread deal with its writer and the time of their newest message', async () => {
+    mockDb.getReceivedMessages.mockResolvedValue([
+      received('tx-1', T0 + 1000, CHAT, 'master-1'),
+      received('tx-read', T0 - 1000, CHAT, 'master-2'),
+    ]);
+
+    const unread = await getUnreadConversations(USER, { viewedTransactions: { 'tx-read': T0 } });
+
+    expect(unread.conversations).toEqual([
+      { transactionId: 'tx-1', counterpartyId: 'master-1', lastMessageAt: T0 + 1000 },
+    ]);
+    expect(unread.viewedTransactions).toEqual({ 'tx-read': T0 });
   });
 
   it('leaves out messages up to when the history with their sender was deleted', async () => {
@@ -81,7 +95,7 @@ describe('getUnreadConversations', () => {
     const unread = await getUnreadConversations(USER, { viewedTransactions: {} });
 
     expect(mockDb.getDeletedConversations).toHaveBeenCalledWith(USER);
-    expect(unread).toEqual({
+    expect(unread).toMatchObject({
       transactionIds: ['tx-after', 'tx-other'],
       counterpartyIds: ['master-1', 'master-2'],
     });
@@ -116,7 +130,9 @@ describe('getUnreadConversations', () => {
     mockDb.getReceivedMessages.mockResolvedValue([received('tx-1', T0)]);
     mockUserShow.mockResolvedValue(privateData({ 'tx-1': T0 + 1 }));
 
-    expect((await getUnreadConversations(USER)).transactionIds).toEqual([]);
+    const fromProfile = await getUnreadConversations(USER);
+    expect(fromProfile.transactionIds).toEqual([]);
+    expect(fromProfile.viewedTransactions).toEqual({ 'tx-1': T0 + 1 });
     expect(mockUserShow).toHaveBeenCalledWith({ id: USER });
 
     mockUserShow.mockClear();

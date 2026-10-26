@@ -42,8 +42,11 @@ const loadViewedTransactions = async userId => {
 /**
  * @param {string} userId
  * @param {Object} [options.viewedTransactions] read marks just saved, so they need no reading back
- * @returns {Promise<{transactionIds: string[], counterpartyIds: string[]}>} the unread
- *   deals, and the people who wrote in them, whose number the badge shows
+ * @returns {Promise<{transactionIds: string[], counterpartyIds: string[], conversations: Object[],
+ *   viewedTransactions: Object}>} the unread deals, and the people who wrote in
+ *   them, whose number the badge shows; conversations pairs each deal with its
+ *   writer and the time (ms) of their newest message there; viewedTransactions
+ *   are the read marks the count was made with
  */
 const getUnreadConversations = async (userId, { viewedTransactions } = {}) => {
   const [received, hidden, deleted, viewed] = await Promise.all([
@@ -61,6 +64,12 @@ const getUnreadConversations = async (userId, { viewedTransactions } = {}) => {
   return {
     transactionIds: unread.map(row => row.transactionId),
     counterpartyIds: [...new Set(unread.map(row => row.senderId))],
+    conversations: unread.map(({ transactionId, senderId, receivedAt }) => ({
+      transactionId,
+      counterpartyId: senderId,
+      lastMessageAt: receivedAt,
+    })),
+    viewedTransactions: viewed,
   };
 };
 

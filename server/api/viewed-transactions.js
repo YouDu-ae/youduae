@@ -5,6 +5,13 @@
  *
  * The user comes from the session (requireUser), never from the request:
  * user ids are public, so trusting one would expose anyone's read state.
+ *
+ * POST /api/viewed-transactions       { transactionId, seenUntil? }
+ * POST /api/viewed-transactions/batch { transactionIds, seenUntil?: { transactionId: time } }
+ *
+ * seenUntil (ISO or ms) is the newest message or step the person actually saw.
+ * Without it the mark is now, which would also mark read a message that came
+ * in after the screen was loaded.
  */
 
 const sharetribeIntegrationSdk = require('sharetribe-flex-integration-sdk');
@@ -27,17 +34,37 @@ const getIntegrationSdk = () => {
 };
 
 const NINETY_DAYS_MS = 90 * 24 * 60 * 60 * 1000;
+// A mark past the cleanup below would vanish on the next save and read as
+// "never opened"; messages that old are no longer counted as unread.
+const OLDEST_MARK_MS = 89 * 24 * 60 * 60 * 1000;
 const SAVE_ATTEMPTS = 3;
 
+/** ms, undefined when absent, NaN when not a time. */
+const parseSeenUntil = value => {
+  if (value === undefined || value === null) return undefined;
+  if (typeof value === 'number') return Number.isFinite(value) ? value : NaN;
+  if (typeof value === 'string') return Date.parse(value);
+  return NaN;
+};
+
 /**
- * Marks the given transactions as viewed now and saves the whole map back.
+ * Marks the given transactions as viewed and saves the whole map back.
  * privateData merges only on the top level, so the map is read, changed and
  * written as one value; when two marks overlap Sharetribe answers 409 to one
  * of them, and that one starts over from a fresh read.
  *
+ * A mark never moves back, so a stale or repeated request cannot make a read
+ * chat unread again.
+ *
+ * @param {Map<string, number>} [seenUntil] per transaction; the rest are marked now
  * @returns {Promise<{viewedAt: number, viewedTransactions: Object}>} the saved map
  */
-const saveViewedTransactions = async (integrationSdk, userId, transactionIds) => {
+const saveViewedTransactions = async (
+  integrationSdk,
+  userId,
+  transactionIds,
+  seenUntil = new Map()
+) => {
   for (let attempt = 1; ; attempt++) {
     const userResponse = await integrationSdk.users.show({ id: userId });
     const privateData = userResponse.data.data.attributes.profile.privateData || {};
@@ -45,7 +72,10 @@ const saveViewedTransactions = async (integrationSdk, userId, transactionIds) =>
 
     const now = Date.now();
     transactionIds.forEach(txId => {
-      viewedTransactions[txId] = now;
+      const mark = seenUntil.has(txId)
+        ? Math.max(Math.min(seenUntil.get(txId), now), now - OLDEST_MARK_MS)
+        : now;
+      viewedTransactions[txId] = Math.max(Number(viewedTransactions[txId]) || 0, mark);
     });
 
     // Clean up old entries (older than 90 days) to prevent data bloat
@@ -116,19 +146,26 @@ const markTransactionViewed = async (req, res) => {
   if (!transactionId) {
     return res.status(400).json({ error: 'transactionId is required' });
   }
-  
+  const seenUntil = parseSeenUntil(req.body.seenUntil);
+  if (Number.isNaN(seenUntil)) {
+    return res.status(400).json({ error: 'seenUntil must be a time' });
+  }
+
   try {
     const integrationSdk = getIntegrationSdk();
-    const { viewedAt, viewedTransactions } = await saveViewedTransactions(integrationSdk, userId, [
-      transactionId,
-    ]);
+    const { viewedTransactions } = await saveViewedTransactions(
+      integrationSdk,
+      userId,
+      [transactionId],
+      new Map(seenUntil === undefined ? [] : [[transactionId, seenUntil]])
+    );
     // The answer does not wait for the phones.
     sendBadgeUpdate(userId, { viewedTransactions });
 
     res.json({
       success: true,
       transactionId,
-      viewedAt,
+      viewedAt: viewedTransactions[transactionId],
     });
   } catch (error) {
     console.error('Error marking transaction viewed:', error.message);
@@ -147,13 +184,27 @@ const markTransactionsBatchViewed = async (req, res) => {
   if (!Array.isArray(transactionIds)) {
     return res.status(400).json({ error: 'transactionIds array is required' });
   }
-  
+  const times = req.body.seenUntil == null ? {} : req.body.seenUntil;
+  if (typeof times !== 'object' || Array.isArray(times)) {
+    return res.status(400).json({ error: 'seenUntil must map transactions to times' });
+  }
+  const seenUntil = new Map();
+  for (const txId of transactionIds) {
+    if (!Object.prototype.hasOwnProperty.call(times, txId)) continue;
+    const time = parseSeenUntil(times[txId]);
+    if (Number.isNaN(time)) {
+      return res.status(400).json({ error: 'seenUntil must map transactions to times' });
+    }
+    if (time !== undefined) seenUntil.set(txId, time);
+  }
+
   try {
     const integrationSdk = getIntegrationSdk();
     const { viewedAt, viewedTransactions } = await saveViewedTransactions(
       integrationSdk,
       userId,
-      transactionIds
+      transactionIds,
+      seenUntil
     );
     sendBadgeUpdate(userId, { viewedTransactions });
 

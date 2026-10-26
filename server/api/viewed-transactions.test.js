@@ -117,4 +117,92 @@ describe('viewed-transactions', () => {
     expect(Object.keys(savedMap(0)).sort()).toEqual(['tx-a', 'tx-b']);
     expect(sendBadgeUpdate).toHaveBeenCalledWith(USER_ID, { viewedTransactions: savedMap(0) });
   });
+
+  describe('up to what the person saw', () => {
+    const DAY = 24 * 60 * 60 * 1000;
+
+    beforeEach(() => {
+      mockUpdateProfile.mockResolvedValue({});
+    });
+
+    it('leaves a message that came in after the shown ones unread', async () => {
+      mockShow.mockResolvedValue(showResponse({}));
+      const seen = Date.now() - 30 * 1000;
+
+      const res = await call(markTransactionViewed, {
+        transactionId: 'tx-open',
+        seenUntil: new Date(seen).toISOString(),
+      });
+
+      expect(savedMap(0)['tx-open']).toBe(seen);
+      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ viewedAt: seen }));
+    });
+
+    it('never moves a mark back', async () => {
+      const later = Date.now() - 1000;
+      mockShow.mockResolvedValue(showResponse({ 'tx-open': later }));
+
+      await call(markTransactionViewed, { transactionId: 'tx-open', seenUntil: later - 60 * 1000 });
+
+      expect(savedMap(0)['tx-open']).toBe(later);
+    });
+
+    it('takes no mark from the future', async () => {
+      mockShow.mockResolvedValue(showResponse({}));
+      const before = Date.now();
+
+      await call(markTransactionViewed, { transactionId: 'tx-open', seenUntil: before + DAY });
+
+      expect(savedMap(0)['tx-open']).toBeGreaterThanOrEqual(before);
+      expect(savedMap(0)['tx-open']).toBeLessThanOrEqual(Date.now());
+    });
+
+    it('keeps the mark of a long quiet chat clear of the cleanup', async () => {
+      mockShow.mockResolvedValue(showResponse({}));
+      const before = Date.now();
+
+      await call(markTransactionViewed, {
+        transactionId: 'tx-quiet',
+        seenUntil: before - 200 * DAY,
+      });
+
+      expect(savedMap(0)['tx-quiet']).toBeGreaterThanOrEqual(before - 89 * DAY);
+      expect(savedMap(0)['tx-quiet']).toBeLessThan(before - 88 * DAY);
+    });
+
+    it('refuses a seenUntil that is not a time', async () => {
+      const res = await call(markTransactionViewed, {
+        transactionId: 'tx-open',
+        seenUntil: 'soon',
+      });
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(mockUpdateProfile).not.toHaveBeenCalled();
+    });
+
+    it('marks each deal of a batch up to its own time, and the rest now', async () => {
+      mockShow.mockResolvedValue(showResponse({}));
+      const before = Date.now();
+      const seenA = before - 5 * 60 * 1000;
+
+      await call(markTransactionsBatchViewed, {
+        transactionIds: ['tx-a', 'tx-b'],
+        seenUntil: { 'tx-a': new Date(seenA).toISOString() },
+      });
+
+      expect(savedMap(0)['tx-a']).toBe(seenA);
+      expect(savedMap(0)['tx-b']).toBeGreaterThanOrEqual(before);
+    });
+
+    it('refuses a batch whose times are not times', async () => {
+      for (const seenUntil of [['tx-a'], { 'tx-a': 'soon' }]) {
+        const res = await call(markTransactionsBatchViewed, {
+          transactionIds: ['tx-a'],
+          seenUntil,
+        });
+        expect(res.status).toHaveBeenCalledWith(400);
+      }
+      expect(mockUpdateProfile).not.toHaveBeenCalled();
+    });
+  });
 });

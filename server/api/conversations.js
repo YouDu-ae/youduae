@@ -9,7 +9,14 @@
  * POST /api/conversations/delete  { counterpartyId, transactionId, until? }
  *                                                  → { deletedConversations }
  * GET  /api/conversations/unread
- *   → { unreadCount, unreadCounterpartyIds, unreadTransactionIds }
+ *   → { unreadCount, unreadCounterpartyIds, unreadTransactionIds, unreadConversations,
+ *       viewedTransactions }
+ *
+ * unreadConversations is [{ transactionId, counterpartyId, lastMessageAt }],
+ * lastMessageAt in ms: a chat the app has read since the count was made, up to
+ * that message, is no longer unread. viewedTransactions is { transactionId: ms },
+ * the read marks from every device and the site, so a phone can clear what was
+ * read elsewhere.
  *
  * hiddenConversations is { transactionId: hiddenAtMs }. Sharetribe cannot
  * delete a transaction, so the conversation stays there for the other party
@@ -162,11 +169,18 @@ const deleteHistory = async (req, res) => {
 
 const getUnread = async (req, res) => {
   try {
-    const { transactionIds, counterpartyIds } = await getUnreadConversations(req.authUserId);
+    const {
+      transactionIds,
+      counterpartyIds,
+      conversations,
+      viewedTransactions,
+    } = await getUnreadConversations(req.authUserId);
     return res.status(200).json({
       unreadCount: counterpartyIds.length,
       unreadCounterpartyIds: counterpartyIds,
       unreadTransactionIds: transactionIds,
+      unreadConversations: conversations,
+      viewedTransactions,
     });
   } catch (error) {
     console.error('❌ unread-conversations failed:', error.message);

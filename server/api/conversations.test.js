@@ -247,14 +247,29 @@ describe('unread conversations', () => {
   });
 
   it('answers with the count the icon badge shows: people, not deals', async () => {
-    mockUnread.mockResolvedValue({ transactionIds: [TX, TX_2], counterpartyIds: [OTHER] });
+    const conversations = [
+      { transactionId: TX, counterpartyId: OTHER, lastMessageAt: 1000 },
+      { transactionId: TX_2, counterpartyId: OTHER, lastMessageAt: 2000 },
+    ];
+    mockUnread.mockResolvedValue({
+      transactionIds: [TX, TX_2],
+      counterpartyIds: [OTHER],
+      conversations,
+      viewedTransactions: { [TX]: 500 },
+    });
 
     const result = await call(getUnread);
 
     expect(mockUnread).toHaveBeenCalledWith(ME);
     expect(result).toEqual({
       status: 200,
-      body: { unreadCount: 1, unreadCounterpartyIds: [OTHER], unreadTransactionIds: [TX, TX_2] },
+      body: {
+        unreadCount: 1,
+        unreadCounterpartyIds: [OTHER],
+        unreadTransactionIds: [TX, TX_2],
+        unreadConversations: conversations,
+        viewedTransactions: { [TX]: 500 },
+      },
     });
   });
 
