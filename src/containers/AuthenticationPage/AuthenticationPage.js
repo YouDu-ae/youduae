@@ -470,7 +470,7 @@ const ConfirmIdProviderInfoForm = props => {
   const idp = authInfo ? authInfo.idpId.replace(/^./, str => str.toUpperCase()) : null;
 
   const handleSubmitConfirm = values => {
-    const { idpToken, email, firstName, lastName, idpId } = authInfo;
+    const { idpToken, email, idpId } = authInfo;
 
     const {
       userType,
@@ -483,13 +483,12 @@ const ConfirmIdProviderInfoForm = props => {
 
     const displayNameMaybe = displayName ? { displayName: displayName.trim() } : {};
 
-    // Pass email, fistName or lastName to Marketplace API only if user has edited them
-    // and they can't be fetched directly from idp provider (e.g. Facebook)
-
+    // Apple's ID token carries no name, so Marketplace API can't fetch it from the idp:
+    // the names from the form are always passed. Email only if the user has edited it.
     const authParams = {
       ...(newEmail !== email && { email: newEmail }),
-      ...(newFirstName !== firstName && { firstName: newFirstName }),
-      ...(newLastName !== lastName && { lastName: newLastName }),
+      ...(newFirstName && { firstName: newFirstName.trim() }),
+      ...(newLastName && { lastName: newLastName.trim() }),
     };
 
     // Pass other values as extended data according to user field configuration

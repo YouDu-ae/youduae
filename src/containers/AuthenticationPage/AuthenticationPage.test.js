@@ -4,9 +4,9 @@ import '@testing-library/jest-dom';
 import { renderWithProviders as render, testingLibrary } from '../../util/testHelpers';
 import { fakeIntl } from '../../util/testData';
 
-import AuthenticationPage from './AuthenticationPage';
+import AuthenticationPage, { AuthenticationOrConfirmInfoForm } from './AuthenticationPage';
 
-const { screen } = testingLibrary;
+const { screen, userEvent } = testingLibrary;
 
 const noop = () => null;
 
@@ -124,5 +124,45 @@ describe('AuthenticationPage with SSO', () => {
     expect(
       screen.getByRole('button', { name: 'AuthenticationPage.loginWithGoogle' })
     ).toBeInTheDocument();
+  });
+});
+
+describe('Confirming signup with an identity provider', () => {
+  it('passes the names even when they are kept as Apple sent them', async () => {
+    const submitSingupWithIdp = jest.fn();
+    const authInfo = {
+      idpId: 'apple',
+      idpToken: 'apple-id-token',
+      email: 'person@privaterelay.appleid.com',
+      firstName: 'Anna',
+      lastName: 'Ivanova',
+    };
+
+    render(
+      <AuthenticationOrConfirmInfoForm
+        tab="confirm"
+        userType="provider"
+        authInfo={authInfo}
+        submitSingupWithIdp={submitSingupWithIdp}
+        authInProgress={false}
+        termsAndConditions={null}
+      />
+    );
+
+    await userEvent.type(
+      screen.getByRole('textbox', { name: 'ConfirmSignupForm.phoneNumberLabel' }),
+      '+971501234567'
+    );
+    await userEvent.click(screen.getByRole('button', { name: 'ConfirmSignupForm.signUp' }));
+
+    expect(submitSingupWithIdp).toHaveBeenCalledTimes(1);
+    const params = submitSingupWithIdp.mock.calls[0][0];
+    expect(params).toMatchObject({
+      idpId: 'apple',
+      idpToken: 'apple-id-token',
+      firstName: 'Anna',
+      lastName: 'Ivanova',
+    });
+    expect(params).not.toHaveProperty('email');
   });
 });
