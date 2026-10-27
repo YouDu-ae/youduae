@@ -19,6 +19,9 @@ jest.mock('../api-util/unreadConversations', () => ({
 jest.mock('./send-notification', () => ({
   sendBadgeUpdate: (...args) => mockBadgeUpdate(...args),
 }));
+jest.mock('../api-util/mobileSdk', () => ({
+  hasBearerToken: req => (req.headers.authorization || '').startsWith('Bearer '),
+}));
 
 const {
   getHidden,
@@ -36,12 +39,13 @@ const TX = '6ac8db4b-1111-4222-8333-944455556666';
 const TX_2 = '6ac8db4b-2222-4222-8333-944455556666';
 const HIDDEN = { [TX]: 1760000000000 };
 const DELETED = { [OTHER]: 1760000000000 };
+const FROM_APP = { authorization: 'Bearer app-token' };
 
-const call = async (handler, body) => {
+const call = async (handler, body, headers = {}) => {
   const res = {};
   res.status = jest.fn(() => res);
   res.json = jest.fn(() => res);
-  await handler({ body, authUserId: ME }, res);
+  await handler({ body, authUserId: ME, headers }, res);
   return { status: res.status.mock.calls[0][0], body: res.json.mock.calls[0][0] };
 };
 
@@ -125,6 +129,19 @@ describe('hidden conversations', () => {
     expect(result).toEqual({ status: 200, body: { hiddenConversations: {} } });
   });
 
+  // The open app sets its own icon; a badge-only push would reach it as an
+  // empty alert.
+  it('leaves the phones alone when the app hides or shows a conversation', async () => {
+    mockShow.mockResolvedValue(deal(OTHER, ME));
+
+    expect((await call(hide, { transactionId: TX }, FROM_APP)).status).toBe(200);
+    expect((await call(unhide, { transactionId: TX }, FROM_APP)).status).toBe(200);
+
+    expect(mockDb.hideConversation).toHaveBeenCalledWith(ME, TX);
+    expect(mockDb.unhideConversation).toHaveBeenCalledWith(ME, TX);
+    expect(mockBadgeUpdate).not.toHaveBeenCalled();
+  });
+
   it("lists the signed-in user's hidden conversations", async () => {
     const result = await call(getHidden);
 
@@ -183,6 +200,20 @@ describe('deleted conversations', () => {
       [ME, OTHER, new Date(NOW)],
       [ME, OTHER, new Date(NOW)],
     ]);
+  });
+
+  it('leaves the phones alone when the app deletes the history', async () => {
+    mockShow.mockResolvedValue(deal(OTHER, ME));
+
+    const result = await call(
+      deleteHistory,
+      { counterpartyId: OTHER, transactionId: TX },
+      FROM_APP
+    );
+
+    expect(result.status).toBe(200);
+    expect(mockDb.deleteConversationHistory).toHaveBeenCalled();
+    expect(mockBadgeUpdate).not.toHaveBeenCalled();
   });
 
   it('refuses someone who is not the other party of that deal', async () => {

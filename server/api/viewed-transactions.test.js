@@ -12,6 +12,9 @@ jest.mock('sharetribe-flex-integration-sdk', () => ({
 
 jest.mock('../db', () => ({ getLastIncomingMessageTimes: jest.fn() }));
 jest.mock('./send-notification', () => ({ sendBadgeUpdate: jest.fn(async () => ({})) }));
+jest.mock('../api-util/mobileSdk', () => ({
+  hasBearerToken: req => (req.headers.authorization || '').startsWith('Bearer '),
+}));
 
 const { sendBadgeUpdate } = require('./send-notification');
 const { markTransactionViewed, markTransactionsBatchViewed } = require('./viewed-transactions');
@@ -24,9 +27,11 @@ const showResponse = viewedTransactions => ({
 
 const conflict = () => Object.assign(new Error('Conflict'), { status: 409 });
 
-const call = (handler, body) => {
+const FROM_APP = { authorization: 'Bearer app-token' };
+
+const call = (handler, body, headers = {}) => {
   const res = { status: jest.fn(() => res), json: jest.fn(() => res) };
-  return handler({ authUserId: USER_ID, body }, res).then(() => res);
+  return handler({ authUserId: USER_ID, body, headers }, res).then(() => res);
 };
 
 const savedMap = callIndex => mockUpdateProfile.mock.calls[callIndex][0].privateData.viewedTransactions;
@@ -62,6 +67,19 @@ describe('viewed-transactions', () => {
     await call(markTransactionViewed, { transactionId: 'tx-new' });
 
     expect(sendBadgeUpdate).toHaveBeenCalledWith(USER_ID, { viewedTransactions: savedMap(0) });
+  });
+
+  // The open app sets its own icon; a badge-only push would reach it as an
+  // empty alert.
+  it('leaves the phones alone when the mark comes from the app', async () => {
+    mockShow.mockResolvedValue(showResponse({}));
+    mockUpdateProfile.mockResolvedValue({});
+
+    await call(markTransactionViewed, { transactionId: 'tx-new' }, FROM_APP);
+    await call(markTransactionsBatchViewed, { transactionIds: ['tx-a'] }, FROM_APP);
+
+    expect(mockUpdateProfile).toHaveBeenCalledTimes(2);
+    expect(sendBadgeUpdate).not.toHaveBeenCalled();
   });
 
   it('leaves the badge alone when the mark was not saved', async () => {

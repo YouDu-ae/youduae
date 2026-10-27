@@ -32,7 +32,10 @@
  * defaults to now.
  *
  * The unread count is the one the icon badge shows: people, not deals
- * (api-util/unreadConversations).
+ * (api-util/unreadConversations). A change made on the site updates that badge
+ * on the person's phones; one made in the app does not, because the open app
+ * sets its own icon and builds up to 1.0 (2) show a badge-only push that
+ * reaches them in the foreground as an empty alert.
  *
  * The acting user always comes from the session (requireUser).
  */
@@ -40,6 +43,7 @@
 const db = require('../db');
 const { createIntegrationSdk } = require('../reminders/context');
 const { getUnreadConversations } = require('../api-util/unreadConversations');
+const { hasBearerToken } = require('../api-util/mobileSdk');
 const { sendBadgeUpdate } = require('./send-notification');
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -96,7 +100,7 @@ const hide = async (req, res) => {
     }
     await db.hideConversation(req.authUserId, transactionId);
     // A hidden conversation no longer counts as unread.
-    sendBadgeUpdate(req.authUserId);
+    if (!hasBearerToken(req)) sendBadgeUpdate(req.authUserId);
     const hiddenConversations = await db.getHiddenConversations(req.authUserId);
     return res.status(200).json({ hiddenConversations });
   } catch (error) {
@@ -112,7 +116,7 @@ const unhide = async (req, res) => {
   }
   try {
     await db.unhideConversation(req.authUserId, transactionId);
-    sendBadgeUpdate(req.authUserId);
+    if (!hasBearerToken(req)) sendBadgeUpdate(req.authUserId);
     const hiddenConversations = await db.getHiddenConversations(req.authUserId);
     return res.status(200).json({ hiddenConversations });
   } catch (error) {
@@ -158,7 +162,7 @@ const deleteHistory = async (req, res) => {
       new Date(Math.min(seenUntil, now))
     );
     // A deleted chat no longer counts as unread.
-    sendBadgeUpdate(req.authUserId);
+    if (!hasBearerToken(req)) sendBadgeUpdate(req.authUserId);
     const deletedConversations = await db.getDeletedConversations(req.authUserId);
     return res.status(200).json({ deletedConversations });
   } catch (error) {

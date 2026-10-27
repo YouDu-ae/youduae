@@ -1,5 +1,5 @@
 const db = require('../db');
-const { sendBadgeUpdate, clearBadge } = require('./send-notification');
+const { clearBadge } = require('./send-notification');
 
 const MAX_TOKEN_LENGTH = 4096;
 
@@ -14,7 +14,9 @@ const MAX_TOKEN_LENGTH = 4096;
  * `badge: true` comes from builds that report what was read
  * (/api/viewed-transactions); the icon badge on those phones then follows the
  * server's unread count (api-util/unreadConversations), from registration
- * until sign-out clears it.
+ * until sign-out clears it. Registering sends no badge push: the app is open
+ * then and sets its own icon, and builds up to 1.0 (2) show a badge-only push
+ * that reaches them in the foreground as an empty alert.
  */
 module.exports = async (req, res) => {
   const { token, platform, unregister, badge } = req.body || {};
@@ -40,16 +42,12 @@ module.exports = async (req, res) => {
       return res.status(401).json({ error: 'Authorization required' }).end();
     }
 
-    const followsBadge = badge === true || badge === 'true';
     await db.registerDeviceToken({
       userId: req.authUserId,
       token,
       platform: String(platform || 'unknown').slice(0, 20),
-      badge: followsBadge,
+      badge: badge === true || badge === 'true',
     });
-    if (followsBadge) {
-      sendBadgeUpdate(req.authUserId);
-    }
     console.log('✅ Device token registered for user:', req.authUserId);
     return res
       .status(200)

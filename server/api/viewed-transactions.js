@@ -16,6 +16,7 @@
 
 const sharetribeIntegrationSdk = require('sharetribe-flex-integration-sdk');
 const db = require('../db');
+const { hasBearerToken } = require('../api-util/mobileSdk');
 const { sendBadgeUpdate } = require('./send-notification');
 
 // Initialize Integration SDK
@@ -159,8 +160,10 @@ const markTransactionViewed = async (req, res) => {
       [transactionId],
       new Map(seenUntil === undefined ? [] : [[transactionId, seenUntil]])
     );
-    // The answer does not wait for the phones.
-    sendBadgeUpdate(userId, { viewedTransactions });
+    // The answer does not wait for the phones. A mark made in the app is not
+    // sent to them: the open app sets its own icon, and builds up to 1.0 (2)
+    // show a badge-only push that reaches them in the foreground as an empty alert.
+    if (!hasBearerToken(req)) sendBadgeUpdate(userId, { viewedTransactions });
 
     res.json({
       success: true,
@@ -206,7 +209,7 @@ const markTransactionsBatchViewed = async (req, res) => {
       transactionIds,
       seenUntil
     );
-    sendBadgeUpdate(userId, { viewedTransactions });
+    if (!hasBearerToken(req)) sendBadgeUpdate(userId, { viewedTransactions });
 
     res.json({
       success: true,
