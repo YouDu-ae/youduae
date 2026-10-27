@@ -67,7 +67,7 @@ const verifyCallback = (req, accessToken, refreshToken, idToken, profile, done) 
       if (parts.length === 3) {
         const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString('utf8'));
         emailFromToken = payload.email;
-        console.log('📱 Apple id_token payload:', { email: payload.email, sub: payload.sub });
+        console.log('📱 Apple id_token payload:', { hasEmail: !!payload.email });
       }
     }
   } catch (e) {
@@ -81,7 +81,11 @@ const verifyCallback = (req, accessToken, refreshToken, idToken, profile, done) 
   const firstName = appleUser?.name?.firstName || profile?.name?.firstName || '';
   const lastName = appleUser?.name?.lastName || profile?.name?.lastName || '';
 
-  console.log('📱 Apple auth data:', { email, firstName, lastName, hasAppleUser: !!appleUser });
+  console.log('📱 Apple auth data:', {
+    hasEmail: !!email,
+    hasName: !!(firstName || lastName),
+    hasAppleUser: !!appleUser,
+  });
 
   // Get state from cookie (stored before redirect to Apple)
   // Note: Apple sends POST callback, cookies with sameSite:lax may not be sent

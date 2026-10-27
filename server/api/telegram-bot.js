@@ -254,7 +254,7 @@ async function handleWebhook(req, res) {
     const firstName = from.first_name || '';
     const username = from.username || '';
     
-    console.log(`Telegram message from ${firstName} (@${username}) in ${chatType}: ${text.substring(0, 50)}...`);
+    console.log(`Telegram message in ${chatType}, ${text.length} chars`);
     
     // ========================================
     // BLOG INTEGRATION: Handle group messages
@@ -284,7 +284,7 @@ async function handleWebhook(req, res) {
         // Auto-publish blog post from admin (no moderation needed)
         publishBlogPostFromTelegram(message).then(result => {
           if (result.success) {
-            console.log(`📝 Blog post from admin ${firstName || 'Anonymous'} AUTO-PUBLISHED: ${result.slug}`);
+            console.log(`📝 Blog post from admin AUTO-PUBLISHED: ${result.slug}`);
           } else {
             console.error(`❌ Failed to publish blog post: ${result.error}`);
           }

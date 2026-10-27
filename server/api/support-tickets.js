@@ -290,7 +290,7 @@ async function addAdminReply(req, res) {
     });
 
     // TODO: Send email to user
-    console.log(`📧 Would send email to ${ticket.user_email}: ${message.substring(0, 50)}...`);
+    console.log(`📧 Would send email about ticket ${ticketId}`);
 
     res.json({ success: true });
   } catch (error) {
@@ -398,7 +398,7 @@ async function handleTelegramReply(replyToMessageId, adminName, replyText) {
     console.log(`✅ Admin reply added to ticket ${ticket.ticket_id}`);
 
     // TODO: Send email notification to user
-    console.log(`📧 Would send email to ${ticket.user_email}`);
+    console.log(`📧 Would send email about ticket ${ticket.ticket_id}`);
 
     return { success: true, ticketId: ticket.ticket_id, userEmail: ticket.user_email };
   } catch (error) {

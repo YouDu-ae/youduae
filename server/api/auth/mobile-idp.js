@@ -304,8 +304,8 @@ module.exports = async (req, res) => {
 
       console.log('📱 mobile-idp: createWithIdp params', {
         hasTokenEmail: !!tokenEmail,
-        firstName: resolvedFirstName,
-        lastName: resolvedLastName,
+        hasFirstName: typeof firstName === 'string' && !!firstName.trim(),
+        hasLastName: typeof lastName === 'string' && !!lastName.trim(),
       });
 
       try {
