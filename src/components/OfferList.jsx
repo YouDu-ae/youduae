@@ -205,12 +205,19 @@ export default function OfferList({ listingId, isOwner, publicData = {} }) {
       
       console.log('✅ OfferList: offer accepted, updating listing status...');
       
-      // Обновляем статус листинга - помечаем как "в работе"
-      const customerId = tx.customer?.id?.uuid;
+      // Помечаем листинг как "в работе" и записываем исполнителя:
+      // по assignedTo, transactionId и executorName его показывает приложение.
+      let customer = tx.customer;
+      if (!customer || !customer.attributes) {
+        customer = getIncludedEntity(tx, included, 'customer');
+      }
+      const customerId = customer?.id?.uuid || tx.relationships?.customer?.data?.id?.uuid;
       await updateListingStatus({
         listingId,
         assignedTo: customerId,
         status: 'in-progress',
+        transactionId: tx.id.uuid,
+        executorName: customer?.attributes?.profile?.displayName,
       });
 
       trackProviderSelected({
