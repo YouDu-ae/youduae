@@ -1,5 +1,6 @@
 /**
- * Tells specialists about a task the moment an operator approves it.
+ * Tells specialists about a task the moment an operator approves it, and the
+ * moderator about a task published from the app.
  *
  * Moderation is on for the marketplace, so a new task goes to pendingApproval
  * and the publish-time alert only reaches the admin. Approving in Console runs
@@ -10,6 +11,10 @@
  * whose listing is now published and was pendingApproval before. A stored
  * sequence id makes the reading resumable, and notifyExecutorsAboutListing is
  * idempotent, so a re-read event cannot send the alert twice.
+ *
+ * The same log carries a draft being published. The site asks for that alert
+ * itself (POST /api/notify-new-listing), but the app publishes straight to
+ * Sharetribe, so without this the moderator never heard of a task from the app.
  *
  * The polling itself lives in eventPoller.
  */
@@ -22,6 +27,18 @@ const isApproval = event => {
     eventType === 'listing/updated' &&
     resource?.attributes?.state === 'published' &&
     previousValues?.attributes?.state === 'pendingApproval'
+  );
+};
+
+// Published by its author, from the site or the app. A task from the site is
+// announced already; the flags notifyExecutorsAboutListing writes keep it at one.
+const isPublication = event => {
+  const { eventType, resource, previousValues } = event.attributes || {};
+  const state = resource?.attributes?.state;
+  return (
+    eventType === 'listing/updated' &&
+    previousValues?.attributes?.state === 'draft' &&
+    (state === 'pendingApproval' || state === 'published')
   );
 };
 
@@ -38,9 +55,9 @@ const listingIdOf = event => {
 
 /**
  * Reads one page of events after the cursor and alerts specialists about each
- * approval in it.
+ * approval in it, and the moderator or specialists about each publication.
  *
- * @returns {Promise<{events: number, approvals: number, failed: number, fullPage: boolean}>}
+ * @returns {Promise<{events: number, approvals: number, publications: number, failed: number, fullPage: boolean}>}
  */
 const processApprovalEvents = async ({ integrationSdk, db, notify, log = console.log }) => {
   const cursor = await db.getOrStartEventCursor(CURSOR_NAME);
@@ -55,9 +72,28 @@ const processApprovalEvents = async ({ integrationSdk, db, notify, log = console
   });
 
   const events = response?.data?.data || [];
-  const result = { events: events.length, approvals: 0, failed: 0, fullPage: false };
+  const result = {
+    events: events.length,
+    approvals: 0,
+    publications: 0,
+    failed: 0,
+    fullPage: false,
+  };
 
   for (const event of events) {
+    if (isPublication(event)) {
+      result.publications += 1;
+      const listingId = listingIdOf(event);
+      try {
+        const outcome = await notify(listingId);
+        log(`[approvals] ${listingId}: опубликовано автором — ${JSON.stringify(outcome)}`);
+      } catch (error) {
+        result.failed += 1;
+        log(`[approvals] ${listingId}: сбой уведомления о новом задании — ${error.message}`);
+      }
+      continue;
+    }
+
     if (!isApproval(event)) continue;
     result.approvals += 1;
 
@@ -91,5 +127,6 @@ const processApprovalEvents = async ({ integrationSdk, db, notify, log = console
 module.exports = {
   processApprovalEvents,
   isApproval,
+  isPublication,
   CURSOR_NAME,
 };

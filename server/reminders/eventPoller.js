@@ -38,7 +38,7 @@ const buildConsumers = integrationSdk =>
       enabled: process.env.LISTING_APPROVAL_POLLER !== 'false',
       run: () =>
         processApprovalEvents({ integrationSdk, db, notify: notifyExecutorsAboutListing }),
-      isWorthLogging: result => result.approvals > 0,
+      isWorthLogging: result => result.approvals > 0 || result.publications > 0,
     },
     {
       name: 'deletions',
