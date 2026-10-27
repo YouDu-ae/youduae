@@ -50,6 +50,33 @@ const responseApiErrorInfo = err =>
     meta: e.meta,
   }));
 
+// Errors from the Sharetribe SDKs keep the HTTP request, and its headers hold the
+// bearer token, so such an error is printed as a summary without the request.
+const isHttpClientError = e => e instanceof Error && !!(e.request || e.config || e.response);
+
+const describeError = e =>
+  isHttpClientError(e)
+    ? {
+        name: e.name,
+        message: e.message,
+        code: e.code,
+        status: e.status || e.response?.status,
+        apiErrors: responseAPIErrors(e).map(({ status, code }) => ({ status, code })),
+      }
+    : e;
+exports.describeError = describeError;
+
+/**
+ * Makes console print errors through describeError, so that code passing
+ * a Sharetribe SDK error straight to console doesn't print the token either.
+ */
+exports.redactHttpErrorsInConsole = () => {
+  ['debug', 'log', 'info', 'warn', 'error'].forEach(level => {
+    const print = console[level].bind(console);
+    console[level] = (...args) => print(...args.map(describeError));
+  });
+};
+
 /**
  * Logs a error. If Sentry client is set up
  * passes the error to that. Otherwise prints
@@ -72,7 +99,7 @@ exports.error = (e, code, data) => {
     });
   }
   // Let's log always to stdout
-  console.error(e);
+  console.error(describeError(e));
   console.error(code);
   console.error(data);
 };

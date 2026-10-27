@@ -23,6 +23,7 @@ require('./env').configureEnv();
 // Note 1: This needs to happen before other express requires
 // Note 2: this doesn't use instrument.js file but log.js
 const log = require('./log');
+log.redactHttpErrorsInConsole();
 
 const fs = require('fs');
 const express = require('express');
