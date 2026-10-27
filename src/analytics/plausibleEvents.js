@@ -39,14 +39,14 @@ const listingProps = listingResource => {
   const geolocation = attributes.geolocation || {};
   const price = attributes.price || {};
 
+  // Без названий, адресов и ID пользователей: Plausible запрещает персональные
+  // данные в свойствах, а по названию или адресу можно узнать заказчика.
   return sanitizeProps({
     listingId: listingResource.id?.uuid || listingResource.id,
-    title: attributes.title,
     category: publicData.category,
     subcategory: publicData.subcategory,
     status: attributes.state,
     city: publicData.city || publicData.location?.city,
-    location: publicData.location?.address || publicData.location?.city,
     priceAmount: typeof price.amount === 'number' ? price.amount : undefined,
     priceCurrency: price.currency,
   });
@@ -56,7 +56,6 @@ export const trackListingView = (listing, extra = {}) => {
   const props = {
     ...listingProps(listing),
     viewerRole: extra.viewerRole,
-    viewerId: extra.viewerId,
   };
   trackPlausible('listing_view', props);
 };
@@ -78,7 +77,6 @@ export const trackOfferSubmitted = params => {
     hasComment: params?.hasComment,
     processAlias: params?.processAlias,
     listingStatus: params?.listingStatus,
-    userId: params?.userId,
     category: params?.category,
     city: params?.city,
   });
@@ -89,7 +87,6 @@ export const trackProviderSelected = params => {
   const props = sanitizeProps({
     listingId: params?.listingId,
     transactionId: params?.transactionId,
-    providerId: params?.providerId,
     offerPriceAmount: params?.priceAmount,
     offerPriceCurrency: params?.priceCurrency,
   });
@@ -126,7 +123,6 @@ export const trackReviewSubmitted = params => {
 
 export const trackKycStarted = params => {
   const props = sanitizeProps({
-    userId: params?.userId,
     documentType: params?.documentType,
   });
   trackPlausible('kyc_started', props);

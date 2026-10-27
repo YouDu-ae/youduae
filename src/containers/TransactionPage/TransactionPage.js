@@ -644,7 +644,6 @@ const confirmAcceptOffer = async () => {
       queryParams: {},
     });
 
-    const executorId = customer?.id?.uuid;
     if (listing?.id?.uuid) {
       await updateListingStatus(hiredListingUpdate({ listing, transaction, customer }));
     }
@@ -652,7 +651,6 @@ const confirmAcceptOffer = async () => {
     trackProviderSelected({
       listingId: listing?.id?.uuid,
       transactionId: transaction?.id?.uuid,
-      providerId: executorId,
       priceAmount: offerInThisChat?.price,
       priceCurrency: offerInThisChat?.currency,
     });

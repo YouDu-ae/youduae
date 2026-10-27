@@ -223,7 +223,6 @@ export default function OfferList({ listingId, isOwner, publicData = {} }) {
       trackProviderSelected({
         listingId,
         transactionId: tx.id?.uuid || tx.id,
-        providerId: customerId,
         priceAmount: offerData?.price,
         priceCurrency: offerData?.currency,
       });

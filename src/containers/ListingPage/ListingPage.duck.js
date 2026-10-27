@@ -449,8 +449,6 @@ export const sendInquiry = (listing, message) => (dispatch, getState, sdk) => {
       return sdk.messages.send({ transactionId, content: trimmedMessage }).then(() => {
         dispatch(sendInquirySuccess());
         dispatch(fetchCurrentUserHasOrdersSuccess(true));
-        const stateAfterSend = getState();
-        const currentUserId = stateAfterSend?.user?.currentUser?.id?.uuid;
         const listingAttributes = listing?.attributes || {};
         const publicData = listingAttributes.publicData || {};
         const locationData = publicData.location || {};
@@ -464,7 +462,6 @@ export const sendInquiry = (listing, message) => (dispatch, getState, sdk) => {
           hasComment: trimmedMessage.length > 0,
           processAlias,
           listingStatus: listingAttributes.state,
-          userId: currentUserId,
           category: publicData.category,
           city: publicData.city || locationData.city,
         });

@@ -137,7 +137,6 @@ export default function OfferForm({
       console.log('✅ OfferForm: inquiry sent successfully', response);
       trackOfferSubmitted({
         listingId,
-        userId: currentUserId,
         priceAmount: amount,
         priceCurrency: currency,
         commentLength: comment.trim().length,

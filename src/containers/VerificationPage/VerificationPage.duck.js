@@ -75,7 +75,7 @@ export const uploadVerificationDocuments = (files, documentType) => (dispatch, g
   dispatch(uploadDocumentsRequest());
   const state = getState();
   const currentUserId = state?.user?.currentUser?.id?.uuid;
-  trackKycStarted({ userId: currentUserId, documentType });
+  trackKycStarted({ documentType });
 
   // 1. Upload all images in parallel
   const uploadPromises = files.map(file =>
