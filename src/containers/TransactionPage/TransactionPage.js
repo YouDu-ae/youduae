@@ -104,6 +104,18 @@ export const canAcceptOfferInChat = params =>
   canDeclineOfferInChat(params) && listingTaskStatus(params.listing) === 'open';
 
 /**
+ * What the task records about the specialist hired in this chat. The site and
+ * the app read the hired specialist, the deal and the name from these fields.
+ */
+export const hiredListingUpdate = ({ listing, transaction, customer }) => ({
+  listingId: listing?.id?.uuid,
+  assignedTo: customer?.id?.uuid,
+  status: 'in-progress',
+  transactionId: transaction?.id?.uuid,
+  executorName: customer?.attributes?.profile?.displayName,
+});
+
+/**
  * TransactionPage handles data loading for Sale and Order views to transaction pages in Inbox.
  *
  * @component
@@ -634,11 +646,7 @@ const confirmAcceptOffer = async () => {
 
     const executorId = customer?.id?.uuid;
     if (listing?.id?.uuid) {
-      await updateListingStatus({
-        listingId: listing.id.uuid,
-        assignedTo: executorId,
-        status: 'in-progress',
-      });
+      await updateListingStatus(hiredListingUpdate({ listing, transaction, customer }));
     }
 
     trackProviderSelected({

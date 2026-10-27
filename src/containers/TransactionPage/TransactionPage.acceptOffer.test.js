@@ -1,4 +1,4 @@
-import { canAcceptOfferInChat, canDeclineOfferInChat } from './TransactionPage';
+import { canAcceptOfferInChat, canDeclineOfferInChat, hiredListingUpdate } from './TransactionPage';
 
 const openListing = { attributes: { state: 'published', publicData: {} } };
 const hiredListing = { attributes: { state: 'published', publicData: { hired: true } } };
@@ -54,5 +54,23 @@ describe('canDeclineOfferInChat', () => {
     expect(canDeclineOfferInChat(params({ lastTransition: 'transition/accept-offer' }))).toBe(
       false
     );
+  });
+});
+
+describe('hiredListingUpdate', () => {
+  it('records the specialist, the deal and the name on the task', () => {
+    const update = hiredListingUpdate({
+      listing: { id: { uuid: 'listing-1' } },
+      transaction: { id: { uuid: 'tx-1' } },
+      customer: { id: { uuid: 'user-2' }, attributes: { profile: { displayName: 'Иван П' } } },
+    });
+
+    expect(update).toEqual({
+      listingId: 'listing-1',
+      assignedTo: 'user-2',
+      status: 'in-progress',
+      transactionId: 'tx-1',
+      executorName: 'Иван П',
+    });
   });
 });
