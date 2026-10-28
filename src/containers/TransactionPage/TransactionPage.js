@@ -104,6 +104,16 @@ export const canAcceptOfferInChat = params =>
   canDeclineOfferInChat(params) && listingTaskStatus(params.listing) === 'open';
 
 /**
+ * «Сменить исполнителя» leaves the removed specialist's deal accepted, so its
+ * chat would still offer to complete the task with the wrong person.
+ */
+export const isRemovedSpecialistDeal = ({ listing, customer }) => {
+  const removed = listing?.attributes?.publicData?.excludedOfferCustomerIds;
+  const specialistId = customer?.id?.uuid;
+  return Array.isArray(removed) && !!specialistId && removed.includes(specialistId);
+};
+
+/**
  * What the task records about the specialist hired in this chat. The site and
  * the app read the hired specialist, the deal and the name from these fields.
  */
@@ -551,7 +561,9 @@ const isProviderOwnSale = isOwnSale;
 // ✅ ИЗМЕНЕНО: Теперь ТОЛЬКО Provider (заказчик) может закрывать задание
 // Provider закрывает задание после того, как работа выполнена
 const canComplete =
-  isProviderRole && lastTransition === 'transition/accept-offer';
+  isProviderRole &&
+  lastTransition === 'transition/accept-offer' &&
+  !isRemovedSpecialistDeal({ listing, customer });
 
 const [isCloseTaskModalOpen, setCloseTaskModalOpen] = useState(false);
 const [completeBusy, setCompleteBusy] = useState(false);

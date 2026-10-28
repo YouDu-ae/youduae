@@ -1,4 +1,5 @@
 const { getSdk, handleError, serialize } = require('../api-util/sdk');
+const { removedSpecialists } = require('../api-util/hireRules');
 
 /**
  * Query offers (transactions) for a specific listing
@@ -36,7 +37,15 @@ module.exports = (req, res) => {
     })
     .then(apiResponse => {
       const { status, statusText, data } = apiResponse;
-      console.log('✅ query-offers: loaded', data.data.length, 'offers');
+
+      // Specialists taken off the task are out of it for good, though their
+      // deal stays accepted.
+      const listing = (data.included || []).find(entry => entry.type === 'listing');
+      const removed = removedSpecialists(listing?.attributes?.publicData);
+      const offers = data.data.filter(
+        tx => !removed.includes(tx.relationships?.customer?.data?.id?.uuid)
+      );
+      console.log('✅ query-offers: loaded', offers.length, 'offers');
       
       res
         .status(status)
@@ -45,7 +54,7 @@ module.exports = (req, res) => {
           serialize({
             status,
             statusText,
-            data,
+            data: { ...data, data: offers },
           })
         )
         .end();

@@ -1,4 +1,9 @@
-import { canAcceptOfferInChat, canDeclineOfferInChat, hiredListingUpdate } from './TransactionPage';
+import {
+  canAcceptOfferInChat,
+  canDeclineOfferInChat,
+  hiredListingUpdate,
+  isRemovedSpecialistDeal,
+} from './TransactionPage';
 
 const openListing = { attributes: { state: 'published', publicData: {} } };
 const hiredListing = { attributes: { state: 'published', publicData: { hired: true } } };
@@ -54,6 +59,28 @@ describe('canDeclineOfferInChat', () => {
     expect(canDeclineOfferInChat(params({ lastTransition: 'transition/accept-offer' }))).toBe(
       false
     );
+  });
+});
+
+describe('isRemovedSpecialistDeal', () => {
+  const reopenedListing = {
+    attributes: { publicData: { status: 'open', excludedOfferCustomerIds: ['user-1'] } },
+  };
+
+  // Their deal stays accepted, so the chat would still offer to complete it.
+  it('recognises the chat of a specialist taken off the task', () => {
+    expect(
+      isRemovedSpecialistDeal({ listing: reopenedListing, customer: { id: { uuid: 'user-1' } } })
+    ).toBe(true);
+  });
+
+  it('leaves the current executor alone', () => {
+    expect(
+      isRemovedSpecialistDeal({ listing: reopenedListing, customer: { id: { uuid: 'user-2' } } })
+    ).toBe(false);
+    expect(
+      isRemovedSpecialistDeal({ listing: openListing, customer: { id: { uuid: 'user-1' } } })
+    ).toBe(false);
   });
 });
 

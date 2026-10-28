@@ -294,6 +294,20 @@ const initDatabase = async () => {
         PRIMARY KEY (user_id, counterparty_id)
       );
 
+      -- Specialists a task author took off a task with «Сменить исполнителя».
+      -- They drop out of the task's offers for good while Sharetribe keeps
+      -- their deal accepted, so this is what support reads to see who held
+      -- the task and when it changed hands. One row per person and task: a
+      -- removed specialist can never be hired for that task again.
+      CREATE TABLE IF NOT EXISTS executor_changes (
+        listing_id VARCHAR(100) NOT NULL,
+        removed_user_id VARCHAR(100) NOT NULL,
+        author_id VARCHAR(100),
+        transaction_id VARCHAR(100),
+        changed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        PRIMARY KEY (listing_id, removed_user_id)
+      );
+
       -- Sign-up code limits. email_key is a keyed hash of the address, so the
       -- table never holds the address itself.
       CREATE TABLE IF NOT EXISTS email_otp_sends (
@@ -1097,6 +1111,21 @@ const getBlockedUserIds = async blockerId => {
   return result.rows.map(row => row.blocked_id);
 };
 
+/**
+ * Records that the author took a specialist off a task. Returns true only the
+ * first time, so a retried request does not announce the task again.
+ */
+const recordExecutorChange = async ({ listingId, removedUserId, authorId, transactionId }) => {
+  const result = await pool.query(
+    `INSERT INTO executor_changes (listing_id, removed_user_id, author_id, transaction_id)
+     VALUES ($1, $2, $3, $4)
+     ON CONFLICT (listing_id, removed_user_id) DO NOTHING
+     RETURNING listing_id`,
+    [listingId, removedUserId, authorId || null, transactionId || null]
+  );
+  return result.rowCount > 0;
+};
+
 const hasBlocked = async (blockerId, blockedId) => {
   const result = await pool.query(
     'SELECT 1 FROM user_blocks WHERE blocker_id = $1 AND blocked_id = $2',
@@ -1567,6 +1596,10 @@ const deleteUserLocalData = async userId => {
     await client.query('DELETE FROM user_reports WHERE reporter_id = $1 OR reported_id = $1', [
       userId,
     ]);
+    await client.query(
+      'DELETE FROM executor_changes WHERE removed_user_id = $1 OR author_id = $1',
+      [userId]
+    );
     await client.query('DELETE FROM reminder_log WHERE recipient_user_id = $1', [userId]);
     await client.query(
       `DELETE FROM marketplace_events WHERE $1 = ANY(user_ids) AND event_type <> 'user/deleted'`,
@@ -1679,6 +1712,7 @@ module.exports = {
   setUserBlocked,
   getBlockedUserIds,
   hasBlocked,
+  recordExecutorChange,
   // Push device tokens
   registerDeviceToken,
   unregisterDeviceToken,

@@ -2,7 +2,13 @@ const sharetribeIntegrationSdk = require('sharetribe-flex-integration-sdk');
 const { trustedSdkFromBearer, BearerAuthError } = require('../api-util/mobileSdk');
 const { sendExecutorSelectedNotification } = require('./send-notification');
 const { notifyOfferAccepted } = require('./telegram-bot');
-const { declineCompetingOffers } = require('../api-util/declineCompetingOffers');
+const { notifyCompetingOffers } = require('../api-util/competingOffers');
+const {
+  DEAL_INCLUDE,
+  REFUSAL_MESSAGES,
+  hireRefusal,
+  taskOfDeal,
+} = require('../api-util/hireRules');
 
 /**
  * Accept an offer (select executor) - Mobile API endpoint
@@ -19,6 +25,18 @@ module.exports = async (req, res) => {
 
   try {
     const trustedSdk = await trustedSdkFromBearer(req);
+
+    const deal = taskOfDeal(
+      await trustedSdk.transactions.show({ id: transactionId, include: DEAL_INCLUDE })
+    );
+    const refusal = hireRefusal(deal);
+    if (refusal) {
+      console.log(`🛑 accept-offer: ${transactionId} refused: ${refusal}`);
+      return res
+        .status(409)
+        .json({ error: refusal, message: REFUSAL_MESSAGES[refusal] })
+        .end();
+    }
 
     // Perform the accept-offer transition
     console.log('✅ accept-offer: Performing transition...');
@@ -87,12 +105,16 @@ module.exports = async (req, res) => {
       // Don't fail the request if notification fails
     }
 
-    // The executor is hired, so every other offer on this task has lost.
     try {
-      await declineCompetingOffers({ trustedSdk, acceptedTransactionId: transactionId });
-    } catch (declineError) {
-      // The hire itself went through; a failed sweep must not report otherwise.
-      console.error('⚠️ accept-offer: decline sweep failed:', declineError.message);
+      await notifyCompetingOffers({
+        trustedSdk,
+        listingId: deal.listingId,
+        executorId: deal.specialistId,
+        transactionId,
+      });
+    } catch (notifyError) {
+      // The hire itself went through; failed notices must not report otherwise.
+      console.error('⚠️ accept-offer: competing offers not notified:', notifyError.message);
     }
 
     res.status(200).json({

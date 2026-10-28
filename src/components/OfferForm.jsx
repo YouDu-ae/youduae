@@ -39,7 +39,7 @@ export default function OfferForm({
   const [err, setErr] = useState(null);
   const [checking, setChecking] = useState(true);
   const [alreadySent, setAlreadySent] = useState(false);
-  const [offerStatus, setOfferStatus] = useState(null); // pending, accepted, declined, completed
+  const [offerStatus, setOfferStatus] = useState(null); // pending, accepted, declined, completed, removed
   const [transactionId, setTransactionId] = useState(null); // ID транзакции для ссылки на чат
   // A second click can land before the disabled button is rendered.
   const submittingRef = useRef(false);
@@ -214,6 +214,20 @@ export default function OfferForm({
           </strong>
           <p style={{ marginTop: 8, marginBottom: 0 }}>
             <FormattedMessage id="OfferForm.declinedText" />
+          </p>
+        </div>
+      );
+    }
+
+    // Заказчик сменил исполнителя: этот специалист снят с задания насовсем
+    if (offerStatus === 'removed') {
+      return (
+        <div className={css.errorMessage}>
+          <strong>
+            <FormattedMessage id="OfferForm.removedTitle" />
+          </strong>
+          <p style={{ marginTop: 8, marginBottom: 0 }}>
+            <FormattedMessage id="OfferForm.removedText" />
           </p>
         </div>
       );

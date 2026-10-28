@@ -1949,6 +1949,8 @@
   "OfferForm.completedText": "You have completed this task. You can leave a review of the client in the \"Inbox\" section.",
   "OfferForm.anotherExecutorTitle": "Another specialist was chosen",
   "OfferForm.anotherExecutorText": "Unfortunately, the client chose another specialist for this task.",
+  "OfferForm.removedTitle": "The client changed the specialist",
+  "OfferForm.removedText": "You are no longer the specialist for this task and cannot respond to it again. You can find other tasks in the \"Find tasks\" section.",
   "OfferForm.pendingTitle": "Offer sent!",
   "OfferForm.pendingText": "Wait for the client to respond. You can check the status of your offer in the \"Inbox\" section.",
   "OfferForm.telegramPromptTitle": "Be the first to know about the reply",

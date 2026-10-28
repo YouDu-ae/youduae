@@ -2,6 +2,28 @@ const { trustedSdkFromBearer, BearerAuthError } = require('../api-util/mobileSdk
 const { isCompletedOrBeyond, isInvalidTransitionError } = require('../api-util/assignmentState');
 const { markListingCompleted, listingIdFromTransaction } = require('../api-util/listingCompletion');
 const { createIntegrationSdk } = require('../reminders/context');
+const { declineRemainingOffers } = require('../api-util/competingOffers');
+const {
+  DEAL_INCLUDE,
+  REFUSAL_MESSAGES,
+  completeRefusal,
+  taskOfDeal,
+} = require('../api-util/hireRules');
+
+// Nobody else can be hired once the work is done. Like the mark, this must not
+// turn a completed deal into an error.
+const declineOtherOffers = async (trustedSdk, deal, transactionId) => {
+  try {
+    await declineRemainingOffers({
+      trustedSdk,
+      listingId: deal.listingId,
+      executorId: deal.specialistId,
+      transactionId,
+    });
+  } catch (error) {
+    console.error('⚠️ complete-transaction: other offers not declined:', error.message);
+  }
+};
 
 // The app re-reads the listing right after this answers, so the mark goes on
 // before the response. A failure here must not turn a completed deal into an
@@ -46,9 +68,13 @@ module.exports = async (req, res) => {
   try {
     const trustedSdk = await trustedSdkFromBearer(req);
 
-    const current = await trustedSdk.transactions.show({ id: transactionId, include: ['listing'] });
+    const current = await trustedSdk.transactions.show({
+      id: transactionId,
+      include: DEAL_INCLUDE,
+    });
     const currentTransition = lastTransitionOf(current);
     const listingId = listingIdFromTransaction(current?.data?.data);
+    const deal = taskOfDeal(current);
 
     console.log('📊 complete-transaction: current state:', currentTransition);
 
@@ -64,6 +90,15 @@ module.exports = async (req, res) => {
           message: 'Transaction already completed',
           currentState: currentTransition,
         })
+        .end();
+    }
+
+    const refusal = completeRefusal(deal);
+    if (refusal) {
+      console.log(`🛑 complete-transaction: ${transactionId} refused: ${refusal}`);
+      return res
+        .status(409)
+        .json({ error: refusal, message: REFUSAL_MESSAGES[refusal] })
         .end();
     }
 
@@ -105,6 +140,7 @@ module.exports = async (req, res) => {
 
     console.log('✅ complete-transaction: completed');
     await markCompleted(listingId);
+    await declineOtherOffers(trustedSdk, deal, transactionId);
 
     res
       .status(200)

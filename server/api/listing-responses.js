@@ -11,6 +11,7 @@ const {
   fetchReviewStats,
   fetchCompletedCount,
 } = require('../api-util/reputation');
+const { removedSpecialists } = require('../api-util/hireRules');
 const db = require('../db');
 
 module.exports = async (req, res) => {
@@ -234,8 +235,12 @@ module.exports = async (req, res) => {
     const blockedIds = req.authUserId
       ? await db.getBlockedUserIds(req.authUserId).catch(() => [])
       : [];
+    // Specialists taken off the task are out of it for good, whatever deal of
+    // theirs is still open; leaving that to the clients would let one offer
+    // them again.
+    const removedIds = removedSpecialists(listingRes?.data?.data?.attributes?.publicData);
     const responses = (await Promise.all(responsePromises)).filter(
-      r => r !== null && !blockedIds.includes(r.customerId)
+      r => r !== null && !blockedIds.includes(r.customerId) && !removedIds.includes(r.customerId)
     );
 
     /** Newest chat activity first (last message time), else transaction createdAt */

@@ -6,10 +6,28 @@ const {
 } = require('../api-util/sdk');
 const { notifyOfferDeclined, notifyOfferAccepted } = require('./telegram-bot');
 const { sendExecutorSelectedNotification } = require('./send-notification');
-const { declineCompetingOffers } = require('../api-util/declineCompetingOffers');
+const { notifyCompetingOffers, declineRemainingOffers } = require('../api-util/competingOffers');
+const {
+  DEAL_INCLUDE,
+  REFUSAL_MESSAGES,
+  completeRefusal,
+  hireRefusal,
+  taskOfDeal,
+} = require('../api-util/hireRules');
+
+class RefusedTransition extends Error {
+  constructor(code) {
+    super(REFUSAL_MESSAGES[code] || code);
+    this.code = code;
+  }
+}
 
 module.exports = (req, res) => {
   const { isSpeculative, orderData, bodyParams, queryParams } = req.body;
+  const transition = bodyParams?.transition;
+  const isAccept = transition === 'transition/accept-offer';
+  const isDecline = transition === 'transition/decline-offer';
+  const isComplete = transition === 'transition/complete';
 
   console.log('🔍 transition-privileged: transition =', bodyParams?.transition);
   console.log('🔍 transition-privileged: tx id =', bodyParams?.id?.uuid);
@@ -18,12 +36,23 @@ module.exports = (req, res) => {
   // Просто используем пустой массив
   const lineItems = [];
 
-  // Kept for the decline sweep, which runs after the transition has landed.
+  // Kept for the offer sweeps, which run after the transition has landed.
   let acceptorSdk = null;
+  let deal = null;
 
   getTrustedSdk(req)
-    .then(trustedSdk => {
+    .then(async trustedSdk => {
       acceptorSdk = trustedSdk;
+
+      if ((isAccept || isComplete) && !isSpeculative) {
+        deal = taskOfDeal(
+          await trustedSdk.transactions.show({ id: bodyParams.id, include: DEAL_INCLUDE })
+        );
+        const refusal = isAccept ? hireRefusal(deal) : completeRefusal(deal);
+        if (refusal) {
+          throw new RefusedTransition(refusal);
+        }
+      }
 
       // Omit listingId from params (transitions don't need it, transaction already has it)
       const { listingId, ...restParams } = bodyParams?.params || {};
@@ -53,10 +82,6 @@ module.exports = (req, res) => {
       console.log('✅ transition-privileged: success, status =', status);
       
       // Notify the executor (transaction customer) when their offer is accepted or declined.
-      const transition = req.body?.bodyParams?.transition;
-      const isAccept = transition === 'transition/accept-offer';
-      const isDecline = transition === 'transition/decline-offer';
-
       if ((isAccept || isDecline) && data?.data) {
         try {
           const integrationClientId = process.env.INTEGRATION_API_CLIENT_ID;
@@ -119,17 +144,23 @@ module.exports = (req, res) => {
         }
       }
 
-      // The executor is hired, so every other offer on this task has lost.
-      // A speculative transition changes nothing and must not close real offers.
-      if (isAccept && !isSpeculative && acceptorSdk && data?.data?.id?.uuid) {
+      // A speculative transition changes nothing, and `deal` is only read for
+      // real ones. Either sweep failing must not report the transition as failed.
+      if (deal && acceptorSdk && data?.data?.id?.uuid) {
+        const sweep = {
+          trustedSdk: acceptorSdk,
+          listingId: deal.listingId,
+          executorId: deal.specialistId,
+          transactionId: data.data.id.uuid,
+        };
         try {
-          await declineCompetingOffers({
-            trustedSdk: acceptorSdk,
-            acceptedTransactionId: data.data.id.uuid,
-          });
-        } catch (declineError) {
-          // The hire itself went through; a failed sweep must not report otherwise.
-          console.error('⚠️ transition-privileged: decline sweep failed:', declineError.message);
+          if (isAccept) {
+            await notifyCompetingOffers(sweep);
+          } else if (isComplete) {
+            await declineRemainingOffers(sweep);
+          }
+        } catch (sweepError) {
+          console.error('⚠️ transition-privileged: offer sweep failed:', sweepError.message);
         }
       }
 
@@ -146,6 +177,13 @@ module.exports = (req, res) => {
         .end();
     })
     .catch(e => {
+      if (e instanceof RefusedTransition) {
+        console.log(`🛑 transition-privileged: ${transition} refused: ${e.code}`);
+        return res
+          .status(409)
+          .json({ error: e.code, message: e.message })
+          .end();
+      }
       console.error('❌ transition-privileged error:', e);
       handleError(res, e);
     });

@@ -825,19 +825,32 @@ async function notifyOfferDeclined(userId, data) {
   const chatId = await getUserTelegramChatId(userId);
   if (!chatId) return false;
   
-  const { listingTitle, executorChosen } = data;
-
-  // Being turned down and losing to someone else are different news, and the
-  // second one is what most specialists actually get.
-  const reason = executorChosen
-    ? `Заказчик выбрал другого исполнителя для задания "${escapeHtml(listingTitle)}".`
-    : `К сожалению, ваш отклик на задание "${escapeHtml(listingTitle)}" был отклонён.`;
+  const { listingTitle } = data;
 
   const message = `❌ <b>Отклик отклонён</b>
 
-${reason}
+К сожалению, ваш отклик на задание "${escapeHtml(listingTitle)}" был отклонён.
 
 Не расстраивайтесь — на YouDu много других заданий!`;
+
+  return await sendTelegramMessage(chatId, message);
+}
+
+/**
+ * Tells a specialist that the author hired someone else. The offer is not
+ * declined: «Сменить исполнителя» brings the author back to it.
+ */
+async function notifyOtherExecutorChosen(userId, data) {
+  const chatId = await getUserTelegramChatId(userId);
+  if (!chatId) return false;
+
+  const { listingTitle } = data;
+
+  const message = `ℹ️ <b>Выбран другой исполнитель</b>
+
+Заказчик выбрал другого исполнителя для задания "${escapeHtml(listingTitle)}".
+
+Ваш отклик сохранён: если заказчик сменит исполнителя, он снова увидит его в списке.`;
 
   return await sendTelegramMessage(chatId, message);
 }
@@ -961,22 +974,39 @@ async function getExecutorsWithTelegramByCategory(categoryId) {
 }
 
 /**
- * Notify all executors in a category about new listing
+ * Notify all executors in a category about new listing, or, with `reopened`,
+ * about a task looking for an executor again after «Сменить исполнителя».
+ * `excludeUserIds` keeps the specialists taken off the task out of it.
  */
 async function notifyNewListingToCategory(data) {
-  const { categoryId, categoryName, listingTitle, price, listingUrl, listingId } = data;
+  const {
+    categoryId,
+    categoryName,
+    listingTitle,
+    price,
+    listingUrl,
+    listingId,
+    reopened = false,
+    excludeUserIds = [],
+  } = data;
   
   try {
-    const executors = await getExecutorsWithTelegramByCategory(categoryId);
+    const executors = (await getExecutorsWithTelegramByCategory(categoryId)).filter(
+      executor => !excludeUserIds.includes(executor.userId)
+    );
     
     if (executors.length === 0) {
       console.log(`📱 No executors with Telegram in category ${categoryId}`);
       return { sent: 0, total: 0 };
     }
     
-    console.log(`📱 Sending new listing notification to ${executors.length} executors in ${categoryId}`);
+    const audience = `${executors.length} executors in ${categoryId}`;
+    console.log(`📱 Sending ${reopened ? 'reopened' : 'new'} listing notification to ${audience}`);
     
-    const message = `📋 <b>Новое задание!</b>
+    const heading = reopened
+      ? '🔄 <b>Задание снова ищет исполнителя</b>'
+      : '📋 <b>Новое задание!</b>';
+    const message = `${heading}
 
 "${escapeHtml(listingTitle)}"
 📁 ${escapeHtml(categoryName)}
@@ -1209,6 +1239,7 @@ module.exports = {
   notifyNewOffer,
   notifyOfferAccepted,
   notifyOfferDeclined,
+  notifyOtherExecutorChosen,
   notifyNewMessage,
   notifyNewListing,
   notifyNewListingToCategory,

@@ -133,4 +133,52 @@ const notifyExecutorsAboutListing = async listingId => {
   });
 };
 
-module.exports = { notifyExecutorsAboutListing, CATEGORY_LABELS, formatPrice, rootUrl };
+/**
+ * Tells executors in the category that a task is looking for an executor again
+ * after «Сменить исполнителя». Unlike the first announcement this one goes out
+ * on every change of executor, so it keeps no flag of its own; the caller
+ * makes sure a retried request does not send it twice.
+ *
+ * @param {string} listingId
+ * @param {Object} [options]
+ * @param {string[]} [options.excludeUserIds] the specialists taken off the task
+ *   and the author, who have no business hearing about it
+ */
+const notifyExecutorsAboutReopenedListing = async (listingId, { excludeUserIds = [] } = {}) => {
+  const integrationSdk = createIntegrationSdk();
+
+  if (!integrationSdk) {
+    return { skipped: 'missing-integration-credentials' };
+  }
+
+  const response = await integrationSdk.listings.show({ id: listingId });
+  const { state, title, price, publicData = {} } = response.data.data.attributes;
+
+  if (state !== 'published') {
+    return { skipped: `state-${state}` };
+  }
+
+  const categoryId = publicData.categoryLevel1;
+  if (!categoryId) {
+    return { skipped: 'no-category' };
+  }
+
+  return notifyNewListingToCategory({
+    categoryId,
+    categoryName: CATEGORY_LABELS[categoryId] || categoryId,
+    listingTitle: title,
+    price: formatPrice(price),
+    listingUrl: `${rootUrl()}/l/${listingId}`,
+    listingId,
+    reopened: true,
+    excludeUserIds,
+  });
+};
+
+module.exports = {
+  notifyExecutorsAboutListing,
+  notifyExecutorsAboutReopenedListing,
+  CATEGORY_LABELS,
+  formatPrice,
+  rootUrl,
+};

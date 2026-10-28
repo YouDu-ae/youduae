@@ -62,6 +62,20 @@ describe('OfferForm', () => {
     await waitFor(() => expect(screen.getByText('OfferForm.title')).toBeInTheDocument());
   });
 
+  // His deal stays accepted, which would otherwise read as being chosen.
+  it('tells a specialist taken off the task that he cannot respond again', async () => {
+    checkMyOffer.mockResolvedValue({
+      data: { hasOffer: true, offerStatus: 'removed', transactionId: 'tx-1' },
+    });
+    renderForm();
+
+    await waitFor(() => expect(screen.getByText('OfferForm.removedTitle')).toBeInTheDocument());
+    expect(screen.queryByText('OfferForm.acceptedTitle')).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'OfferForm.submitButton' })
+    ).not.toBeInTheDocument();
+  });
+
   it('sends one offer when the form is submitted twice', async () => {
     initiatePrivileged.mockReturnValue(new Promise(() => {}));
     renderForm();

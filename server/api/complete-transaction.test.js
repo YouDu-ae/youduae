@@ -1,6 +1,7 @@
 const mockShow = jest.fn();
 const mockTransition = jest.fn();
 const mockMark = jest.fn();
+const mockDeclineRemainingOffers = jest.fn();
 
 jest.mock('../api-util/mobileSdk', () => ({
   trustedSdkFromBearer: async () => ({
@@ -19,14 +20,25 @@ jest.mock('../api-util/listingCompletion', () => ({
   markListingCompleted: (...args) => mockMark(...args),
 }));
 
+jest.mock('../api-util/competingOffers', () => ({
+  declineRemainingOffers: (...args) => mockDeclineRemainingOffers(...args),
+}));
+
 const completeTransaction = require('./complete-transaction');
 
-const transaction = lastTransition => ({
+const transaction = (
+  lastTransition,
+  publicData = { status: 'in-progress', assignedTo: 'user-2' }
+) => ({
   data: {
     data: {
       attributes: { lastTransition },
-      relationships: { listing: { data: { id: { uuid: 'task-1' } } } },
+      relationships: {
+        listing: { data: { id: { uuid: 'task-1' } } },
+        customer: { data: { id: { uuid: 'user-2' } } },
+      },
     },
+    included: [{ type: 'listing', id: { uuid: 'task-1' }, attributes: { publicData } }],
   },
 });
 
@@ -41,8 +53,17 @@ const call = async () => {
 
 describe('POST /api/complete-transaction', () => {
   beforeEach(() => {
-    [mockShow, mockTransition, mockMark].forEach(mock => mock.mockReset());
+    [mockShow, mockTransition, mockMark, mockDeclineRemainingOffers].forEach(mock =>
+      mock.mockReset()
+    );
     mockMark.mockResolvedValue('marked');
+    mockDeclineRemainingOffers.mockResolvedValue({ declined: 0, failed: 0 });
+    jest.spyOn(console, 'log').mockImplementation(() => {});
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
   });
 
   it('marks the task completed after the deal completes', async () => {
@@ -52,8 +73,48 @@ describe('POST /api/complete-transaction', () => {
     const result = await call();
 
     expect(result.status).toBe(200);
-    expect(mockShow).toHaveBeenCalledWith({ id: 'tx-1', include: ['listing'] });
+    expect(mockShow).toHaveBeenCalledWith({ id: 'tx-1', include: ['listing', 'customer'] });
     expect(mockMark).toHaveBeenCalledWith(expect.anything(), 'task-1');
+  });
+
+  it('declines the offers still waiting once the work is done', async () => {
+    mockShow.mockResolvedValue(transaction('transition/accept-offer'));
+    mockTransition.mockResolvedValue({ data: {} });
+
+    await call();
+
+    expect(mockDeclineRemainingOffers).toHaveBeenCalledWith(
+      expect.objectContaining({ listingId: 'task-1', executorId: 'user-2', transactionId: 'tx-1' })
+    );
+  });
+
+  it('still reports success when the other offers cannot be declined', async () => {
+    mockShow.mockResolvedValue(transaction('transition/accept-offer'));
+    mockTransition.mockResolvedValue({ data: {} });
+    mockDeclineRemainingOffers.mockRejectedValue(new Error('sharetribe down'));
+
+    const result = await call();
+
+    expect(result.status).toBe(200);
+    expect(result.body.success).toBe(true);
+  });
+
+  // «Сменить исполнителя» leaves the removed specialist's deal accepted.
+  it('refuses to complete the work of a specialist taken off the task', async () => {
+    mockShow.mockResolvedValue(
+      transaction('transition/accept-offer', {
+        status: 'in-progress',
+        assignedTo: 'user-3',
+        excludedOfferCustomerIds: ['user-2'],
+      })
+    );
+
+    const result = await call();
+
+    expect(result.status).toBe(409);
+    expect(result.body.error).toBe('removed_executor_deal');
+    expect(mockTransition).not.toHaveBeenCalled();
+    expect(mockMark).not.toHaveBeenCalled();
   });
 
   it('also marks a deal that was completed earlier', async () => {

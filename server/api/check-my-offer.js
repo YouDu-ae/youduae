@@ -1,4 +1,5 @@
 const { getSdk, handleError, serialize } = require('../api-util/sdk');
+const { removedSpecialists } = require('../api-util/hireRules');
 
 /**
  * Check if current user has already sent an offer for this listing
@@ -19,6 +20,8 @@ module.exports = (req, res) => {
   const queryParams = {
     listingId,
     only: 'order', // текущий пользователь как customer (исполнитель)
+    // Relationships come back only for what `include` names.
+    include: ['customer', 'listing'],
     perPage: 100, // увеличим для надёжности
   };
   
@@ -35,9 +38,18 @@ module.exports = (req, res) => {
       // Получаем lastTransition для проверки статуса (declined, accepted, etc)
       const lastTransition = hasOffer ? transactions[0].attributes.lastTransition : null;
       
+      // The removed executor's deal stays accepted; only the task says he was
+      // taken off it.
+      const listing = (data.included || []).find(entry => entry.type === 'listing');
+      const myId = hasOffer ? transactions[0].relationships?.customer?.data?.id?.uuid : null;
+      const isRemoved =
+        !!myId && removedSpecialists(listing?.attributes?.publicData).includes(myId);
+
       // Определяем статус отклика
       let offerStatus = null;
-      if (lastTransition === 'transition/decline-offer') {
+      if (isRemoved) {
+        offerStatus = 'removed';
+      } else if (lastTransition === 'transition/decline-offer') {
         offerStatus = 'declined';
       } else if (lastTransition === 'transition/accept-offer') {
         offerStatus = 'accepted';
