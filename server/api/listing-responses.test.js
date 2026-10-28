@@ -1,5 +1,5 @@
 const mockTransactionsQuery = jest.fn();
-const mockListingsShow = jest.fn();
+const mockOwnListingsShow = jest.fn();
 
 jest.mock('sharetribe-flex-integration-sdk', () => ({
   createInstance: () => ({ transactions: { query: (...args) => mockTransactionsQuery(...args) } }),
@@ -9,7 +9,7 @@ jest.mock('sharetribe-flex-sdk', () => ({
   tokenStore: { memoryStore: () => ({ setToken: () => {} }) },
   createInstance: () => ({
     currentUser: { show: async () => ({ data: { data: { id: { uuid: 'author-1' } } } }) },
-    listings: { show: (...args) => mockListingsShow(...args) },
+    ownListings: { show: (...args) => mockOwnListingsShow(...args) },
   }),
 }));
 
@@ -39,13 +39,8 @@ const specialist = id => ({
   attributes: { profile: { displayName: id } },
 });
 
-const taskWith = publicData => ({
-  data: {
-    data: {
-      attributes: { publicData },
-      relationships: { author: { data: { id: { uuid: 'author-1' } } } },
-    },
-  },
+const taskWith = (publicData, state = 'published') => ({
+  data: { data: { attributes: { state, publicData } } },
 });
 
 const call = async () => {
@@ -80,6 +75,7 @@ describe('GET /api/listing-responses', () => {
   });
 
   beforeEach(() => {
+    mockOwnListingsShow.mockReset();
     mockTransactionsQuery.mockReset().mockResolvedValue({
       data: {
         data: [
@@ -99,7 +95,7 @@ describe('GET /api/listing-responses', () => {
 
   // Hiding them only in the app would let any other client offer them again.
   it('leaves out the specialists taken off the task', async () => {
-    mockListingsShow.mockResolvedValue(
+    mockOwnListingsShow.mockResolvedValue(
       taskWith({ status: 'open', excludedOfferCustomerIds: ['user-1'] })
     );
 
@@ -110,10 +106,30 @@ describe('GET /api/listing-responses', () => {
   });
 
   it('keeps the earlier offers that were never declined', async () => {
-    mockListingsShow.mockResolvedValue(taskWith({ status: 'open' }));
+    mockOwnListingsShow.mockResolvedValue(taskWith({ status: 'open' }));
 
     const { body } = await call();
 
     expect(body.data.filter(response => response.status === 'pending')).toHaveLength(2);
+  });
+
+  it('answers with an empty list for a task awaiting moderation', async () => {
+    mockOwnListingsShow.mockResolvedValue(taskWith({}, 'pendingApproval'));
+    mockTransactionsQuery.mockResolvedValue({ data: { data: [], included: [] } });
+
+    const { status, body } = await call();
+
+    expect(mockOwnListingsShow).toHaveBeenCalledWith({ id: 'task-1' });
+    expect(status).toBe(200);
+    expect(body.data).toEqual([]);
+  });
+
+  it('refuses a task the caller does not own', async () => {
+    mockOwnListingsShow.mockRejectedValue(Object.assign(new Error('Not Found'), { status: 404 }));
+
+    const { status } = await call();
+
+    expect(status).toBe(404);
+    expect(mockTransactionsQuery).not.toHaveBeenCalled();
   });
 });

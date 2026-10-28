@@ -76,14 +76,16 @@ module.exports = async (req, res) => {
       return res.status(401).json({ error: 'Unable to identify current user' }).end();
     }
 
-    // Verify the current user is the listing author
-    const listingRes = await userSdk.listings.show({ id: listingId, include: ['author'] });
-    const authorId = listingRes?.data?.data?.relationships?.author?.data?.id?.uuid;
-    if (!authorId) {
-      return res.status(404).json({ error: 'Listing not found' }).end();
-    }
-    if (authorId !== currentUserId) {
-      return res.status(403).json({ error: 'Forbidden' }).end();
+    // listings.show sees only published and closed listings, so a task awaiting
+    // moderation is read as the author's own listing, which refuses anyone else.
+    let listingRes;
+    try {
+      listingRes = await userSdk.ownListings.show({ id: listingId });
+    } catch (error) {
+      if (error?.status === 403 || error?.status === 404) {
+        return res.status(404).json({ error: 'Listing not found' }).end();
+      }
+      throw error;
     }
 
     const integrationSdk = sharetribeIntegrationSdk.createInstance({
