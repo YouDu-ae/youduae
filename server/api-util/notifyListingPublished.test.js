@@ -1,5 +1,6 @@
 const mockListingsShow = jest.fn();
 const mockListingsUpdate = jest.fn();
+const mockTransactionsQuery = jest.fn();
 const mockNotifyCategory = jest.fn();
 
 jest.mock('sharetribe-flex-integration-sdk', () => ({
@@ -7,6 +8,9 @@ jest.mock('sharetribe-flex-integration-sdk', () => ({
     listings: {
       show: (...args) => mockListingsShow(...args),
       update: (...args) => mockListingsUpdate(...args),
+    },
+    transactions: {
+      query: (...args) => mockTransactionsQuery(...args),
     },
   }),
 }));
@@ -51,7 +55,10 @@ describe('notifyExecutorsAboutReopenedListing', () => {
   });
 
   beforeEach(() => {
-    [mockListingsShow, mockListingsUpdate, mockNotifyCategory].forEach(mock => mock.mockReset());
+    [mockListingsShow, mockListingsUpdate, mockTransactionsQuery, mockNotifyCategory].forEach(
+      mock => mock.mockReset()
+    );
+    mockTransactionsQuery.mockResolvedValue({ data: { data: [] } });
     mockNotifyCategory.mockResolvedValue({ sent: 2, total: 2 });
   });
 
@@ -78,6 +85,40 @@ describe('notifyExecutorsAboutReopenedListing', () => {
     expect(mockListingsUpdate).not.toHaveBeenCalled();
   });
 
+  it('leaves out the specialists whose offer on the task was declined', async () => {
+    mockListingsShow.mockResolvedValue(listingIn('published'));
+    mockTransactionsQuery.mockResolvedValue({
+      data: {
+        data: [{ relationships: { customer: { data: { id: { uuid: 'declined-1' } } } } }],
+      },
+    });
+
+    await notifyExecutorsAboutReopenedListing('task-1', { excludeUserIds: ['user-1', 'author-1'] });
+
+    expect(mockTransactionsQuery).toHaveBeenCalledWith(
+      expect.objectContaining({
+        listingId: 'task-1',
+        lastTransitions: ['transition/decline-offer'],
+      })
+    );
+    expect(mockNotifyCategory).toHaveBeenCalledWith(
+      expect.objectContaining({ excludeUserIds: ['user-1', 'author-1', 'declined-1'] })
+    );
+  });
+
+  it('still announces the task when the declined offers cannot be read', async () => {
+    const consoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
+    mockListingsShow.mockResolvedValue(listingIn('published'));
+    mockTransactionsQuery.mockRejectedValue(new Error('timeout'));
+
+    await notifyExecutorsAboutReopenedListing('task-1', { excludeUserIds: ['user-1'] });
+
+    expect(mockNotifyCategory).toHaveBeenCalledWith(
+      expect.objectContaining({ excludeUserIds: ['user-1'] })
+    );
+    consoleError.mockRestore();
+  });
+
   it('stays silent about a task that is not back in search', async () => {
     mockListingsShow.mockResolvedValue(listingIn('closed'));
 
@@ -85,5 +126,6 @@ describe('notifyExecutorsAboutReopenedListing', () => {
 
     expect(result).toEqual({ skipped: 'state-closed' });
     expect(mockNotifyCategory).not.toHaveBeenCalled();
+    expect(mockTransactionsQuery).not.toHaveBeenCalled();
   });
 });

@@ -134,6 +134,22 @@ const notifyExecutorsAboutListing = async listingId => {
 };
 
 /**
+ * Specialists whose offer on the task was declined. A specialist gets one offer
+ * per task, so the call to respond again would lead them nowhere.
+ */
+const declinedSpecialists = async (integrationSdk, listingId) => {
+  const response = await integrationSdk.transactions.query({
+    listingId,
+    lastTransitions: ['transition/decline-offer'],
+    include: ['customer'],
+    perPage: 100,
+  });
+  return (response.data.data || [])
+    .map(tx => tx.relationships?.customer?.data?.id?.uuid)
+    .filter(Boolean);
+};
+
+/**
  * Tells executors in the category that a task is looking for an executor again
  * after «Сменить исполнителя». Unlike the first announcement this one goes out
  * on every change of executor, so it keeps no flag of its own; the caller
@@ -142,7 +158,8 @@ const notifyExecutorsAboutListing = async listingId => {
  * @param {string} listingId
  * @param {Object} [options]
  * @param {string[]} [options.excludeUserIds] the specialists taken off the task
- *   and the author, who have no business hearing about it
+ *   and the author, who have no business hearing about it. Specialists with a
+ *   declined offer on the task are left out as well.
  */
 const notifyExecutorsAboutReopenedListing = async (listingId, { excludeUserIds = [] } = {}) => {
   const integrationSdk = createIntegrationSdk();
@@ -163,6 +180,13 @@ const notifyExecutorsAboutReopenedListing = async (listingId, { excludeUserIds =
     return { skipped: 'no-category' };
   }
 
+  let declined = [];
+  try {
+    declined = await declinedSpecialists(integrationSdk, listingId);
+  } catch (error) {
+    console.error('⚠️ reopened listing: declined offers not read:', error.message);
+  }
+
   return notifyNewListingToCategory({
     categoryId,
     categoryName: CATEGORY_LABELS[categoryId] || categoryId,
@@ -171,7 +195,7 @@ const notifyExecutorsAboutReopenedListing = async (listingId, { excludeUserIds =
     listingUrl: `${rootUrl()}/l/${listingId}`,
     listingId,
     reopened: true,
-    excludeUserIds,
+    excludeUserIds: [...excludeUserIds, ...declined],
   });
 };
 
