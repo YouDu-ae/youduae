@@ -10,7 +10,7 @@ const PageBuilder = loadable(() =>
 const fallbackPrivacyPolicyRu = `
 # Политика обработки и защиты информации
 
-**Последнее обновление:** 29 сентября 2026 года
+**Последнее обновление:** 28 октября 2026 года
 
 **Контролёр:** Aleksandr Gross, действующий как индивидуальный оператор платформы «YouDu.ae» (MVP-версия).
 
@@ -25,6 +25,7 @@ United Arab Emirates.
 - **Данные заданий и откликов:** заголовок, описание, категория, район/адрес (при необходимости), бюджет, фото.
 - **Профиль специалиста:** районы работы, языки общения, минимальная стоимость работ, когда вы работаете — если вы их укажете.
 - **История действий на площадке:** когда создано или изменено задание, отправлен или принят отклик, пройден этап сделки, отправлено сообщение, оставлен отзыв, изменён профиль — с датой и прежним значением.
+- **Голос** — только если вы пользуетесь голосовым помощником (раздел «Голосовой помощник»).
 - **Техданные:** IP, User-Agent, события интерфейса, strictly-necessary cookies. (Маркетинговые/аналитические cookies — только при вашем согласии.)
 
 ---
@@ -35,12 +36,13 @@ United Arab Emirates.
 - **Поддержка, безопасность, предотвращение злоупотреблений** — законные требования PDPL/безопасность.
 - **Верификация (KYC), рассылки, нестрого-необходимые cookies/аналитика** — по вашему согласию, которое можно отозвать в любой момент.
 - **Рейтинг и рекомендации специалистов с помощью ИИ** — по отдельному согласию специалиста (раздел «Рейтинг и рекомендации специалистов»).
+- **Голосовой помощник** — по вашему явному согласию (раздел «Голосовой помощник»).
 
 ---
 
 ## 3. Передача и обработчики
 
-Мы используем подрядчиков (хостинг, e-mail/OTP, анти-фрод/KYC при включении). Они обрабатывают данные по нашим инструкциям и только в нужных целях. Список ключевых обработчиков доступен по запросу.
+Мы используем подрядчиков (хостинг, e-mail/OTP, распознавание речи для голосового помощника — OpenAI, анти-фрод/KYC при включении). Они обрабатывают данные по нашим инструкциям и только в нужных целях. Список ключевых обработчиков доступен по запросу.
 
 ---
 
@@ -73,6 +75,20 @@ YouDu может с помощью искусственного интеллек
 
 ---
 
+## Голосовой помощник
+
+Голосовой помощник позволяет рассказать о задании голосом, а не заполнять форму. Он доступен вошедшим пользователям на сайте youdu.ae и в приложении YouDu. Пользоваться им необязательно: задание всегда можно заполнить вручную.
+
+- **Что обрабатывается:** ваш голос во время разговора, его расшифровка и то, что вы говорите о задании: что нужно сделать, адрес, срок, бюджет.
+- **Кто обрабатывает:** распознавание речи и ответы помощника обеспечивает OpenAI, L.L.C. (США). Звук идёт напрямую между вашим устройством и OpenAI, сервер YouDu его не получает. Названный вами адрес мы уточняем через Google Maps Platform (Google LLC).
+- **Как OpenAI использует данные:** по условиям OpenAI для API такие данные по умолчанию не используются для обучения моделей. OpenAI может хранить их до 30 дней для контроля злоупотреблений, если закон не требует хранить дольше.
+- **Что хранит YouDu:** запись и текст разговора мы не храним. О каждом разговоре сохраняется служебная запись: когда он начался, подготовлен ли черновик и какие поля заполнил помощник — без их содержимого. Она нужна, чтобы ограничивать число разговоров в сутки и следить за работой функции. Ещё мы храним, когда вы дали согласие и когда отозвали его. Эти записи удаляются вместе с аккаунтом.
+- **Черновик, а не публикация:** помощник только заполняет поля задания, дальше с ними всё так же, как при ручном заполнении. Опубликовать задание можете только вы, проверив поля: помощник может ошибиться в адресе, сроке или бюджете.
+- **Согласие:** перед первым разговором мы спрашиваем ваше явное согласие на передачу данных в OpenAI. Отозвать его можно в любой момент — кнопкой «Отозвать согласие» в окне помощника на сайте или написав на info@youdu.ae. Отзыв не затрагивает уже состоявшиеся разговоры.
+- **Не сообщайте лишнего:** не называйте помощнику данные банковских карт, паспорта, сведения о здоровье и другие чувствительные данные — для задания они не нужны.
+
+---
+
 ## 6. Безопасность
 
 Применяем меры: шифрование в транзите (HTTPS), ограничение доступа, журналы событий, резервное копирование. При инциденте уведомим вас и регулятора, если это требуется PDPL.
@@ -101,6 +117,8 @@ YouDu может с помощью искусственного интеллек
 
 Мы измеряем посещаемость через Plausible Analytics — privacy-first сервис без использования cookies и без персональных данных. Собираются только агрегированные метрики (просмотры, источники трафика, типы устройств и т. п.). Идентификаторы пользователей не создаются и не хранятся. Хостинг аналитических данных — ЕС (Германия, Hetzner), что помогает выполнять требования PDPL к международной передаче и безопасности.
 
+**Приложение YouDu.** В приложении мы тоже считаем статистику через Plausible: какие экраны открываются и как часто создают задания, выбирают исполнителя, отправляют сообщения, завершают задания, оставляют отзывы и пользуются голосовым помощником. Из подробностей к событию добавляется только категория задания, а по техническим данным запроса Plausible определяет тип устройства и версию iOS. Имена, идентификаторы пользователей, тексты сообщений, названия заданий и адреса в статистику не попадают. Plausible не хранит IP-адрес: по нему определяются только страна, регион и город, а метка для подсчёта уникальных посетителей меняется каждые сутки. Рекламы и отслеживания между приложениями и сайтами других компаний в приложении нет.
+
 Мы используем Plausible на основании законного интереса (измерение производительности сервиса) и принципа минимизации PDPL. Если в будущем подключим стороннюю аналитику или маркетинговые пиксели, они загрузятся только при вашем явном согласии через баннер.
 
 ---
@@ -128,7 +146,7 @@ YouDu может с помощью искусственного интеллек
 const fallbackPrivacyPolicyEn = `
 # Privacy Policy
 
-**Last updated:** 29 September 2026
+**Last updated:** 28 October 2026
 
 **Controller:** Aleksandr Gross, acting as the individual operator of the YouDu.ae platform (MVP version).
 
@@ -143,6 +161,7 @@ United Arab Emirates.
 - **Jobs and offers:** title, description, category, district/address (if required), budget, photos.
 - **Specialist profile:** service areas, languages, minimum job price and when you work — if you provide them.
 - **Activity history on the platform:** when a task is created or changed, an offer is sent or accepted, a deal moves to a new stage, a message is sent, a review is left or a profile is changed — with the date and the previous value.
+- **Voice** — only if you use the voice assistant (see "Voice Assistant").
 - **Technical data:** IP, User-Agent, interface events, strictly necessary cookies. (Marketing/analytics cookies are used only with your consent.)
 
 ---
@@ -153,12 +172,13 @@ United Arab Emirates.
 - **Support, security, abuse prevention** — legal obligations and legitimate interests under PDPL.
 - **Verification (KYC), newsletters, non-essential cookies/analytics** — based on your consent, which you can withdraw at any time.
 - **AI ranking and recommendation of specialists** — based on the specialist's separate consent (see "Specialist Ranking and Recommendations").
+- **Voice assistant** — based on your explicit consent (see "Voice Assistant").
 
 ---
 
 ## 3. Sharing and Processors
 
-We use processors (hosting, e-mail/OTP, anti-fraud/KYC if enabled). They operate under our instructions and only for the intended purposes. A list of key processors is available on request.
+We use processors (hosting, e-mail/OTP, speech recognition for the voice assistant — OpenAI, anti-fraud/KYC if enabled). They operate under our instructions and only for the intended purposes. A list of key processors is available on request.
 
 ---
 
@@ -191,6 +211,20 @@ YouDu may use artificial intelligence to rank specialists and recommend to a cli
 
 ---
 
+## Voice Assistant
+
+The voice assistant lets you describe a task by voice instead of filling in the form. It is available to signed-in users on youdu.ae and in the YouDu app. Using it is optional: you can always fill in the task manually.
+
+- **What is processed:** your voice during the conversation, its transcript and what you say about the task: what needs to be done, the address, the deadline and the budget.
+- **Who processes it:** speech recognition and the assistant's replies are provided by OpenAI, L.L.C. (USA). Audio goes directly between your device and OpenAI; YouDu's server does not receive it. We look up the address you name with Google Maps Platform (Google LLC).
+- **How OpenAI uses the data:** under OpenAI's API terms, such data is not used to train its models by default. OpenAI may keep it for up to 30 days to monitor abuse, unless the law requires longer.
+- **What YouDu keeps:** we do not keep the recording or the transcript. For each conversation we keep a service record: when it started, whether a draft was prepared and which fields the assistant filled in — without their contents. It lets us limit the number of conversations per day and keep an eye on how the feature works. We also keep when you gave consent and when you withdrew it. These records are deleted together with your account.
+- **A draft, not a publication:** the assistant only fills in the task fields; from then on they are handled the same way as when you fill them in yourself. Only you can publish the task, after checking the fields: the assistant may get the address, deadline or budget wrong.
+- **Consent:** before your first conversation we ask for your explicit consent to send the data to OpenAI. You can withdraw it at any time with the "Withdraw consent" button in the assistant window on the website or by writing to info@youdu.ae. Withdrawal does not affect conversations that have already taken place.
+- **Do not share more than needed:** do not tell the assistant bank card details, passport data, health information or other sensitive data — the task does not need them.
+
+---
+
 ## 6. Security
 
 We apply measures such as HTTPS encryption, access controls, event logging, and backups. If an incident occurs, we will notify you and the regulator when required by PDPL.
@@ -218,6 +252,8 @@ We use strictly necessary cookies for essential functionality (sessions, languag
 ## 10. Analytics (Plausible, Cookie-Free)
 
 We measure traffic with Plausible Analytics — a privacy-first service without cookies or personal data. Only aggregated metrics are collected (page views, traffic sources, device types, etc.). No user identifiers are created or stored. Data is hosted in the EU (Germany, Hetzner), helping us comply with PDPL rules on international transfers and security.
+
+**The YouDu app.** In the app we also use Plausible to count which screens are opened and how often people create tasks, choose a specialist, send messages, complete tasks, leave reviews and use the voice assistant. The only detail added to an event is the task category, and Plausible works out the device type and iOS version from the technical data of the request. Names, user identifiers, message texts, task titles and addresses are not included. Plausible does not store IP addresses: it uses them only to determine the country, region and city, and the label used to count unique visitors changes every day. The app has no advertising and no tracking across other companies' apps and websites.
 
 We rely on legitimate interest (service performance measurement) and PDPL minimization principles. If we add other analytics or marketing pixels in the future, they will load only with your explicit consent through the banner.
 
