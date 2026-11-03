@@ -1145,6 +1145,31 @@ async function notifyAdminListingPendingApproval(data) {
 }
 
 /**
+ * Tell the admin that the author cancelled a task still waiting for moderation.
+ */
+async function notifyAdminListingCancelledBeforeApproval(data) {
+  if (!TELEGRAM_ADMIN_CHAT_ID) {
+    console.log('⚠️ TELEGRAM_ADMIN_CHAT_ID not set, skipping admin notification');
+    return false;
+  }
+
+  const { listingTitle, authorName, consoleUrl } = data;
+
+  const message = `🚫 <b>Задание отменено до модерации</b>
+
+📋 <b>${escapeHtml(listingTitle)}</b>
+👤 Заказчик: ${escapeHtml(authorName)}
+
+Заказчик отменил задание, пока оно ждало модерации. Одобрять его не нужно: оно ненадолго появится в ленте, а заказчику придёт письмо о публикации.
+
+Sharetribe не закрывает задания на модерации, поэтому в Console оно останется в «Pending approval». Специалисты его не видят.
+
+<a href="${consoleUrl}">Задание в Console →</a>`;
+
+  return await sendTelegramMessage(TELEGRAM_ADMIN_CHAT_ID, message);
+}
+
+/**
  * A user without a password asked to delete their account; only Console can
  * do it, and Apple expects it done in a reasonable time.
  */
@@ -1244,6 +1269,7 @@ module.exports = {
   notifyNewListing,
   notifyNewListingToCategory,
   notifyAdminListingPendingApproval,
+  notifyAdminListingCancelledBeforeApproval,
   notifyAdminAccountDeletionRequest,
   notifyUnansweredOffers,
   notifySpecialistDigest,

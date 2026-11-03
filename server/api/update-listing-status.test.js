@@ -4,6 +4,7 @@ const mockShow = jest.fn();
 const mockOpen = jest.fn();
 const mockRecordExecutorChange = jest.fn();
 const mockAnnounce = jest.fn();
+const mockTellModerator = jest.fn();
 
 jest.mock('../api-util/sdk', () => ({
   getSdk: () => ({
@@ -20,9 +21,10 @@ jest.mock('../db', () => ({
 
 jest.mock('../api-util/notifyListingPublished', () => ({
   notifyExecutorsAboutReopenedListing: (...args) => mockAnnounce(...args),
+  notifyAdminAboutCancelledListing: (...args) => mockTellModerator(...args),
 }));
 
-// The record and the announcement run after the answer has gone out.
+// The record and the announcements run after the answer has gone out.
 const afterAnswer = () => new Promise(resolve => setImmediate(resolve));
 
 const { UUID } = require('sharetribe-flex-sdk').types;
@@ -44,6 +46,7 @@ const listingIn = state => ({ status: 200, data: { data: { attributes: { state }
 beforeEach(() => {
   mockRecordExecutorChange.mockReset().mockResolvedValue(true);
   mockAnnounce.mockReset().mockResolvedValue({ sent: 3, total: 3 });
+  mockTellModerator.mockReset().mockResolvedValue({ adminNotified: true });
   jest.spyOn(console, 'log').mockImplementation(() => {});
   jest.spyOn(console, 'error').mockImplementation(() => {});
 });
@@ -87,6 +90,43 @@ describe('update-listing-status: cancelling', () => {
     expect(mockUpdate).toHaveBeenCalledTimes(1);
     expect(mockClose).not.toHaveBeenCalled();
     expect(res.status).toHaveBeenCalledWith(200);
+  });
+
+  // It stays in Console's moderation queue for good.
+  it('tells the moderator not to approve a task cancelled while waiting for moderation', async () => {
+    mockUpdate.mockResolvedValue(listingIn('pendingApproval'));
+    await call({ listingId: 'l-2', status: 'cancelled' });
+    await afterAnswer();
+
+    expect(mockTellModerator).toHaveBeenCalledWith('l-2');
+  });
+
+  it('does not bother the moderator about a published task', async () => {
+    mockUpdate.mockResolvedValue(listingIn('published'));
+    await call({ listingId: 'l-1', status: 'cancelled' });
+    await afterAnswer();
+
+    expect(mockTellModerator).not.toHaveBeenCalled();
+  });
+
+  it('answers before the moderator is told', async () => {
+    mockUpdate.mockResolvedValue(listingIn('pendingApproval'));
+    mockTellModerator.mockReturnValue(new Promise(() => {}));
+
+    const res = await call({ listingId: 'l-2', status: 'cancelled' });
+
+    expect(res.status).toHaveBeenCalledWith(200);
+  });
+
+  it('still cancels the task when the moderator cannot be told', async () => {
+    mockUpdate.mockResolvedValue(listingIn('pendingApproval'));
+    mockTellModerator.mockRejectedValue(new Error('Telegram down'));
+
+    const res = await call({ listingId: 'l-2', status: 'cancelled' });
+    await afterAnswer();
+
+    expect(res.status).toHaveBeenCalledWith(200);
+    expect(res.status).toHaveBeenCalledTimes(1);
   });
 });
 

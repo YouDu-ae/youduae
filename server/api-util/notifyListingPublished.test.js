@@ -2,6 +2,7 @@ const mockListingsShow = jest.fn();
 const mockListingsUpdate = jest.fn();
 const mockTransactionsQuery = jest.fn();
 const mockNotifyCategory = jest.fn();
+const mockNotifyAdminCancelled = jest.fn();
 
 jest.mock('sharetribe-flex-integration-sdk', () => ({
   createInstance: () => ({
@@ -18,9 +19,13 @@ jest.mock('sharetribe-flex-integration-sdk', () => ({
 jest.mock('../api/telegram-bot', () => ({
   notifyNewListingToCategory: (...args) => mockNotifyCategory(...args),
   notifyAdminListingPendingApproval: jest.fn(),
+  notifyAdminListingCancelledBeforeApproval: (...args) => mockNotifyAdminCancelled(...args),
 }));
 
-const { notifyExecutorsAboutReopenedListing } = require('./notifyListingPublished');
+const {
+  notifyExecutorsAboutReopenedListing,
+  notifyAdminAboutCancelledListing,
+} = require('./notifyListingPublished');
 
 const ENV_KEYS = ['INTEGRATION_API_CLIENT_ID', 'INTEGRATION_API_CLIENT_SECRET'];
 const savedEnv = {};
@@ -39,21 +44,21 @@ const listingIn = (state, metadata = {}) => ({
   },
 });
 
+beforeAll(() => {
+  ENV_KEYS.forEach(key => {
+    savedEnv[key] = process.env[key];
+    process.env[key] = 'test';
+  });
+});
+
+afterAll(() => {
+  ENV_KEYS.forEach(key => {
+    if (savedEnv[key] === undefined) delete process.env[key];
+    else process.env[key] = savedEnv[key];
+  });
+});
+
 describe('notifyExecutorsAboutReopenedListing', () => {
-  beforeAll(() => {
-    ENV_KEYS.forEach(key => {
-      savedEnv[key] = process.env[key];
-      process.env[key] = 'test';
-    });
-  });
-
-  afterAll(() => {
-    ENV_KEYS.forEach(key => {
-      if (savedEnv[key] === undefined) delete process.env[key];
-      else process.env[key] = savedEnv[key];
-    });
-  });
-
   beforeEach(() => {
     [mockListingsShow, mockListingsUpdate, mockTransactionsQuery, mockNotifyCategory].forEach(
       mock => mock.mockReset()
@@ -127,5 +132,65 @@ describe('notifyExecutorsAboutReopenedListing', () => {
     expect(result).toEqual({ skipped: 'state-closed' });
     expect(mockNotifyCategory).not.toHaveBeenCalled();
     expect(mockTransactionsQuery).not.toHaveBeenCalled();
+  });
+});
+
+describe('notifyAdminAboutCancelledListing', () => {
+  const withAuthor = response => ({
+    data: {
+      ...response.data,
+      included: [{ type: 'user', attributes: { profile: { displayName: 'Анна К.' } } }],
+    },
+  });
+
+  beforeEach(() => {
+    [mockListingsShow, mockListingsUpdate, mockNotifyAdminCancelled].forEach(mock =>
+      mock.mockReset()
+    );
+    mockListingsUpdate.mockResolvedValue({});
+    mockNotifyAdminCancelled.mockResolvedValue(true);
+  });
+
+  it('tells the moderator which task not to approve, marking it first', async () => {
+    mockListingsShow.mockResolvedValue(withAuthor(listingIn('pendingApproval')));
+
+    const result = await notifyAdminAboutCancelledListing('task-1');
+
+    expect(mockListingsShow).toHaveBeenCalledWith({ id: 'task-1', include: ['author'] });
+    expect(mockListingsUpdate).toHaveBeenCalledWith({
+      id: 'task-1',
+      metadata: { adminCancelNotifiedAt: expect.any(String) },
+    });
+    expect(mockListingsUpdate.mock.invocationCallOrder[0]).toBeLessThan(
+      mockNotifyAdminCancelled.mock.invocationCallOrder[0]
+    );
+    expect(mockNotifyAdminCancelled).toHaveBeenCalledWith({
+      listingTitle: 'Заменить кнопку полотенцесушителя',
+      authorName: 'Анна К.',
+      consoleUrl: 'https://console.sharetribe.com/a/listings/task-1',
+    });
+    expect(result).toEqual({ adminNotified: true });
+  });
+
+  it('tells the moderator once for a repeated cancel', async () => {
+    mockListingsShow.mockResolvedValue(
+      listingIn('pendingApproval', { adminCancelNotifiedAt: '2026-11-03T13:20:00.000Z' })
+    );
+
+    const result = await notifyAdminAboutCancelledListing('task-1');
+
+    expect(result).toEqual({ skipped: 'admin-already-notified' });
+    expect(mockListingsUpdate).not.toHaveBeenCalled();
+    expect(mockNotifyAdminCancelled).not.toHaveBeenCalled();
+  });
+
+  // Approved in the meantime: the approvals poller closes it.
+  it('stays silent about a task that is no longer waiting for moderation', async () => {
+    mockListingsShow.mockResolvedValue(listingIn('published'));
+
+    const result = await notifyAdminAboutCancelledListing('task-1');
+
+    expect(result).toEqual({ skipped: 'state-published' });
+    expect(mockNotifyAdminCancelled).not.toHaveBeenCalled();
   });
 });

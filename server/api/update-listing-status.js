@@ -1,6 +1,9 @@
 const sharetribeSdk = require('sharetribe-flex-sdk');
 const { getSdk, handleError, serialize, typeHandlers } = require('../api-util/sdk');
-const { notifyExecutorsAboutReopenedListing } = require('../api-util/notifyListingPublished');
+const {
+  notifyExecutorsAboutReopenedListing,
+  notifyAdminAboutCancelledListing,
+} = require('../api-util/notifyListingPublished');
 const db = require('../db');
 
 const CLIENT_ID = process.env.REACT_APP_SHARETRIBE_SDK_CLIENT_ID;
@@ -42,6 +45,23 @@ const afterReopen = async ({
     console.log('  → Reopened task announced:', JSON.stringify(outcome));
   } catch (error) {
     console.error('⚠️ update-listing-status: reopened task not announced:', error.message);
+  }
+};
+
+/**
+ * After a task was cancelled while waiting for moderation: it stays in
+ * Console's queue, so the moderator is told not to approve it. This may not
+ * fail the cancellation, which has already happened.
+ */
+const afterCancelInModeration = async listingId => {
+  try {
+    const outcome = await notifyAdminAboutCancelledListing(listingId);
+    console.log('  → Moderator told about the cancellation:', JSON.stringify(outcome));
+  } catch (error) {
+    console.error(
+      '⚠️ update-listing-status: moderator not told about the cancellation:',
+      error.message
+    );
   }
 };
 
@@ -97,6 +117,7 @@ module.exports = async (req, res) => {
 
   // Filled in while reopening, for afterReopen.
   let reopening = null;
+  let cancelledInModeration = false;
 
   const buildUpdateAndApply = (existingPublicData = {}) => {
   // Обновляем publicData листинга
@@ -173,6 +194,7 @@ module.exports = async (req, res) => {
       const state = apiResponse?.data?.data?.attributes?.state;
       if (status === 'cancelled' && state !== 'published') {
         console.log(`  → Not closing: listing is ${state}`);
+        cancelledInModeration = state === 'pendingApproval';
         return apiResponse;
       }
 
@@ -228,6 +250,9 @@ module.exports = async (req, res) => {
         )
         .end();
 
+      if (cancelledInModeration) {
+        return afterCancelInModeration(listingUUID.uuid);
+      }
       if (reopening) {
         const { authorId, removedUserId, transactionId, excluded } = reopening;
         return afterReopen({

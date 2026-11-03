@@ -2,6 +2,7 @@ const sharetribeIntegrationSdk = require('sharetribe-flex-integration-sdk');
 const {
   notifyNewListingToCategory,
   notifyAdminListingPendingApproval,
+  notifyAdminListingCancelledBeforeApproval,
 } = require('../api/telegram-bot');
 
 const CATEGORY_LABELS = {
@@ -71,6 +72,47 @@ const notifyAdminAboutPendingListing = async ({ integrationSdk, listingId, listi
     categoryName: CATEGORY_LABELS[categoryId] || categoryId || 'без категории',
     price: formatPrice(price),
     listingUrl: `${rootUrl()}/l/${listingId}`,
+    consoleUrl: `https://console.sharetribe.com/a/listings/${listingId}`,
+  });
+
+  return { adminNotified: Boolean(sent) };
+};
+
+/**
+ * Tells the admin that the author cancelled a task waiting for moderation.
+ *
+ * Sharetribe closes no listing in pendingApproval, not even for an operator
+ * (409 listing-invalid-state), so the task stays in Console's queue and the
+ * admin has to know not to approve it. As with adminPendingNotifiedAt, the flag
+ * is written before the message goes out, so a repeated cancel sends one.
+ */
+const notifyAdminAboutCancelledListing = async listingId => {
+  const integrationSdk = createIntegrationSdk();
+
+  if (!integrationSdk) {
+    return { skipped: 'missing-integration-credentials' };
+  }
+
+  const response = await integrationSdk.listings.show({ id: listingId, include: ['author'] });
+  const { state, title, metadata = {} } = response.data.data.attributes;
+
+  if (state !== 'pendingApproval') {
+    return { skipped: `state-${state}` };
+  }
+  if (metadata.adminCancelNotifiedAt) {
+    return { skipped: 'admin-already-notified' };
+  }
+
+  await integrationSdk.listings.update({
+    id: listingId,
+    metadata: { adminCancelNotifiedAt: new Date().toISOString() },
+  });
+
+  const author = (response.data.included || []).find(entry => entry.type === 'user');
+
+  const sent = await notifyAdminListingCancelledBeforeApproval({
+    listingTitle: title,
+    authorName: author?.attributes?.profile?.displayName || 'без имени',
     consoleUrl: `https://console.sharetribe.com/a/listings/${listingId}`,
   });
 
@@ -202,6 +244,7 @@ const notifyExecutorsAboutReopenedListing = async (listingId, { excludeUserIds =
 module.exports = {
   notifyExecutorsAboutListing,
   notifyExecutorsAboutReopenedListing,
+  notifyAdminAboutCancelledListing,
   CATEGORY_LABELS,
   formatPrice,
   rootUrl,
