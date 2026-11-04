@@ -3,6 +3,7 @@ const mockListingsUpdate = jest.fn();
 const mockTransactionsQuery = jest.fn();
 const mockNotifyCategory = jest.fn();
 const mockNotifyAdminCancelled = jest.fn();
+const mockNotifyAdminPending = jest.fn();
 
 jest.mock('sharetribe-flex-integration-sdk', () => ({
   createInstance: () => ({
@@ -18,11 +19,12 @@ jest.mock('sharetribe-flex-integration-sdk', () => ({
 
 jest.mock('../api/telegram-bot', () => ({
   notifyNewListingToCategory: (...args) => mockNotifyCategory(...args),
-  notifyAdminListingPendingApproval: jest.fn(),
+  notifyAdminListingPendingApproval: (...args) => mockNotifyAdminPending(...args),
   notifyAdminListingCancelledBeforeApproval: (...args) => mockNotifyAdminCancelled(...args),
 }));
 
 const {
+  notifyExecutorsAboutListing,
   notifyExecutorsAboutReopenedListing,
   notifyAdminAboutCancelledListing,
 } = require('./notifyListingPublished');
@@ -30,14 +32,14 @@ const {
 const ENV_KEYS = ['INTEGRATION_API_CLIENT_ID', 'INTEGRATION_API_CLIENT_SECRET'];
 const savedEnv = {};
 
-const listingIn = (state, metadata = {}) => ({
+const listingIn = (state, metadata = {}, publicData = {}) => ({
   data: {
     data: {
       attributes: {
         state,
         title: 'Заменить кнопку полотенцесушителя',
         price: { amount: 20000, currency: 'AED' },
-        publicData: { categoryLevel1: 'repairs_main' },
+        publicData: { categoryLevel1: 'repairs_main', ...publicData },
         metadata,
       },
     },
@@ -192,5 +194,47 @@ describe('notifyAdminAboutCancelledListing', () => {
 
     expect(result).toEqual({ skipped: 'state-published' });
     expect(mockNotifyAdminCancelled).not.toHaveBeenCalled();
+  });
+});
+
+describe('notifyExecutorsAboutListing for a task waiting for moderation', () => {
+  beforeEach(() => {
+    [mockListingsShow, mockListingsUpdate, mockNotifyAdminPending, mockNotifyCategory].forEach(
+      mock => mock.mockReset()
+    );
+    mockListingsUpdate.mockResolvedValue({});
+    mockNotifyAdminPending.mockResolvedValue(true);
+  });
+
+  it('tells the moderator instead of the specialists, marking the task first', async () => {
+    mockListingsShow.mockResolvedValue(listingIn('pendingApproval'));
+
+    const result = await notifyExecutorsAboutListing('task-1');
+
+    expect(mockListingsUpdate).toHaveBeenCalledWith({
+      id: 'task-1',
+      metadata: { adminPendingNotifiedAt: expect.any(String) },
+    });
+    expect(mockNotifyAdminPending).toHaveBeenCalledWith(
+      expect.objectContaining({
+        listingTitle: 'Заменить кнопку полотенцесушителя',
+        consoleUrl: 'https://console.sharetribe.com/a/listings/task-1',
+      })
+    );
+    expect(mockNotifyCategory).not.toHaveBeenCalled();
+    expect(result).toEqual({ adminNotified: true });
+  });
+
+  // Cancelled in the app before the approvals poller got to it.
+  it('stays silent about a task its author has cancelled', async () => {
+    mockListingsShow.mockResolvedValue(
+      listingIn('pendingApproval', {}, { status: 'cancelled', cancelled: true, hired: false })
+    );
+
+    const result = await notifyExecutorsAboutListing('task-1');
+
+    expect(result).toEqual({ skipped: 'cancelled' });
+    expect(mockListingsUpdate).not.toHaveBeenCalled();
+    expect(mockNotifyAdminPending).not.toHaveBeenCalled();
   });
 });

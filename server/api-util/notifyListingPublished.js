@@ -4,6 +4,7 @@ const {
   notifyAdminListingPendingApproval,
   notifyAdminListingCancelledBeforeApproval,
 } = require('../api/telegram-bot');
+const { workStatus } = require('./hireRules');
 
 const CATEGORY_LABELS = {
   repairs_main: 'Ремонт и строительство',
@@ -54,6 +55,12 @@ const rootUrl = () => process.env.REACT_APP_MARKETPLACE_ROOT_URL || 'https://you
 const notifyAdminAboutPendingListing = async ({ integrationSdk, listingId, listing, included }) => {
   const { title, price, publicData = {}, metadata = {} } = listing.attributes;
 
+  // Cancelled before this alert went out, which the app allows within the
+  // poller's minute: the task stays pendingApproval, and the cancel has told
+  // the admin already.
+  if (workStatus(publicData) === 'cancelled') {
+    return { skipped: 'cancelled' };
+  }
   if (metadata.adminPendingNotifiedAt) {
     return { skipped: 'admin-already-notified' };
   }
