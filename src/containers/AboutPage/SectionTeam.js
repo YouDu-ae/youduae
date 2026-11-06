@@ -3,6 +3,7 @@ import classNames from 'classnames';
 import { Helmet } from 'react-helmet-async';
 
 import SectionContainer from '../PageBuilder/SectionBuilder/SectionContainer';
+import { founderPerson, isFounderName } from '../../util/founder';
 
 import css from './AboutPage.module.css';
 
@@ -35,10 +36,12 @@ const SectionTeam = props => {
       image: member.photoAbsolute || member.photo,
       worksFor: {
         '@type': 'Organization',
+        '@id': 'https://youdu.ae#organization',
         name: 'YouDu',
         url: 'https://youdu.ae',
       },
       ...(member.linkedin ? { sameAs: [member.linkedin] } : {}),
+      ...(isFounderName(member.name) ? founderPerson(member.name) : {}),
     })),
   };
 

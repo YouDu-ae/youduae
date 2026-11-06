@@ -12,6 +12,7 @@ import { metaTagProps } from '../../util/seo';
 import { canonicalRoutePath } from '../../util/routes';
 import { propTypes } from '../../util/types';
 import { apiBaseUrl } from '../../util/api';
+import { founderPerson } from '../../util/founder';
 
 import css from './Page.module.css';
 
@@ -211,10 +212,7 @@ class PageComponent extends Component {
         '@type': 'ImageObject',
         url: config.branding.logoImageMobileURL,
       },
-      founder: {
-        '@type': 'Person',
-        name: 'Alexander Gross',
-      },
+      founder: founderPerson(),
       foundingDate: '2024',
       areaServed: {
         '@type': 'Country',

@@ -3,6 +3,7 @@ import { Helmet } from 'react-helmet-async';
 import { useSelector } from 'react-redux';
 import { useIntl } from '../../util/reactIntl';
 import { blogCoverUrl, blogCoverAbsoluteUrl } from '../../util/blog';
+import { authorPerson } from '../../util/founder';
 import { Page, LayoutSingleColumn, NamedLink } from '../../components';
 import TopbarContainer from '../TopbarContainer/TopbarContainer';
 import FooterContainer from '../FooterContainer/FooterContainer';
@@ -68,10 +69,7 @@ const BlogArticlePage = props => {
     'datePublished': article.createdAt,
     'timeRequired': `PT${article.readTime || 5}M`,
     'keywords': article.keywords || '',
-    'author': article.author ? {
-      '@type': 'Person',
-      'name': article.author.name
-    } : {
+    'author': article.author ? authorPerson(article.author.name) : {
       '@type': 'Organization',
       'name': 'YouDu'
     },

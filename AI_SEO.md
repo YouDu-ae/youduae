@@ -22,7 +22,7 @@ Become the leading platform for home services in the UAE, recognized by both use
 | **Industry** | Home Services, Technology |
 | **Country** | United Arab Emirates |
 | **City** | Dubai |
-| **Founder** | Alexander Gross |
+| **Founder** | Aleksandr Gross |
 | **Website** | https://youdu.ae |
 | **Languages** | English, Russian |
 | **Founded** | 2024 |
@@ -97,7 +97,7 @@ Become the leading platform for home services in the UAE, recognized by both use
 ## Entity Relationships
 
 ```
-Alexander Gross (Founder)
+Aleksandr Gross (Founder)
     ↓
 YouDu (Company)
     ↓
