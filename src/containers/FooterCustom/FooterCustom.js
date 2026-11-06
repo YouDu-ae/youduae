@@ -3,10 +3,15 @@ import { FormattedMessage, useIntl } from '../../util/reactIntl';
 import { NamedLink } from '../../components';
 import css from './FooterCustom.module.css';
 import logo from '../../assets/Logo.png'; // проверь путь к картинке
+import appStoreBadgeRu from '../../assets/app-store-badge-ru.svg';
+import appStoreBadgeEn from '../../assets/app-store-badge-en.svg';
+
+const APP_STORE_URL = 'https://apps.apple.com/app/id6808781959';
 
 const FooterCustom = () => {
   const intl = useIntl();
   const year = new Date().getFullYear();
+  const appStoreBadge = intl.locale === 'en' ? appStoreBadgeEn : appStoreBadgeRu;
 
   return (
     <footer className={css.footer}>
@@ -48,6 +53,30 @@ const FooterCustom = () => {
           <NamedLink name="BlogPage" className={css.col2Item}>
             <FormattedMessage id="TopbarCustom.blog" />
           </NamedLink>
+        </div>
+
+        {/* Приложение для iPhone */}
+        <div className={css.columnApp}>
+          <div className={css.supportTitle}>
+            <FormattedMessage id="FooterCustom.appTitle" />:
+          </div>
+          <div className={css.appBadgeRow}>
+            <a
+              className={css.appBadgeLink}
+              href={APP_STORE_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <img
+                src={appStoreBadge}
+                alt={intl.formatMessage({ id: 'FooterCustom.appStoreBadgeAlt' })}
+                className={css.appBadge}
+              />
+            </a>
+          </div>
+          <div className={css.appleCredit}>
+            <FormattedMessage id="FooterCustom.appleCredit" />
+          </div>
         </div>
 
         {/* Колонка 3 */}

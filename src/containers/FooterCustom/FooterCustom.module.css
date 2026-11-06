@@ -169,6 +169,47 @@
   letter-spacing: -0.03em;
 }
 
+/* Приложение для iPhone. Стоит посередине между колонкой 2 (кончается на 452px)
+   и колонкой 3 (194px у правого края); заголовок и значок — на уровне заголовка
+   и кнопки колонки 3: 121px + подпись 24px + отступ 12px. */
+.columnApp {
+  position: absolute;
+  left: calc(50% + 129px);
+  bottom: 157px;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Apple требует вокруг значка свободное поле в четверть его высоты */
+.appBadgeRow {
+  height: 60px;
+  display: flex;
+  align-items: center;
+}
+.appBadgeLink {
+  display: block;
+  line-height: 0;
+}
+.appBadge {
+  display: block;
+  height: 48px;
+  width: auto;
+}
+
+.appleCredit {
+  position: absolute;
+  top: calc(100% + 12px);
+  left: 0;
+  width: 100%;
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  line-height: 16px;
+  color: #909090;
+  text-wrap: balance;
+}
+
 /* ---------- Нижняя линия и подписи ---------- */
 .line {
   position: absolute;
@@ -231,6 +272,14 @@
   .logoName { gap: 5px; }
   .btnSupport { height: 50px; border-radius: 13px; }
   .policy, .supportTitle, .btnText, .supportNote, .copyright, .col2Item, .col1Item { font-size: 14px; line-height: 17px; }
+  /* колонка 2 здесь кончается на 388px, подпись колонки 3 — 17px */
+  .columnApp { left: calc(50% + 97px); bottom: 150px; }
+  .appBadgeRow { height: 50px; }
+  .appBadge { height: 40px; }
+}
+/* Заголовок в одну строку здесь не помещается между колонками 2 и 3 */
+@media (min-width: 769px) and (max-width: 860px) {
+  .columnApp { width: 120px; }
 }
 
 @media (max-width: 768px) {
@@ -244,8 +293,11 @@
     height: auto;
     padding: 20px 20px;
   }
-  .column1, .column2, .column3, .line, .bottomRow, .logoName {
+  .column1, .column2, .column3, .columnApp, .appleCredit, .line, .bottomRow, .logoName {
     position: static;
+  }
+  .columnApp {
+    transform: none;
   }
 
   .bottomRow {
