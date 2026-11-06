@@ -127,6 +127,11 @@
   padding-left: 24px;
 }
 
+/* Общие стили сайта убирают маркеры у маркированных списков */
+.content ul {
+  list-style: disc;
+}
+
 .content li {
   margin-bottom: 12px;
 }
