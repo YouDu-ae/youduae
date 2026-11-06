@@ -44,8 +44,8 @@ const run = async () => {
       INSERT INTO blog_articles (
         id, slug, category_id, title_ru, title_en,
         description_ru, description_en, content_ru, content_en,
-        image, read_time, author_name, keywords, featured, status
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
+        image, read_time, author_name, author_avatar, keywords, featured, status
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
       ON CONFLICT (slug) DO UPDATE SET
         category_id = EXCLUDED.category_id,
         title_ru = EXCLUDED.title_ru,
@@ -56,6 +56,8 @@ const run = async () => {
         content_en = EXCLUDED.content_en,
         image = EXCLUDED.image,
         read_time = EXCLUDED.read_time,
+        author_name = EXCLUDED.author_name,
+        author_avatar = EXCLUDED.author_avatar,
         keywords = EXCLUDED.keywords,
         featured = EXCLUDED.featured,
         status = EXCLUDED.status,
@@ -73,7 +75,8 @@ const run = async () => {
         trimHtml(article.content.en),
         article.image || '',
         article.readTime,
-        null,
+        article.author ? article.author.name : null,
+        article.author ? article.author.avatar || null : null,
         article.keywords,
         article.featured,
         article.status,
@@ -81,7 +84,7 @@ const run = async () => {
     );
 
     const check = await client.query(
-      `SELECT slug, status, featured, length(content_ru) AS ru_chars, length(content_en) AS en_chars
+      `SELECT slug, status, featured, author_name, length(content_ru) AS ru_chars, length(content_en) AS en_chars
        FROM blog_articles WHERE slug = $1`,
       [article.slug]
     );
