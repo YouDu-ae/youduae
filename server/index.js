@@ -41,6 +41,7 @@ const wellKnownRouter = require('./wellKnownRouter');
 const webmanifestResourceRoute = require('./resources/webmanifest');
 const robotsTxtRoute = require('./resources/robotsTxt');
 const sitemapResourceRoute = require('./resources/sitemap');
+const appPageRoute = require('./resources/appPage');
 const { getExtractors } = require('./importer');
 const renderer = require('./renderer');
 const dataLoader = require('./dataLoader');
@@ -242,6 +243,10 @@ app.use((err, req, res, next) => {
 
 // Server-side routes that do not render the application
 app.use('/api', apiRouter);
+
+// The redirect has to happen before rendering: on iPhone /app opens the App Store,
+// everyone else (including link previews) gets the page with its Open Graph tags.
+app.get('/app', appPageRoute);
 
 const noCacheHeaders = {
   'Cache-control': 'no-cache, no-store, must-revalidate',
