@@ -128,6 +128,7 @@ const BlogArticlePage = props => {
     <Page
       title={pageTitle}
       description={articleDescription}
+      author={article.author ? article.author.name : undefined}
       schema={[schemaData, breadcrumbSchema]}
       facebookImages={[{ url: blogCoverAbsoluteUrl(article) }]}
       twitterImages={[{ url: blogCoverAbsoluteUrl(article) }]}
@@ -176,6 +177,12 @@ const BlogArticlePage = props => {
                 <span className={css.metaReadTime}>
                   {article.readTime} {locale === 'ru' ? 'мин чтения' : 'min read'}
                 </span>
+                {article.author && (
+                  <span className={css.metaAuthor}>
+                    <span className={css.metaSeparator}>•</span>
+                    {article.author.name}
+                  </span>
+                )}
               </div>
             </div>
           </div>
@@ -193,7 +200,11 @@ const BlogArticlePage = props => {
                 <div className={css.authorCard}>
                   <div className={css.authorInfo}>
                     <div className={css.authorAvatar}>
-                      {article.author.name.charAt(0)}
+                      {article.author.avatar ? (
+                        <img src={article.author.avatar} alt="" className={css.authorAvatarImage} />
+                      ) : (
+                        article.author.name.charAt(0)
+                      )}
                     </div>
                     <div className={css.authorDetails}>
                       <div className={css.authorName}>
@@ -202,9 +213,11 @@ const BlogArticlePage = props => {
                           <span className={css.verifiedBadge}>✓</span>
                         )}
                       </div>
-                      <div className={css.authorSpecialty}>
-                        {article.author.specialty[locale] || article.author.specialty.ru}
-                      </div>
+                      {article.author.specialty && (
+                        <div className={css.authorSpecialty}>
+                          {article.author.specialty[locale] || article.author.specialty.ru}
+                        </div>
+                      )}
                       {article.author.rating && (
                         <div className={css.authorRating}>
                           ⭐ {article.author.rating}
