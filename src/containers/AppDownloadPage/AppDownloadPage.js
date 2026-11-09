@@ -14,7 +14,7 @@ import appStoreBadgeEn from '../../assets/app-store-badge-en.svg';
 import css from './AppDownloadPage.module.css';
 
 export const APP_STORE_URL = 'https://apps.apple.com/app/id6808781959';
-const COVER_PATH = '/static/blog/youdu-ios-app.jpg';
+const COVER_PATH = '/static/app/youdu-app-share.jpg';
 
 export const AppDownloadPageComponent = props => {
   const { scrollingDisabled } = props;
@@ -25,7 +25,7 @@ export const AppDownloadPageComponent = props => {
   const description = intl.formatMessage({ id: 'AppDownloadPage.description' });
   // Мессенджеры загружают картинку превью только по абсолютному адресу
   const previewImages = [
-    { url: `${config.marketplaceRootURL}${COVER_PATH}`, width: 1200, height: 630 },
+    { url: `${config.marketplaceRootURL}${COVER_PATH}`, width: 1024, height: 537 },
   ];
   const appStoreBadge = intl.locale === 'en' ? appStoreBadgeEn : appStoreBadgeRu;
 
@@ -40,7 +40,7 @@ export const AppDownloadPageComponent = props => {
       <LayoutSingleColumn topbar={<TopbarContainer />} footer={<FooterContainer />}>
         <div className={css.root}>
           <div className={css.content}>
-            <img className={css.cover} src={COVER_PATH} alt="" width="1200" height="630" />
+            <img className={css.cover} src={COVER_PATH} alt="" width="1024" height="537" />
             <h1 className={css.title}>
               <FormattedMessage id="AppDownloadPage.heading" />
             </h1>
