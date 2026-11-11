@@ -10,7 +10,7 @@
 .container {
   position: relative;
   width: 1200px;
-  height: 307px;
+  height: 327px;
   padding: 6px 10px;
   box-sizing: border-box;
 }
@@ -68,7 +68,7 @@
 .column1 {
   position: absolute;
   left: 0;
-  bottom: 121px;
+  bottom: 141px;
   display: flex;
   flex-direction: column;
   gap: 13px;
@@ -87,7 +87,7 @@
 .column2 {
   position: absolute;
   left: 306px;
-  bottom: 121px;
+  bottom: 141px;
   display: flex;
   flex-direction: column;
   gap: 13px;
@@ -106,7 +106,7 @@
 .column3 {
   position: absolute;
   right: 0;
-  bottom: 121px;
+  bottom: 141px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -171,11 +171,11 @@
 
 /* Приложение для iPhone. Стоит посередине между колонкой 2 (кончается на 452px)
    и колонкой 3 (194px у правого края); заголовок и значок — на уровне заголовка
-   и кнопки колонки 3: 121px + подпись 24px + отступ 12px. */
+   и кнопки колонки 3: 141px + подпись 24px + отступ 12px. */
 .columnApp {
   position: absolute;
   left: calc(50% + 129px);
-  bottom: 157px;
+  bottom: 177px;
   transform: translateX(-50%);
   display: flex;
   flex-direction: column;
@@ -220,11 +220,19 @@
   border-top: 1px solid #909090;
 }
 
-.bottomRow {
+/* Колонки привязаны к низу: если этот блок станет выше, на ту же величину
+   поднять height у .container и bottom у колонок */
+.bottomArea {
   position: absolute;
   bottom: 23px;
   left: 0;
   width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.bottomRow {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -260,6 +268,15 @@
   letter-spacing: -0.03em;
 }
 
+.legalInfo {
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  line-height: 16px;
+  color: #595959;
+  letter-spacing: -0.03em;
+  text-wrap: balance;
+}
+
 /* ---------- АДАПТИВ ---------- */
 @media (max-width: 1279px) {
   .container { display: flex; width: 100%; margin-left: 20px; margin-right: 20px;}
@@ -273,9 +290,10 @@
   .btnSupport { height: 50px; border-radius: 13px; }
   .policy, .supportTitle, .btnText, .supportNote, .copyright, .col2Item, .col1Item { font-size: 14px; line-height: 17px; }
   /* колонка 2 здесь кончается на 388px, подпись колонки 3 — 17px */
-  .columnApp { left: calc(50% + 97px); bottom: 150px; }
+  .columnApp { left: calc(50% + 97px); bottom: 170px; }
   .appBadgeRow { height: 50px; }
   .appBadge { height: 40px; }
+  .legalInfo { font-size: 12px; }
 }
 /* Заголовок в одну строку здесь не помещается между колонками 2 и 3 */
 @media (min-width: 769px) and (max-width: 860px) {
@@ -293,18 +311,21 @@
     height: auto;
     padding: 20px 20px;
   }
-  .column1, .column2, .column3, .columnApp, .appleCredit, .line, .bottomRow, .logoName {
+  .column1, .column2, .column3, .columnApp, .appleCredit, .line, .bottomArea, .logoName {
     position: static;
   }
   .columnApp {
     transform: none;
   }
 
+  .bottomArea {
+    gap: 8px;
+  }
+
   .bottomRow {
     flex-direction: column;
     align-items: flex-start;
     gap: 8px;
-    position: static;
   }
   
   .policyLinks {

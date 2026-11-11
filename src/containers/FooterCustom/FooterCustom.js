@@ -103,18 +103,23 @@ const FooterCustom = () => {
         <div className={css.line}></div>
 
         {/* Нижние строки */}
-        <div className={css.bottomRow}>
-          <div className={css.copyright}>
-            <FormattedMessage id="FooterCustom.copyright" values={{ year }} />
+        <div className={css.bottomArea}>
+          <div className={css.bottomRow}>
+            <div className={css.copyright}>
+              <FormattedMessage id="FooterCustom.copyright" values={{ year }} />
+            </div>
+            <div className={css.policyLinks}>
+              <NamedLink name="TermsOfServicePage" className={css.policy}>
+                <FormattedMessage id="FooterCustom.termsOfService" />
+              </NamedLink>
+              <span className={css.policySeparator}>|</span>
+              <NamedLink name="PrivacyPolicyPage" className={css.policy}>
+                <FormattedMessage id="FooterCustom.policy" />
+              </NamedLink>
+            </div>
           </div>
-          <div className={css.policyLinks}>
-            <NamedLink name="TermsOfServicePage" className={css.policy}>
-              <FormattedMessage id="FooterCustom.termsOfService" />
-            </NamedLink>
-            <span className={css.policySeparator}>|</span>
-            <NamedLink name="PrivacyPolicyPage" className={css.policy}>
-              <FormattedMessage id="FooterCustom.policy" />
-            </NamedLink>
+          <div className={css.legalInfo}>
+            <FormattedMessage id="FooterCustom.legalInfo" />
           </div>
         </div>
       </div>

@@ -21,7 +21,8 @@ const aboutIntroRu = `
 
 **География:** Дубай и другие эмираты ОАЭ.  
 **Языки интерфейса:** RU / EN (добавляем новые по мере роста).  
-**Контакты:** support@youdu.ae · info@youdu.ae
+**Контакты:** support@youdu.ae · info@youdu.ae  
+**Компания:** YOUDU DIGITAL PORTAL (Дубай, ОАЭ), лицензия Департамента экономики и туризма Дубая (DET) №\u00a01668069.
 
 ---
 
@@ -83,7 +84,8 @@ We are a technology platform, not a direct party to the contract between client 
 
 **Where we operate:** Dubai and other Emirates in the UAE.  
 **Interface languages:** RU / EN (more coming as we grow).  
-**Contacts:** support@youdu.ae · info@youdu.ae
+**Contacts:** support@youdu.ae · info@youdu.ae  
+**Company:** YOUDU DIGITAL PORTAL (Dubai, UAE), licensed by the Dubai Department of Economy and Tourism (DET), License No.\u00a01668069.
 
 ---
 
