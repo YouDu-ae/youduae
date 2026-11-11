@@ -18,7 +18,7 @@ module.exports = {
   readTime: 3,
   featured: true,
   status: 'published',
-  image: '/static/blog/youdu-ios-app.jpg',
+  image: '/static/blog/youdu-app-iphone.jpg',
   content: {
     ru: `
 <p>Приложение YouDu для iPhone вышло в App&nbsp;Store. Летом мы <a href="/blog/youdu-zapuskaet-mobilnoe-prilozhenie">писали</a>, что мобильная версия — главный приоритет этого года, и теперь найти мастера в Дубае можно прямо с телефона. Приложение бесплатное и пока работает только на русском языке.</p>
