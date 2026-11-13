@@ -4,6 +4,7 @@ import {
   findRouteByRouteName,
   canonicalRoutePath,
   replaceParamsInHref,
+  withoutTrackingParams,
 } from './routes';
 
 const layoutConfig = {
@@ -135,6 +136,29 @@ describe('util/routes.js', () => {
       expect(canonicalRoutePath(routes, location)).toEqual(
         '/l/00000000-0000-0000-0000-000000000000'
       );
+    });
+  });
+  describe('withoutTrackingParams', () => {
+    it('removes utm parameters and click ids', () => {
+      expect(withoutTrackingParams('/?utm_source=test')).toEqual('/');
+      expect(withoutTrackingParams('/app?utm_source=whatsapp&utm_medium=social')).toEqual('/app');
+      expect(withoutTrackingParams('/blog/a?gclid=1&fbclid=2&yclid=3&msclkid=4')).toEqual(
+        '/blog/a'
+      );
+    });
+    it('keeps other parameters, their encoding and the hash', () => {
+      expect(withoutTrackingParams('/s?utm_campaign=x&keywords=a%20b&page=2')).toEqual(
+        '/s?keywords=a%20b&page=2'
+      );
+      expect(withoutTrackingParams('/s?keywords=plumber&utm_source=tg#top')).toEqual(
+        '/s?keywords=plumber#top'
+      );
+      expect(withoutTrackingParams('/l/abc?utm_source=x#author')).toEqual('/l/abc#author');
+    });
+    it('returns paths without query string unchanged', () => {
+      expect(withoutTrackingParams('/p/about')).toEqual('/p/about');
+      expect(withoutTrackingParams('/p/about#team')).toEqual('/p/about#team');
+      expect(withoutTrackingParams('/s?keywords=utm_source')).toEqual('/s?keywords=utm_source');
     });
   });
   describe('replaceUserParamsInHref', () => {

@@ -126,6 +126,31 @@ export const canonicalRoutePath = (routes, location, pathOnly = false) => {
   return pathOnly ? pathname : `${pathname}${search}${hash}`;
 };
 
+const TRACKING_PARAM = /^(utm_[a-z0-9_]+|gclid|fbclid|yclid|msclkid)$/i;
+
+/**
+ * Remove ad campaign parameters (utm_*, click ids) from the query string of the given path.
+ * Other parameters keep their order and encoding.
+ *
+ * @param {String} path - path with optional query string and hash
+ *
+ * @return {String} path without tracking parameters
+ */
+export const withoutTrackingParams = path => {
+  const queryStart = path.indexOf('?');
+  if (queryStart === -1) {
+    return path;
+  }
+  const hashStart = path.indexOf('#', queryStart);
+  const queryEnd = hashStart === -1 ? path.length : hashStart;
+  const kept = path
+    .slice(queryStart + 1, queryEnd)
+    .split('&')
+    .filter(pair => pair && !TRACKING_PARAM.test(pair.split('=')[0]));
+  const query = kept.length ? `?${kept.join('&')}` : '';
+  return `${path.slice(0, queryStart)}${query}${path.slice(queryEnd)}`;
+};
+
 // Regex that replaces {userId}, {listingId} or {userEmail} in the href string
 // with URI encoded user email and ID
 export const replaceParamsInHref = (href, params) => {

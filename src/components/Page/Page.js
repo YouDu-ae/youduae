@@ -9,7 +9,7 @@ import { useRouteConfiguration } from '../../context/routeConfigurationContext';
 import { getCustomCSSPropertiesFromConfig } from '../../util/style';
 import { useIntl, intlShape } from '../../util/reactIntl';
 import { metaTagProps } from '../../util/seo';
-import { canonicalRoutePath } from '../../util/routes';
+import { canonicalRoutePath, withoutTrackingParams } from '../../util/routes';
 import { propTypes } from '../../util/types';
 import { apiBaseUrl } from '../../util/api';
 import { founderPerson } from '../../util/founder';
@@ -127,7 +127,9 @@ class PageComponent extends Component {
 
     const marketplaceRootURL = config.marketplaceRootURL;
     const shouldReturnPathOnly = referrer && referrer !== 'unsafe-url';
-    const canonicalPath = canonicalRoutePath(routeConfiguration, location, shouldReturnPathOnly);
+    const canonicalPath = withoutTrackingParams(
+      canonicalRoutePath(routeConfiguration, location, shouldReturnPathOnly)
+    );
     const canonicalUrl = `${marketplaceRootURL}${canonicalPath}`;
 
     const marketplaceName = config.marketplaceName;
