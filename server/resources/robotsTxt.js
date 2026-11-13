@@ -61,22 +61,26 @@ const cache = createCacheProxy(ttl);
 const fallbackRobotsTxt = `
 User-agent: *
 Disallow: /profile-settings
-Disallow: /l/new
+Disallow: /l/new$
 Disallow: /l/*/checkout
 Disallow: /l/*/draft
 Disallow: /l/*/pending-approval
 Disallow: /l/*/new
 Disallow: /l/*/edit
+Disallow: /listing-created
+Disallow: /post-from-draft
 Disallow: /inbox
 Disallow: /order
 Disallow: /sale
 Disallow: /listings
 Disallow: /account
+Disallow: /welcome
 Disallow: /reset-password
 Disallow: /verify-email
 Disallow: /preview
 Disallow: /styleguide
-Crawl-Delay: 5
+Disallow: /admin
+Disallow: /cdn-cgi/
 `;
 
 /**
