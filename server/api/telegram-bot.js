@@ -12,6 +12,7 @@ const fs = require('fs');
 const path = require('path');
 const sharetribeIntegrationSdk = require('sharetribe-flex-integration-sdk');
 const portfolioModeration = require('../api-util/portfolioModeration');
+const { normalizeArticleLinks } = require('../api-util/articleLinks');
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_ADMIN_CHAT_ID = process.env.TELEGRAM_ADMIN_CHAT_ID;
@@ -99,7 +100,10 @@ async function publishBlogPostFromTelegram(message) {
     
     const title = seoData.title;
     const description = seoData.description;
-    const content = seoData.content;
+    const content = {
+      ru: normalizeArticleLinks(seoData.content.ru),
+      en: normalizeArticleLinks(seoData.content.en),
+    };
     const keywords = seoData.keywords;
     
     const slug = slugify(title.ru) + '-' + Date.now().toString(36);
