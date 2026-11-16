@@ -323,6 +323,17 @@ const initDatabase = async () => {
         expires_at TIMESTAMPTZ NOT NULL
       );
 
+      -- One account per phone number. phone_key is a keyed hash of the
+      -- verified number. A row without user_id holds the number while its
+      -- account is being created, so two sign-ups with one number can't both
+      -- get through.
+      CREATE TABLE IF NOT EXISTS phone_accounts (
+        phone_key VARCHAR(64) PRIMARY KEY,
+        user_id VARCHAR(100),
+        claimed_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+      CREATE INDEX IF NOT EXISTS idx_phone_accounts_user ON phone_accounts (user_id);
+
       -- The latest message each person received in a deal, and the deal's
       -- current step: with their read marks, the unread count for the app's
       -- icon badge. The event poller writes a message here before its push
@@ -1302,6 +1313,51 @@ const countEmailOtpAttempt = async (challengeId, expiresAt) => {
   return result.rows[0].attempts;
 };
 
+/**
+ * Whether a phone number belongs to an account, or is held by a sign-up that
+ * is still under way.
+ */
+const isPhoneAccountTaken = async phoneKey => {
+  const result = await pool.query(
+    `SELECT 1 FROM phone_accounts
+     WHERE phone_key = $1
+       AND (user_id IS NOT NULL OR claimed_at > NOW() - INTERVAL '10 minutes')`,
+    [phoneKey]
+  );
+  return result.rows.length > 0;
+};
+
+/**
+ * Holds a phone number for the account about to be created with it. Returns
+ * false when the number is taken. A hold left by a sign-up that never finished
+ * lapses after ten minutes.
+ */
+const reservePhoneAccount = async phoneKey => {
+  const result = await pool.query(
+    `INSERT INTO phone_accounts (phone_key) VALUES ($1)
+     ON CONFLICT (phone_key) DO UPDATE SET claimed_at = NOW()
+     WHERE phone_accounts.user_id IS NULL
+       AND phone_accounts.claimed_at <= NOW() - INTERVAL '10 minutes'
+     RETURNING phone_key`,
+    [phoneKey]
+  );
+  return result.rows.length > 0;
+};
+
+const bindPhoneAccount = async (phoneKey, userId) => {
+  await pool.query('UPDATE phone_accounts SET user_id = $2 WHERE phone_key = $1', [
+    phoneKey,
+    userId,
+  ]);
+};
+
+/** Lets go of the hold of a failed sign-up. A number tied to an account stays. */
+const releasePhoneReservation = async phoneKey => {
+  await pool.query('DELETE FROM phone_accounts WHERE phone_key = $1 AND user_id IS NULL', [
+    phoneKey,
+  ]);
+};
+
 /** Brings a conversation back to the chat list of both parties. */
 const unhideConversationForAll = async transactionId => {
   const result = await pool.query('DELETE FROM hidden_conversations WHERE transaction_id = $1', [
@@ -1586,6 +1642,7 @@ const deleteUserLocalData = async userId => {
     await client.query('DELETE FROM voice_consents WHERE user_id = $1', [userId]);
     await client.query('DELETE FROM user_blocks WHERE blocker_id = $1 OR blocked_id = $1', [userId]);
     await client.query('DELETE FROM device_tokens WHERE user_id = $1', [userId]);
+    await client.query('DELETE FROM phone_accounts WHERE user_id = $1', [userId]);
     await client.query('DELETE FROM hidden_conversations WHERE user_id = $1', [userId]);
     // Rows naming the user as the other person stay: they are someone else's
     // choice, and dropping them would bring the history they deleted back.
@@ -1727,6 +1784,11 @@ module.exports = {
   getDeletedConversations,
   claimEmailOtpSend,
   countEmailOtpAttempt,
+  // One account per phone number
+  isPhoneAccountTaken,
+  reservePhoneAccount,
+  bindPhoneAccount,
+  releasePhoneReservation,
   // Unread count
   recordReceivedMessage,
   setReceivedMessageTransition,

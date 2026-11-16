@@ -256,8 +256,11 @@ export const AuthenticationForms = props => {
       lname,
       displayName,
       verifiedToken,
+      phoneVerifiedToken,
       phoneNumber,
       aiRecommendationsConsent,
+      emailOtpCode,
+      phoneOtpCode,
       ...rest
     } = values;
 
@@ -268,7 +271,7 @@ export const AuthenticationForms = props => {
       .toLowerCase();
 
     // Verify email OTP before proceeding
-    if (!verifiedToken) {
+    if (!verifiedToken && !phoneVerifiedToken) {
       log.error(new Error('signup without verifiedToken'), 'signup-otp-missing', {
         email: normalizedEmail,
       });
@@ -278,28 +281,31 @@ export const AuthenticationForms = props => {
       return;
     }
 
-    try {
-      const verificationResult = await assertEmailVerified({ verifiedToken });
-      const tokenEmail = verificationResult?.email
-        ? String(verificationResult.email).trim().toLowerCase()
-        : null;
-      if (!verificationResult.verified || tokenEmail !== normalizedEmail) {
-        log.error(new Error('signup otp assert mismatch'), 'signup-otp-assert-failed', {
-          email: normalizedEmail,
-          tokenEmail,
-        });
+    // A phone-verified sign-up is checked by the server when the account is created.
+    if (!phoneVerifiedToken) {
+      try {
+        const verificationResult = await assertEmailVerified({ verifiedToken });
+        const tokenEmail = verificationResult?.email
+          ? String(verificationResult.email).trim().toLowerCase()
+          : null;
+        if (!verificationResult.verified || tokenEmail !== normalizedEmail) {
+          log.error(new Error('signup otp assert mismatch'), 'signup-otp-assert-failed', {
+            email: normalizedEmail,
+            tokenEmail,
+          });
+          setEmailVerificationError(
+            intl.formatMessage({ id: 'AuthenticationPage.emailVerificationFailed' })
+          );
+          return;
+        }
+      } catch (error) {
+        console.error('Email verification assertion failed:', error);
+        log.error(error, 'signup-otp-assert-failed', { email: normalizedEmail });
         setEmailVerificationError(
           intl.formatMessage({ id: 'AuthenticationPage.emailVerificationFailed' })
         );
         return;
       }
-    } catch (error) {
-      console.error('Email verification assertion failed:', error);
-      log.error(error, 'signup-otp-assert-failed', { email: normalizedEmail });
-      setEmailVerificationError(
-        intl.formatMessage({ id: 'AuthenticationPage.emailVerificationFailed' })
-      );
-      return;
     }
 
     // Sharetribe требует displayName в профиле. В hosted-конфигурации поле может быть скрыто,
@@ -352,7 +358,7 @@ export const AuthenticationForms = props => {
     }
 
     const params = {
-      verifiedToken,
+      ...(phoneVerifiedToken ? { phoneVerifiedToken } : { verifiedToken }),
       email: normalizedEmail,
       password,
       firstName: normalizedFirstName,

@@ -3,7 +3,13 @@ import '@testing-library/jest-dom';
 
 import { renderWithProviders as render, testingLibrary } from '../../../util/testHelpers';
 import { fakeIntl } from '../../../util/testData';
-import { sendEmailOtp, verifyEmailOtp } from '../../../util/api';
+import {
+  sendEmailOtp,
+  verifyEmailOtp,
+  getPhoneSignupConfig,
+  sendPhoneOtp,
+  verifyPhoneOtp,
+} from '../../../util/api';
 
 import TermsAndConditions from '../TermsAndConditions/TermsAndConditions';
 import SignupForm from './SignupForm';
@@ -11,6 +17,9 @@ import SignupForm from './SignupForm';
 jest.mock('../../../util/api', () => ({
   sendEmailOtp: jest.fn(),
   verifyEmailOtp: jest.fn(),
+  getPhoneSignupConfig: jest.fn(),
+  sendPhoneOtp: jest.fn(),
+  verifyPhoneOtp: jest.fn(),
 }));
 
 const { screen, fireEvent, userEvent, waitFor } = testingLibrary;
@@ -121,6 +130,7 @@ describe('SignupForm', () => {
   // (re)installed for every test rather than in the module factory.
   beforeEach(() => {
     sendEmailOtp.mockResolvedValue({ challengeToken: 'challenge-token' });
+    getPhoneSignupConfig.mockResolvedValue({ enabled: false });
   });
 
   const selectSellerAndFillForm = async ({ skipTerms = false } = {}) => {
@@ -294,5 +304,103 @@ describe('SignupForm', () => {
 
     // Don't show user fields that are limited to user types – SignupForm does not support user types yet!
     expect(screen.queryByText('Enum Field 2')).toBeNull();
+  });
+
+  describe('with phone sign-up on', () => {
+    beforeEach(() => {
+      getPhoneSignupConfig.mockResolvedValue({ enabled: true, smsCountryCode: '+971' });
+      sendPhoneOtp.mockResolvedValue({
+        challengeToken: 'phone-challenge',
+        phoneNumber: '+971501234567',
+      });
+    });
+
+    const renderPhoneSignup = (onSubmit = noop) =>
+      render(
+        <SignupForm
+          intl={fakeIntl}
+          termsAndConditions={termsAndConditions}
+          userTypes={userTypes}
+          userFields={userFields}
+          onSubmit={onSubmit}
+        />
+      );
+
+    const fillFormWithPhone = async phoneNumber => {
+      await selectSellerAndFillForm();
+      userEvent.type(
+        await screen.findByRole('textbox', { name: 'SignupForm.phoneNumberLabel' }),
+        phoneNumber
+      );
+    };
+
+    it('sends the code to WhatsApp instead of the email', async () => {
+      renderPhoneSignup();
+      await fillFormWithPhone('+971501234567');
+
+      fireEvent.click(screen.getByRole('button', { name: 'SignupForm.sendCodeWhatsApp' }));
+
+      await waitFor(() => {
+        expect(sendPhoneOtp).toHaveBeenCalledWith(
+          expect.objectContaining({ phoneNumber: '+971501234567', channel: 'whatsapp' })
+        );
+      });
+      expect(sendEmailOtp).not.toHaveBeenCalled();
+      expect(await screen.findByText('SignupForm.phoneOtpSentWhatsApp')).toBeInTheDocument();
+    });
+
+    it('offers SMS to UAE mobile numbers', async () => {
+      renderPhoneSignup();
+      await fillFormWithPhone('+971501234567');
+
+      fireEvent.click(await screen.findByRole('button', { name: 'SignupForm.sendCodeSms' }));
+
+      await waitFor(() => {
+        expect(sendPhoneOtp).toHaveBeenCalledWith(expect.objectContaining({ channel: 'sms' }));
+      });
+    });
+
+    it('does not offer SMS to numbers outside the UAE', async () => {
+      renderPhoneSignup();
+      await fillFormWithPhone('+79161234567');
+
+      await screen.findByRole('button', { name: 'SignupForm.sendCodeWhatsApp' });
+      expect(screen.queryByRole('button', { name: 'SignupForm.sendCodeSms' })).toBeNull();
+    });
+
+    it('says when the number already has an account', async () => {
+      sendPhoneOtp.mockRejectedValue(Object.assign(new Error(), { error: 'phoneTaken' }));
+      renderPhoneSignup();
+      await fillFormWithPhone('+971501234567');
+
+      fireEvent.click(screen.getByRole('button', { name: 'SignupForm.sendCodeWhatsApp' }));
+
+      expect(await screen.findByText('SignupForm.phoneOtpPhoneTaken')).toBeInTheDocument();
+    });
+
+    it('signs up with the verified number once the code is right', async () => {
+      verifyPhoneOtp.mockResolvedValue({ verifiedToken: 'phone-verified-token' });
+      const onSubmit = jest.fn();
+      renderPhoneSignup(onSubmit);
+      await fillFormWithPhone('+971501234567');
+
+      fireEvent.click(screen.getByRole('button', { name: 'SignupForm.sendCodeWhatsApp' }));
+      userEvent.type(
+        await screen.findByRole('textbox', { name: 'SignupForm.emailOtpCodeLabel' }),
+        '123456'
+      );
+      fireEvent.click(screen.getByRole('button', { name: 'SignupForm.verifyCode' }));
+
+      await waitFor(() => {
+        expect(onSubmit).toHaveBeenCalled();
+      });
+      expect(verifyPhoneOtp).toHaveBeenCalledWith({
+        challengeToken: 'phone-challenge',
+        code: '123456',
+      });
+      expect(onSubmit.mock.calls[0][0]).toEqual(
+        expect.objectContaining({ phoneVerifiedToken: 'phone-verified-token' })
+      );
+    });
   });
 });

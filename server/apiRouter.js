@@ -73,6 +73,7 @@ const createUser = require('./api/auth/createUser');
 const login = require('./api/auth/login');
 const mobileIdp = require('./api/auth/mobile-idp');
 const { sendEmailOtp, verifyEmailOtp, assertEmailVerified } = require('./api/email-otp');
+const { phoneSignupConfig, sendPhoneOtp, verifyPhoneOtp } = require('./api/phone-otp');
 
 const { authenticateFacebook, authenticateFacebookCallback } = require('./api/auth/facebook');
 const { authenticateGoogle, authenticateGoogleCallback } = require('./api/auth/google');
@@ -236,6 +237,11 @@ router.get('/conversations/unread', requireUser, conversations.getUnread);
 router.post('/otp/email/send', writeLimiter, sendEmailOtp);
 router.post('/otp/email/verify', verifyEmailOtp);
 router.post('/otp/email/assert', assertEmailVerified);
+
+// Phone OTP for sign-up: WhatsApp, or SMS to UAE numbers, via Twilio Verify
+router.get('/otp/phone/config', phoneSignupConfig);
+router.post('/otp/phone/send', writeLimiter, sendPhoneOtp);
+router.post('/otp/phone/verify', writeLimiter, verifyPhoneOtp);
 
 // Create user with identity provider (e.g. Facebook or Google)
 // This endpoint is called to create a new user after user has confirmed

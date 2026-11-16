@@ -48,6 +48,10 @@
   composes: marketplaceModalBottomWrapper from global;
 }
 
+.smsButton {
+  margin-top: 12px;
+}
+
 .emailOtpContainer {
   margin-top: 12px;
   padding: 16px;

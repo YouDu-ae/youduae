@@ -332,6 +332,26 @@ export const assertEmailVerified = ({ verifiedToken }) => {
   });
 };
 
+// Phone OTP for sign-up. The server decides whether the signup form asks for a
+// phone code instead of an email code; see `server/api/phone-otp.js`.
+export const getPhoneSignupConfig = ({ preview } = {}) => {
+  return get(`/api/otp/phone/config${preview ? '?preview=1' : ''}`, {
+    headers: { 'Content-Type': 'application/json' },
+  });
+};
+
+export const sendPhoneOtp = ({ phoneNumber, channel, locale }) => {
+  return post('/api/otp/phone/send', { phoneNumber, channel, locale }, {
+    headers: { 'Content-Type': 'application/json' },
+  });
+};
+
+export const verifyPhoneOtp = ({ challengeToken, code }) => {
+  return post('/api/otp/phone/verify', { challengeToken, code }, {
+    headers: { 'Content-Type': 'application/json' },
+  });
+};
+
 // Get platform-wide statistics (total completed tasks and total sum in AED)
 export const getPlatformStats = () => {
   return get('/api/platform-stats', {
